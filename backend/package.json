@@ -1,12 +1,11 @@
 {
-  "name": "extraplus-backend",
-  "version": "1.0.0",
+  "name": "extraplus-root",
   "private": true,
   "scripts": {
     "build": "cd backend && npm install && npm run build",
     "start": "node backend/dist/main.js",
     "start:prod": "node backend/dist/main.js"
-  }
+  },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
     "@nestjs/core": "^10.0.0",
