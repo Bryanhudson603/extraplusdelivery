@@ -1,18 +1,11 @@
 {
   "name": "extraplus-backend",
   "version": "1.0.0",
-<<<<<<< HEAD
-  "main": "dist/main.js",
-  "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "start:prod": "node dist/main.js",
-=======
   "private": true,
   "main": "dist/main.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/main.ts",
     "start": "node dist/main.js",
->>>>>>> 6fa019d (sync-full-project)
     "start:dev": "ts-node-dev --respawn --transpile-only src/main.ts",
     "start:prod": "node dist/main.js",
     "build": "nest build",
