@@ -13,7 +13,7 @@
   "private": true,
   "scripts": {
     "build": "cd backend && npm install && npm run build",
-    "start": "node backend/dist/main.js"
+    "start": "node dist/main.js",
   }
 }
 >>>>>>> 16f40bfa79a7252f73034d47dacd0e8ac00790b2
