@@ -3,9 +3,9 @@
   "private": true,
   "scripts": {
     "build:backend": "cd backend && npm install && npm run build",
-    "build": "tsc -p tsconfig.json",
+    "build": "nest build",
     "start": "node backend/dist/main.js",
-    "start:prod": "node backend/dist/main.js",
+    "start:prod": "node dist/main.js",
     "start:dev": "ts-node-dev --respawn --transpile-only src/main.ts",
     "lint": "eslint \"src/**/*.ts\" || exit 0"
   },
