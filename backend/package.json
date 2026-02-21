@@ -2,11 +2,11 @@
   "name": "extraplus-root",
   "private": true,
   "scripts": {
-    "build": "cd backend && npm install && npm run build",
+    "build:backend": "cd backend && npm install && npm run build",
+    "build": "tsc -p tsconfig.json",
     "start": "node backend/dist/main.js",
     "start:prod": "node backend/dist/main.js",
     "start:dev": "ts-node-dev --respawn --transpile-only src/main.ts",
-    "build": "tsc -p tsconfig.json",
     "lint": "eslint \"src/**/*.ts\" || exit 0"
   },
   "dependencies": {
