@@ -3,10 +3,10 @@
   "version": "1.0.0",
   "private": true,
   "main": "dist/main.js",
-  "scripts": {
-    "build": "nest build",
-    "start:dev": "ts-node-dev --respawn --transpile-only src/main.ts",
-    "start:prod": "node dist/main.js"
+  "scripts": { 
+    "build": "nest build", 
+    "start": "node dist/main.js", 
+    "start:dev": "nest start --watch"
   },
   "dependencies": {
     "@nestjs/common": "^10.0.0",
