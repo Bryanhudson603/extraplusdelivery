@@ -39,3 +39,10 @@ export const api = {
     });
   }
 };
+
+export async function checkBackend(): Promise<void> {
+  const apiUrl = process.env.NEXT_PUBLIC_API_URL || API_BASE_URL;
+  const res = await fetch(`${apiUrl}/api/health`);
+  const data = await res.json();
+  console.log(data);
+}
