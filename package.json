@@ -2,7 +2,9 @@
   "name": "extraplus-root",
   "private": true,
   "scripts": {
-    "build": "cd backend && npm install && npm run build",
-    "start": "cd backend && npm run start:prod"
+    "backend:build": "cd backend && npm install && npm run build",
+    "backend:start": "cd backend && npm run start",
+    "frontend:build": "cd frontend && npm install && npm run build",
+    "frontend:start": "cd frontend && npm run start"
   }
 }
