@@ -209,24 +209,30 @@ export default function AdminOrdersPage() {
                       <p className="text-amber-400 font-bold text-lg">
                         R$ {order.total.toFixed(2)}
                       </p>
-                      {entregadores.length > 0 && order.status === 'confirmado' && (
+                      {order.status === 'confirmado' && (
                         <div className="mt-2">
-                          <select
-                            value={order.entregadorId || ''}
-                            onChange={e => {
-                              const id = e.target.value;
-                              if (!id) return;
-                              vincularEntregador(order.id, id);
-                            }}
-                            className="w-full h-8 rounded-lg bg-zinc-950 border border-zinc-700 px-2 text-[11px] text-zinc-100 outline-none"
-                          >
-                            <option value="">Vincular entregador...</option>
-                            {entregadores.map(e => (
-                              <option key={e.id} value={e.id}>
-                                {e.nome}
-                              </option>
-                            ))}
-                          </select>
+                          {entregadores.length === 0 ? (
+                            <p className="text-[11px] text-zinc-500">
+                              Cadastre entregadores em Configurações &gt; Entregadores para vincular pedidos.
+                            </p>
+                          ) : (
+                            <select
+                              value={order.entregadorId || ''}
+                              onChange={e => {
+                                const id = e.target.value;
+                                if (!id) return;
+                                vincularEntregador(order.id, id);
+                              }}
+                              className="w-full h-8 rounded-lg bg-zinc-950 border border-zinc-700 px-2 text-[11px] text-zinc-100 outline-none"
+                            >
+                              <option value="">Vincular entregador...</option>
+                              {entregadores.map(e => (
+                                <option key={e.id} value={e.id}>
+                                  {e.nome}
+                                </option>
+                              ))}
+                            </select>
+                          )}
                         </div>
                       )}
                       {!isFinal && (
@@ -271,24 +277,22 @@ export default function AdminOrdersPage() {
                               Confirmar separação
                             </button>
                           ) : order.status === 'confirmado' ? (
-                            order.entregadorId ? (
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  await api.post<BackendOrder>(`/pedidos/${order.id}/status`, {
-                                    status: 'saiu_para_entrega'
-                                  });
-                                  setOrders(prev =>
-                                    prev.map(o =>
-                                      o.id === order.id ? { ...o, status: 'saiu_para_entrega' } : o
-                                    )
-                                  );
-                                }}
-                                className="px-3 h-8 rounded-lg bg-purple-500 text-xs font-semibold text-white"
-                              >
-                                Saiu para entrega
-                              </button>
-                            ) : null
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                await api.post<BackendOrder>(`/pedidos/${order.id}/status`, {
+                                  status: 'saiu_para_entrega'
+                                });
+                                setOrders(prev =>
+                                  prev.map(o =>
+                                    o.id === order.id ? { ...o, status: 'saiu_para_entrega' } : o
+                                  )
+                                );
+                              }}
+                              className="px-3 h-8 rounded-lg bg-purple-500 text-xs font-semibold text-white"
+                            >
+                              Saiu para entrega
+                            </button>
                           ) : order.status === 'saiu_para_entrega' ? (
                             <button
                               type="button"

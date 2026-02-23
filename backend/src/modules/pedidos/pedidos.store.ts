@@ -3,6 +3,7 @@ export type TipoEntrega = 'delivery' | 'retirada';
 export type PedidoStatus =
   | 'aguardando_pagamento'
   | 'recebido'
+  | 'em_separacao'
   | 'confirmado'
   | 'saiu_para_entrega'
   | 'finalizado'
