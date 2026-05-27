@@ -1,7 +1,8 @@
-const CACHE_NAME = 'extraplus-cache-v3';
+const CACHE_NAME = 'extraplus-cache-v4';
 const OFFLINE_URLS = ['/', '/home', '/catalog', '/login'];
 
 self.addEventListener('install', event => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then(cache => {
       return cache.addAll(OFFLINE_URLS);
@@ -22,6 +23,7 @@ self.addEventListener('activate', event => {
       )
     )
   );
+  self.clients.claim();
 });
 
 self.addEventListener('fetch', event => {
