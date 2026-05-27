@@ -6,6 +6,9 @@ export function PwaInstaller() {
   useEffect(() => {
     if (typeof window === 'undefined' || typeof navigator === 'undefined') return;
     if (!('serviceWorker' in navigator)) return;
+    const hostname = window.location.hostname;
+    const isVercelPreview = hostname.endsWith('.vercel.app') && hostname !== 'extraplusdelivery.vercel.app';
+    if (isVercelPreview) return;
     if (process.env.NODE_ENV !== 'production') {
       navigator.serviceWorker.getRegistrations().then(regs => {
         regs.forEach(r => r.unregister());

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'extraplus-cache-v2';
+const CACHE_NAME = 'extraplus-cache-v3';
 const OFFLINE_URLS = ['/', '/home', '/catalog', '/login'];
 
 self.addEventListener('install', event => {

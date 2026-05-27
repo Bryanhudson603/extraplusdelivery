@@ -20,14 +20,8 @@ export const API_BASE_URL = (() => {
       }
       return env;
     }
-
-    const hostname = window.location.hostname;
-    if (hostname === 'localhost' || hostname === '127.0.0.1' || isIp(hostname)) {
-      return `http://${hostname}:3000`;
-    }
-    const protocol = window.location.protocol;
-    return `${protocol}//${hostname}:3000`;
+    return '';
   }
 
-  return env || 'http://localhost:3000';
+  return env || process.env.BACKEND_URL || 'http://localhost:3000';
 })();

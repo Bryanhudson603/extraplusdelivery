@@ -13,10 +13,11 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
+  const enablePwa = process.env.VERCEL_ENV === 'production';
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
-        <link rel="manifest" href="/manifest.webmanifest" />
+        {enablePwa ? <link rel="manifest" href="/manifest.webmanifest" /> : null}
         <meta name="theme-color" content="#EA1D2C" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </head>
