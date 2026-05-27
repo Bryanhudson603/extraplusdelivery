@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { HealthModule } from './modules/health/health.module';
 import { CatalogoModule } from './modules/catalogo/catalogo.module';
 import { AdminModule } from './modules/admin/admin.module';
 import { PedidosModule } from './modules/pedidos/pedidos.module';
@@ -41,7 +40,6 @@ function createDatabaseModule() {
 @Module({
   imports: [
     ...createDatabaseModule(),
-    HealthModule,
     CatalogoModule,
     AdminModule,
     PedidosModule,
