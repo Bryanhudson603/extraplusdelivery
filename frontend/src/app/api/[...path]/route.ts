@@ -59,8 +59,30 @@ async function proxy(request: Request, params: { path: string[] }) {
     );
   }
 
+  const upstreamContentType = upstream.headers.get('content-type') || '';
+  if (upstreamContentType.includes('application/json')) {
+    const raw = await upstream.text();
+    if (!raw.trim()) {
+      return NextResponse.json(null, { status: upstream.status });
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      return NextResponse.json(parsed, { status: upstream.status });
+    } catch (e) {
+      return NextResponse.json(
+        {
+          error: 'Upstream retornou JSON inválido',
+          detail: e instanceof Error ? e.message : String(e),
+          status: upstream.status,
+          targetUrl,
+          body: raw.slice(0, 500)
+        },
+        { status: 502 }
+      );
+    }
+  }
+
   const responseHeaders = new Headers(upstream.headers);
-  responseHeaders.delete('content-encoding');
 
   return new NextResponse(upstream.body, {
     status: upstream.status,

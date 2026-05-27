@@ -40,7 +40,16 @@ export default function PlatformLoginPage() {
       } else if (e instanceof ApiError) {
         if (typeof e.payload === 'object' && e.payload && 'message' in (e.payload as any)) {
           const msg = (e.payload as any).message;
-          setErro(Array.isArray(msg) ? msg.join(', ') : String(msg));
+          const detail = (e.payload as any).detail;
+          const bodySnippet = (e.payload as any).body;
+          const base = Array.isArray(msg) ? msg.join(', ') : String(msg);
+          const extra = [
+            typeof detail === 'string' && detail.trim() ? detail.trim() : null,
+            typeof bodySnippet === 'string' && bodySnippet.trim() ? bodySnippet.trim() : null
+          ]
+            .filter(Boolean)
+            .join(' | ');
+          setErro(extra ? `${base} | ${extra}` : base);
         } else if (typeof e.payload === 'string' && e.payload.trim()) {
           setErro(e.payload);
         } else {
