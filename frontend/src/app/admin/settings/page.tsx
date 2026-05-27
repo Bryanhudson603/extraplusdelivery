@@ -74,16 +74,16 @@ export default function AdminSettingsPage() {
       const raw = window.localStorage.getItem('extraplus-store');
       if (raw) {
         const parsed = JSON.parse(raw);
-        setNomeLoja(parsed.name || parsed.nome || 'PC Bebidas');
+        setNomeLoja(parsed.name || parsed.nome || 'Dilbebidas');
         setTelefoneLoja(parsed.phone || '');
         setEnderecoLoja(parsed.address || '');
         setHoraAbertura(parsed.horaAbertura || '');
         setHoraFechamento(parsed.horaFechamento || '');
       } else {
-        setNomeLoja('PC Bebidas');
+        setNomeLoja('Dilbebidas');
       }
     } catch {
-      setNomeLoja('PC Bebidas');
+      setNomeLoja('Dilbebidas');
     }
 
     try {
@@ -326,21 +326,21 @@ export default function AdminSettingsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-950 p-4 sm:p-6">
+    <main className="min-h-screen bg-gray-50 dark:bg-zinc-950 p-4 sm:p-6">
       <div className="max-w-5xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => router.push('/admin')}
-              className="text-xs text-zinc-400 hover:text-amber-400"
+              className="text-xs text-gray-600 hover:text-amber-600 dark:text-zinc-400 dark:hover:text-amber-400"
             >
               ← Voltar
             </button>
             <div>
-              <h1 className="text-2xl font-bold text-white">Configurações</h1>
-              <p className="text-xs text-zinc-500">
-                Ajustes da loja PC Bebidas e preferências do painel.
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Configurações</h1>
+              <p className="text-xs text-gray-600 dark:text-zinc-500">
+                Ajustes da loja Dilbebidas e preferências do painel.
               </p>
             </div>
           </div>
@@ -350,21 +350,21 @@ export default function AdminSettingsPage() {
           <button
             type="button"
             onClick={() => setLojaAberta(true)}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-4 text-left"
+            className="w-full rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 p-4 text-left"
           >
-            <h2 className="text-sm font-semibold text-white mb-1">Dados da loja</h2>
-            <p className="text-xs text-zinc-500">
-              Editar nome, telefone, endereço e horários da PC Bebidas.
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Dados da loja</h2>
+            <p className="text-xs text-gray-600 dark:text-zinc-500">
+              Editar nome, telefone, endereço e horários da Dilbebidas.
             </p>
           </button>
 
           <button
             type="button"
             onClick={() => setHorariosAbertos(true)}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-4 text-left"
+            className="w-full rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 p-4 text-left"
           >
-            <h2 className="text-sm font-semibold text-white mb-1">Horários</h2>
-            <p className="text-xs text-zinc-500">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Horários</h2>
+            <p className="text-xs text-gray-600 dark:text-zinc-500">
               Definir horário de funcionamento por dia da semana.
             </p>
           </button>
@@ -372,10 +372,10 @@ export default function AdminSettingsPage() {
           <button
             type="button"
             onClick={() => setFidelidadeAberta(true)}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-4 text-left"
+            className="w-full rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 p-4 text-left"
           >
-            <h2 className="text-sm font-semibold text-white mb-1">Fidelidade</h2>
-            <p className="text-xs text-zinc-500">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Fidelidade</h2>
+            <p className="text-xs text-gray-600 dark:text-zinc-500">
               Definir pontos, cashback e valor mínimo para premiações.
             </p>
           </button>
@@ -383,10 +383,10 @@ export default function AdminSettingsPage() {
           <button
             type="button"
             onClick={() => setCuponsAbertos(true)}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-4 text-left"
+            className="w-full rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 p-4 text-left"
           >
-            <h2 className="text-sm font-semibold text-white mb-1">Cupons</h2>
-            <p className="text-xs text-zinc-500">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Cupons</h2>
+            <p className="text-xs text-gray-600 dark:text-zinc-500">
               Criar cupons com período de validade e limite por cliente.
             </p>
           </button>
@@ -394,10 +394,10 @@ export default function AdminSettingsPage() {
           <button
             type="button"
             onClick={() => setEntregadoresAbertos(true)}
-            className="w-full rounded-xl border border-zinc-800 bg-zinc-900 p-4 text-left"
+            className="w-full rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 p-4 text-left"
           >
-            <h2 className="text-sm font-semibold text-white mb-1">Entregadores</h2>
-            <p className="text-xs text-zinc-500">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Entregadores</h2>
+            <p className="text-xs text-gray-600 dark:text-zinc-500">
               Cadastrar entregadores para vincular aos pedidos.
             </p>
           </button>
@@ -410,17 +410,17 @@ export default function AdminSettingsPage() {
             className="fixed inset-0 bg-black/60 z-40"
             onClick={() => setLojaAberta(false)}
           />
-          <div className="fixed inset-x-0 bottom-0 max-w-5xl mx-auto bg-zinc-900 border-t border-zinc-800 rounded-t-2xl z-50">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+          <div className="fixed inset-x-0 bottom-0 max-w-5xl mx-auto bg-white border-t border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-t-2xl z-50">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-zinc-800">
               <div>
-                <div className="text-sm font-semibold text-white">Configurações da loja</div>
-                <p className="text-[11px] text-zinc-500">
+                <div className="text-sm font-semibold text-gray-900 dark:text-white">Configurações da loja</div>
+                <p className="text-[11px] text-gray-600 dark:text-zinc-500">
                   Essas informações aparecem para o cliente no app.
                 </p>
               </div>
               <button
                 type="button"
-                className="text-xs text-zinc-400"
+                className="text-xs text-gray-600 dark:text-zinc-400"
                 onClick={() => setLojaAberta(false)}
               >
                 Fechar
@@ -429,48 +429,48 @@ export default function AdminSettingsPage() {
             <div className="px-4 py-3 space-y-3 max-h-96 overflow-y-auto">
               <div className="grid sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Nome da loja</label>
+                  <label className="block text-xs text-gray-600 dark:text-zinc-400 mb-1">Nome da loja</label>
                   <input
                     value={nomeLoja}
                     onChange={e => setNomeLoja(e.target.value)}
-                    className="w-full h-10 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-sm text-zinc-100 outline-none"
-                    placeholder="PC Bebidas"
+                    className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
+                    placeholder="Dilbebidas"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Telefone</label>
+                  <label className="block text-xs text-gray-600 dark:text-zinc-400 mb-1">Telefone</label>
                   <input
                     value={telefoneLoja}
                     onChange={e => setTelefoneLoja(e.target.value)}
-                    className="w-full h-10 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-sm text-zinc-100 outline-none"
+                    className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
                     placeholder="(82) 99999-9999"
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-xs text-zinc-400 mb-1">Endereço</label>
+                  <label className="block text-xs text-gray-600 dark:text-zinc-400 mb-1">Endereço</label>
                   <input
                     value={enderecoLoja}
                     onChange={e => setEnderecoLoja(e.target.value)}
-                    className="w-full h-10 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-sm text-zinc-100 outline-none"
+                    className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
                     placeholder="Rua, número, bairro"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Horário de abertura</label>
+                  <label className="block text-xs text-gray-600 dark:text-zinc-400 mb-1">Horário de abertura</label>
                   <input
                     type="time"
                     value={horaAbertura}
                     onChange={e => setHoraAbertura(e.target.value)}
-                    className="w-full h-10 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-sm text-zinc-100 outline-none"
+                    className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Horário de fechamento</label>
+                  <label className="block text-xs text-gray-600 dark:text-zinc-400 mb-1">Horário de fechamento</label>
                   <input
                     type="time"
                     value={horaFechamento}
                     onChange={e => setHoraFechamento(e.target.value)}
-                    className="w-full h-10 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-sm text-zinc-100 outline-none"
+                    className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
                   />
                 </div>
               </div>
@@ -498,17 +498,17 @@ export default function AdminSettingsPage() {
             className="fixed inset-0 bg-black/60 z-40"
             onClick={() => setHorariosAbertos(false)}
           />
-          <div className="fixed inset-x-0 bottom-0 max-w-5xl mx-auto bg-zinc-900 border-t border-zinc-800 rounded-t-2xl z-50">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+          <div className="fixed inset-x-0 bottom-0 max-w-5xl mx-auto bg-white border-t border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-t-2xl z-50">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-zinc-800">
               <div>
-                <div className="text-sm font-semibold text-white">Horário de funcionamento</div>
-                <p className="text-[11px] text-zinc-500">
+                <div className="text-sm font-semibold text-gray-900 dark:text-white">Horário de funcionamento</div>
+                <p className="text-[11px] text-gray-600 dark:text-zinc-500">
                   Configure os horários por dia da semana.
                 </p>
               </div>
               <button
                 type="button"
-                className="text-xs text-zinc-400"
+                className="text-xs text-gray-600 dark:text-zinc-400"
                 onClick={() => setHorariosAbertos(false)}
               >
                 Fechar
@@ -519,33 +519,33 @@ export default function AdminSettingsPage() {
                 {horarios.map((h, index) => (
                   <div
                     key={h.dia}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-zinc-800 px-3 py-2"
+                    className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 dark:border-zinc-800 px-3 py-2"
                   >
-                    <div className="w-28 text-sm font-semibold text-white">{h.nome}</div>
+                    <div className="w-28 text-sm font-semibold text-gray-900 dark:text-white">{h.nome}</div>
                     <div className="flex items-center gap-2">
                       <input
                         type="time"
                         value={h.abre}
                         onChange={e => atualizarHorarioHora(index, 'abre', e.target.value)}
                         disabled={h.fechado}
-                        className="h-9 rounded-lg bg-zinc-950 border border-zinc-700 px-2 text-sm text-zinc-100 outline-none"
+                        className="h-9 rounded-lg bg-white border border-gray-300 px-2 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
                       />
-                      <span className="text-[11px] text-zinc-500">às</span>
+                      <span className="text-[11px] text-gray-600 dark:text-zinc-500">às</span>
                       <input
                         type="time"
                         value={h.fecha}
                         onChange={e => atualizarHorarioHora(index, 'fecha', e.target.value)}
                         disabled={h.fechado}
-                        className="h-9 rounded-lg bg-zinc-950 border border-zinc-700 px-2 text-sm text-zinc-100 outline-none"
+                        className="h-9 rounded-lg bg-white border border-gray-300 px-2 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
                       />
                     </div>
-                    <label className="flex items-center gap-1 text-[11px] text-zinc-400">
+                    <label className="flex items-center gap-1 text-[11px] text-gray-600 dark:text-zinc-400">
                       <span>Fechado</span>
                       <input
                         type="checkbox"
                         checked={h.fechado}
                         onChange={e => atualizarHorarioFechado(index, e.target.checked)}
-                        className="w-4 h-4 rounded border border-zinc-700 bg-zinc-950"
+                        className="w-4 h-4 rounded border border-gray-300 bg-white dark:border-zinc-700 dark:bg-zinc-950"
                       />
                     </label>
                   </div>
@@ -561,7 +561,7 @@ export default function AdminSettingsPage() {
                   {salvandoHorarios ? 'Salvando...' : 'Salvar horários'}
                 </button>
                 {feedbackHorarios && (
-                  <span className="text-xs text-zinc-400">{feedbackHorarios}</span>
+                  <span className="text-xs text-gray-600 dark:text-zinc-400">{feedbackHorarios}</span>
                 )}
               </div>
             </div>
@@ -575,17 +575,17 @@ export default function AdminSettingsPage() {
             className="fixed inset-0 bg-black/60 z-40"
             onClick={() => setFidelidadeAberta(false)}
           />
-          <div className="fixed inset-x-0 bottom-0 max-w-5xl mx-auto bg-zinc-900 border-t border-zinc-800 rounded-t-2xl z-50">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+          <div className="fixed inset-x-0 bottom-0 max-w-5xl mx-auto bg-white border-t border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-t-2xl z-50">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-zinc-800">
               <div>
-                <div className="text-sm font-semibold text-white">Programa de fidelidade</div>
-                <p className="text-[11px] text-zinc-500">
+                <div className="text-sm font-semibold text-gray-900 dark:text-white">Programa de fidelidade</div>
+                <p className="text-[11px] text-gray-600 dark:text-zinc-500">
                   Configure pontos por real gasto e cashback.
                 </p>
               </div>
               <button
                 type="button"
-                className="text-xs text-zinc-400"
+                className="text-xs text-gray-600 dark:text-zinc-400"
                 onClick={() => setFidelidadeAberta(false)}
               >
                 Fechar
@@ -594,7 +594,7 @@ export default function AdminSettingsPage() {
             <div className="px-4 py-3 space-y-3 max-h-96 overflow-y-auto">
               <div className="grid sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">
+                  <label className="block text-xs text-gray-600 dark:text-zinc-400 mb-1">
                     Pontos por R$ gasto
                   </label>
                   <input
@@ -603,7 +603,7 @@ export default function AdminSettingsPage() {
                     step="0.1"
                     value={pontosPorReal}
                     onChange={e => setPontosPorReal(e.target.value)}
-                    className="w-full h-10 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-sm text-zinc-100 outline-none"
+                    className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
                     placeholder="1"
                   />
                   <p className="text-[11px] text-zinc-500 mt-1">
@@ -611,14 +611,14 @@ export default function AdminSettingsPage() {
                   </p>
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">% de cashback</label>
+                  <label className="block text-xs text-gray-600 dark:text-zinc-400 mb-1">% de cashback</label>
                   <input
                     type="number"
                     min={0}
                     step="0.1"
                     value={cashbackPercentual}
                     onChange={e => setCashbackPercentual(e.target.value)}
-                    className="w-full h-10 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-sm text-zinc-100 outline-none"
+                    className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
                     placeholder="3"
                   />
                   <p className="text-[11px] text-zinc-500 mt-1">
@@ -626,7 +626,7 @@ export default function AdminSettingsPage() {
                   </p>
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">
+                  <label className="block text-xs text-gray-600 dark:text-zinc-400 mb-1">
                     Compra mínima para cashback (R$)
                   </label>
                   <input
@@ -635,7 +635,7 @@ export default function AdminSettingsPage() {
                     step="0.01"
                     value={minimoCashback}
                     onChange={e => setMinimoCashback(e.target.value)}
-                    className="w-full h-10 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-sm text-zinc-100 outline-none"
+                    className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
                     placeholder="50"
                   />
                 </div>
@@ -664,17 +664,17 @@ export default function AdminSettingsPage() {
             className="fixed inset-0 bg-black/60 z-40"
             onClick={() => setEntregadoresAbertos(false)}
           />
-          <div className="fixed inset-x-0 bottom-0 max-w-5xl mx-auto bg-zinc-900 border-t border-zinc-800 rounded-t-2xl z-50">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+          <div className="fixed inset-x-0 bottom-0 max-w-5xl mx-auto bg-white border-t border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-t-2xl z-50">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-zinc-800">
               <div>
-                <div className="text-sm font-semibold text-white">Entregadores</div>
-                <p className="text-[11px] text-zinc-500">
+                <div className="text-sm font-semibold text-gray-900 dark:text-white">Entregadores</div>
+                <p className="text-[11px] text-gray-600 dark:text-zinc-500">
                   Cadastre e ative entregadores para vincular aos pedidos.
                 </p>
               </div>
               <button
                 type="button"
-                className="text-xs text-zinc-400"
+                className="text-xs text-gray-600 dark:text-zinc-400"
                 onClick={() => setEntregadoresAbertos(false)}
               >
                 Fechar
@@ -683,22 +683,22 @@ export default function AdminSettingsPage() {
             <div className="px-4 py-3 space-y-4 max-h-96 overflow-y-auto">
               <div className="grid sm:grid-cols-3 gap-3">
                 <div className="sm:col-span-1">
-                  <label className="block text-xs text-zinc-400 mb-1">
+                  <label className="block text-xs text-gray-600 dark:text-zinc-400 mb-1">
                     Nome do entregador
                   </label>
                   <input
                     value={novoEntregadorNome}
                     onChange={e => setNovoEntregadorNome(e.target.value)}
-                    className="w-full h-9 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-xs text-zinc-100 outline-none"
+                    className="w-full h-9 rounded-lg bg-white border border-gray-300 px-3 text-xs text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
                     placeholder="Ex: João"
                   />
                 </div>
                 <div className="sm:col-span-1">
-                  <label className="block text-xs text-zinc-400 mb-1">Telefone</label>
+                  <label className="block text-xs text-gray-600 dark:text-zinc-400 mb-1">Telefone</label>
                   <input
                     value={novoEntregadorTelefone}
                     onChange={e => setNovoEntregadorTelefone(e.target.value)}
-                    className="w-full h-9 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-xs text-zinc-100 outline-none"
+                    className="w-full h-9 rounded-lg bg-white border border-gray-300 px-3 text-xs text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
                     placeholder="(82) 99999-9999"
                   />
                 </div>
@@ -714,23 +714,23 @@ export default function AdminSettingsPage() {
                 </div>
               </div>
               {feedbackEntregador && (
-                <div className="text-[11px] text-zinc-400">{feedbackEntregador}</div>
+                <div className="text-[11px] text-gray-600 dark:text-zinc-400">{feedbackEntregador}</div>
               )}
               <div className="space-y-2">
                 {entregadores.length === 0 ? (
-                  <div className="text-xs text-zinc-500 py-4 text-center">
+                  <div className="text-xs text-gray-600 dark:text-zinc-500 py-4 text-center">
                     Nenhum entregador cadastrado até o momento.
                   </div>
                 ) : (
                   entregadores.map(e => (
                     <div
                       key={e.id}
-                      className="flex items-center justify-between rounded-lg border border-zinc-800 px-3 py-2"
+                      className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-zinc-800 px-3 py-2"
                     >
                       <div>
-                        <div className="text-sm font-semibold text-white">{e.nome}</div>
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white">{e.nome}</div>
                         {e.telefone && (
-                          <div className="text-[11px] text-zinc-500">{e.telefone}</div>
+                          <div className="text-[11px] text-gray-600 dark:text-zinc-500">{e.telefone}</div>
                         )}
                       </div>
                       <button
@@ -739,7 +739,7 @@ export default function AdminSettingsPage() {
                         className={`px-3 h-7 rounded-full text-[11px] font-semibold ${
                           e.ativo
                             ? 'bg-emerald-500 text-black'
-                            : 'bg-zinc-800 text-zinc-300 border border-zinc-600'
+                            : 'bg-gray-100 text-gray-700 border border-gray-300 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-600'
                         }`}
                       >
                         {e.ativo ? 'Ativo' : 'Inativo'}
@@ -759,17 +759,17 @@ export default function AdminSettingsPage() {
             className="fixed inset-0 bg-black/60 z-40"
             onClick={() => setCuponsAbertos(false)}
           />
-          <div className="fixed inset-x-0 bottom-0 max-w-5xl mx-auto bg-zinc-900 border-t border-zinc-800 rounded-t-2xl z-50">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+          <div className="fixed inset-x-0 bottom-0 max-w-5xl mx-auto bg-white border-t border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-t-2xl z-50">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-zinc-800">
               <div>
-                <div className="text-sm font-semibold text-white">Cupons</div>
-                <p className="text-[11px] text-zinc-500">
+                <div className="text-sm font-semibold text-gray-900 dark:text-white">Cupons</div>
+                <p className="text-[11px] text-gray-600 dark:text-zinc-500">
                   Crie cupons para enviar aos clientes cadastrados.
                 </p>
               </div>
               <button
                 type="button"
-                className="text-xs text-zinc-400"
+                className="text-xs text-gray-600 dark:text-zinc-400"
                 onClick={() => setCuponsAbertos(false)}
               >
                 Fechar
@@ -778,43 +778,43 @@ export default function AdminSettingsPage() {
             <div className="px-4 py-3 space-y-4 max-h-96 overflow-y-auto">
               <div className="grid sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Nome do cupom</label>
+                  <label className="block text-xs text-gray-600 dark:text-zinc-400 mb-1">Nome do cupom</label>
                   <input
                     value={nome}
                     onChange={e => setNome(e.target.value)}
-                    className="w-full h-10 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-sm text-zinc-100 outline-none"
+                    className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
                     placeholder="Promoção Julho"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Código</label>
+                  <label className="block text-xs text-gray-600 dark:text-zinc-400 mb-1">Código</label>
                   <input
                     value={codigo}
                     onChange={e => setCodigo(e.target.value.toUpperCase())}
-                    className="w-full h-10 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-sm text-zinc-100 outline-none"
+                    className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
                     placeholder="JULHO10"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Data de início</label>
+                  <label className="block text-xs text-gray-600 dark:text-zinc-400 mb-1">Data de início</label>
                   <input
                     type="datetime-local"
                     value={inicio}
                     onChange={e => setInicio(e.target.value)}
-                    className="w-full h-10 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-sm text-zinc-100 outline-none"
+                    className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">Data de fim</label>
+                  <label className="block text-xs text-gray-600 dark:text-zinc-400 mb-1">Data de fim</label>
                   <input
                     type="datetime-local"
                     value={fim}
                     onChange={e => setFim(e.target.value)}
-                    className="w-full h-10 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-sm text-zinc-100 outline-none"
+                    className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">
+                  <label className="block text-xs text-gray-600 dark:text-zinc-400 mb-1">
                     Quantidade de uso por cliente
                   </label>
                   <input
@@ -822,23 +822,23 @@ export default function AdminSettingsPage() {
                     min={1}
                     value={usosPorCliente}
                     onChange={e => setUsosPorCliente(e.target.value)}
-                    className="w-full h-10 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-sm text-zinc-100 outline-none"
+                    className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
                   />
                 </div>
               <div>
-                <label className="block text-xs text-zinc-400 mb-1">Desconto (%)</label>
+                <label className="block text-xs text-gray-600 dark:text-zinc-400 mb-1">Desconto (%)</label>
                 <input
                   type="number"
                   min={0}
                   step="0.1"
                   value={descontoPercentual}
                   onChange={e => setDescontoPercentual(e.target.value)}
-                  className="w-full h-10 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-sm text-zinc-100 outline-none"
+                  className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
                   placeholder="Ex: 10"
                 />
               </div>
                 <div>
-                  <label className="block text-xs text-zinc-400 mb-1">
+                  <label className="block text-xs text-gray-600 dark:text-zinc-400 mb-1">
                     Quantidade total de cupons
                   </label>
                   <input
@@ -846,17 +846,17 @@ export default function AdminSettingsPage() {
                     min={1}
                     value={quantidadeTotal}
                     onChange={e => setQuantidadeTotal(e.target.value)}
-                    className="w-full h-10 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-sm text-zinc-100 outline-none"
+                    className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
                     placeholder="Ex: 100"
                   />
                 </div>
                 <div className="sm:col-span-2 flex items-center gap-2 mt-1">
-                  <label className="flex items-center gap-2 text-xs text-zinc-400">
+                  <label className="flex items-center gap-2 text-xs text-gray-600 dark:text-zinc-400">
                     <input
                       type="checkbox"
                       checked={ativo}
                       onChange={e => setAtivo(e.target.checked)}
-                      className="w-4 h-4 rounded border border-zinc-700 bg-zinc-950"
+                      className="w-4 h-4 rounded border border-gray-300 bg-white dark:border-zinc-700 dark:bg-zinc-950"
                     />
                     <span>Cupom ativo</span>
                   </label>
@@ -871,15 +871,15 @@ export default function AdminSettingsPage() {
                 >
                   {submitting ? 'Criando...' : 'Criar cupom'}
                 </button>
-                {feedback && <span className="text-xs text-zinc-400">{feedback}</span>}
+                {feedback && <span className="text-xs text-gray-600 dark:text-zinc-400">{feedback}</span>}
               </div>
               {cupons.length > 0 && (
-                <div className="border-t border-zinc-800 pt-3 mt-1 space-y-2">
-                  <div className="text-[11px] text-zinc-500 font-semibold uppercase tracking-wide">
+                <div className="border-t border-gray-200 dark:border-zinc-800 pt-3 mt-1 space-y-2">
+                  <div className="text-[11px] text-gray-600 dark:text-zinc-500 font-semibold uppercase tracking-wide">
                     Cupons ativos
                   </div>
                   {cuponsAtivos.length === 0 ? (
-                    <div className="text-[11px] text-zinc-500">
+                    <div className="text-[11px] text-gray-600 dark:text-zinc-500">
                       Nenhum cupom ativo no momento.
                     </div>
                   ) : (
@@ -907,13 +907,13 @@ export default function AdminSettingsPage() {
                       return (
                         <div
                           key={c.id}
-                          className="flex items-center justify-between text-[11px] text-zinc-300"
+                          className="flex items-center justify-between text-[11px] text-gray-700 dark:text-zinc-300"
                         >
                           <div>
                             <div className="font-semibold">
                               {c.nome} • {c.codigo}
                             </div>
-                            <div className="text-zinc-500">
+                            <div className="text-gray-600 dark:text-zinc-500">
                               {inicioTexto} até {fimTexto}
                             </div>
                             {c.descontoPercentual && c.descontoPercentual > 0 && (
@@ -922,7 +922,7 @@ export default function AdminSettingsPage() {
                               </div>
                             )}
                           </div>
-                          <div className="text-right text-zinc-500">
+                          <div className="text-right text-gray-600 dark:text-zinc-500">
                             {c.quantidadeTotal != null ? (
                               <div>
                                 {c.quantidadeRestante ?? c.quantidadeTotal}/

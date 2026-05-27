@@ -49,7 +49,7 @@ export const banners: Banner[] = [
 ];
 
 export const store: StoreSettings = {
-  name: 'PC Bebidas',
+  name: 'Dilbebidas',
   open: true,
   phone: '(82) 99310-7309',
   address: 'Rua das Bebidas, 123'

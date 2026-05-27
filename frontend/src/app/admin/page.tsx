@@ -137,7 +137,7 @@ export default function AdminDashboardPage() {
 
   if (checkingSession) {
     return (
-      <main className="flex-1 bg-zinc-950 flex items-center justify-center">
+      <main className="flex-1 bg-gray-50 dark:bg-zinc-950 flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
       </main>
     );
@@ -148,12 +148,12 @@ export default function AdminDashboardPage() {
   }
 
   return (
-    <main className="flex-1 bg-zinc-950 p-4 sm:p-6">
+    <main className="flex-1 bg-gray-50 dark:bg-zinc-950 p-4 sm:p-6">
       <div className="max-w-7xl mx-auto">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white">Dashboard</h1>
-            <p className="text-zinc-400">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Dashboard</h1>
+            <p className="text-gray-600 dark:text-zinc-400">
               {session.loja.nome} • Bem-vindo de volta, {session.username}
             </p>
           </div>
@@ -164,11 +164,14 @@ export default function AdminDashboardPage() {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {stats.map((stat) => (
-            <div key={stat.title} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden p-4 sm:p-6">
+            <div
+              key={stat.title}
+              className="bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-xl overflow-hidden p-4 sm:p-6"
+            >
               <div className="flex items-start justify-between">
                 <div>
-                  <p className="text-zinc-400 text-sm mb-1">{stat.title}</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-white">{stat.value}</p>
+                  <p className="text-gray-600 dark:text-zinc-400 text-sm mb-1">{stat.title}</p>
+                  <p className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
                 </div>
                 <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${stat.color} flex items-center justify-center`}>
                   <span className="text-white">{stat.icon}</span>
@@ -183,37 +186,42 @@ export default function AdminDashboardPage() {
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl lg:col-span-2">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
-              <div className="text-white font-semibold flex items-center gap-2">
+          <div className="bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-xl lg:col-span-2">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-zinc-800">
+              <div className="text-gray-900 dark:text-white font-semibold flex items-center gap-2">
                 <span>⏱️</span>
                 Pedidos Pendentes ({data.pedidosEmAndamento.length})
               </div>
-              <a href="/admin/orders" className="text-amber-400 text-sm font-semibold">Ver todos →</a>
+              <a href="/admin/orders" className="text-amber-600 dark:text-amber-400 text-sm font-semibold">
+                Ver todos →
+              </a>
             </div>
             <div className="p-4">
               {data.pedidosEmAndamento.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-zinc-500">Nenhum pedido pendente 🎉</p>
+                  <p className="text-gray-600 dark:text-zinc-500">Nenhum pedido pendente 🎉</p>
                 </div>
               ) : (
                 <div className="space-y-3">
                   {data.pedidosEmAndamento.slice(0, 5).map((order) => (
-                    <div key={order.id} className="flex items-center justify-between p-3 rounded-xl bg-zinc-800/50">
+                    <div
+                      key={order.id}
+                      className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-zinc-800/50"
+                    >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center">
                           <span className="text-amber-400">🛍️</span>
                         </div>
                         <div>
-                          <p className="text-white font-medium">#{order.id?.slice?.(-6) || order.id}</p>
-                          <p className="text-zinc-500 text-sm">{order.cliente}</p>
+                          <p className="text-gray-900 dark:text-white font-medium">#{order.id?.slice?.(-6) || order.id}</p>
+                          <p className="text-gray-600 dark:text-zinc-500 text-sm">{order.cliente}</p>
                         </div>
                       </div>
                       <div className="text-right">
                         <p className="text-amber-400 font-bold">
                           R$ {Number(order.valor ?? 0).toFixed(2)}
                         </p>
-                        <p className="text-zinc-500 text-xs">{order.status}</p>
+                        <p className="text-gray-600 dark:text-zinc-500 text-xs">{order.status}</p>
                       </div>
                     </div>
                   ))}
@@ -231,7 +239,7 @@ export default function AdminDashboardPage() {
                 <div className="p-4 space-y-2">
                   {data.estoqueBaixo.slice(0, 3).map((p) => (
                     <div key={p.nome} className="flex items-center justify-between text-sm">
-                      <span className="text-white truncate">{p.nome}</span>
+                      <span className="text-gray-900 dark:text-white truncate">{p.nome}</span>
                       <span className="px-2 py-0.5 rounded border border-red-500/50 text-red-400">{p.estoque} un</span>
                     </div>
                   ))}
@@ -239,15 +247,15 @@ export default function AdminDashboardPage() {
               </div>
             )}
 
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900">
-              <div className="px-4 py-3 border-b border-zinc-800">
-                <div className="text-white font-semibold text-base">📦 Top produtos</div>
+            <div className="rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="px-4 py-3 border-b border-gray-200 dark:border-zinc-800">
+                <div className="text-gray-900 dark:text-white font-semibold text-base">📦 Top produtos</div>
               </div>
               <div className="p-4 space-y-2">
                 {data.produtosMaisVendidos.slice(0, 5).map((p) => (
                   <div key={p.nome} className="flex items-center justify-between text-sm">
-                    <span className="text-white">{p.nome}</span>
-                    <span className="text-zinc-400">{p.quantidade} vendas</span>
+                    <span className="text-gray-900 dark:text-white">{p.nome}</span>
+                    <span className="text-gray-600 dark:text-zinc-400">{p.quantidade} vendas</span>
                   </div>
                 ))}
               </div>

@@ -6,6 +6,15 @@ export function PwaInstaller() {
   useEffect(() => {
     if (typeof window === 'undefined' || typeof navigator === 'undefined') return;
     if (!('serviceWorker' in navigator)) return;
+    if (process.env.NODE_ENV !== 'production') {
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        regs.forEach(r => r.unregister());
+      });
+      if ('caches' in window) {
+        caches.keys().then(keys => keys.forEach(k => caches.delete(k)));
+      }
+      return;
+    }
     const register = () => {
       navigator.serviceWorker
         .register('/sw.js')
@@ -20,4 +29,3 @@ export function PwaInstaller() {
 
   return null;
 }
-

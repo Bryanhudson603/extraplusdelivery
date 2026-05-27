@@ -5,9 +5,20 @@ function getEnv(key: string): string | undefined {
   return undefined;
 }
 
-const fallbackBaseUrl = 'http://localhost:3000';
+function isIp(hostname: string): boolean {
+  return /^\d{1,3}(\.\d{1,3}){3}$/.test(hostname);
+}
 
-export const API_BASE_URL =
-  getEnv('NEXT_PUBLIC_API_URL') ||
-  'https://extraplusdelivery.onrender.com' ||
-  fallbackBaseUrl;
+export const API_BASE_URL = (() => {
+  const env = getEnv('NEXT_PUBLIC_API_URL');
+
+  if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || isIp(hostname)) {
+      return `http://${hostname}:3000`;
+    }
+    return env || `http://${hostname}:3000`;
+  }
+
+  return env || 'http://localhost:3000';
+})();

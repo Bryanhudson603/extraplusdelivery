@@ -169,7 +169,7 @@ export class PedidosController {
       }
     }
 
-    const lojaId = 'pc-bebidas';
+    const lojaId = 'dilbebidas';
     for (const item of body.itens) {
       const lista = listarProdutos(lojaId);
       const produto = lista.find(p => p.id === item.productId);

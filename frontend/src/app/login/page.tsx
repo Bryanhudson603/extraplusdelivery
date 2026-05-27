@@ -83,8 +83,8 @@ export default function ClientLoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-zinc-950 px-4">
-      <div className="w-full max-w-sm bg-zinc-900 border border-zinc-800 rounded-2xl p-6 space-y-6">
+    <main className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950 px-4">
+      <div className="w-full max-w-sm bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-2xl p-6 space-y-6">
         <div className="flex items-center justify-between">
           <button
             type="button"
@@ -95,30 +95,30 @@ export default function ClientLoginPage() {
                 router.push('/');
               }
             }}
-            className="text-[11px] text-zinc-400 hover:text-amber-400"
+            className="text-[11px] text-gray-600 hover:text-amber-600 dark:text-zinc-400 dark:hover:text-amber-400"
           >
             ← Voltar
           </button>
         </div>
 
         <div className="space-y-1">
-          <p className="text-xs text-amber-400 font-semibold uppercase tracking-wide">PC Bebidas</p>
-          <h1 className="text-xl font-bold text-white">
+          <p className="text-xs text-amber-400 font-semibold uppercase tracking-wide">Dilbebidas</p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">
             {modo === 'login' ? 'Entrar no app' : 'Criar meu cadastro'}
           </h1>
-          <p className="text-xs text-zinc-400">
+          <p className="text-xs text-gray-600 dark:text-zinc-400">
             {modo === 'login'
               ? 'Use seu telefone para acessar seus pedidos e fazer novas compras.'
               : 'Informe seus dados para criar sua conta e comprar com mais facilidade.'}
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-[11px] bg-zinc-950 border border-zinc-800 rounded-full p-1">
+        <div className="flex items-center gap-2 text-[11px] bg-gray-100 border border-gray-200 dark:bg-zinc-950 dark:border-zinc-800 rounded-full p-1">
           <button
             type="button"
             onClick={() => setModo('login')}
             className={`flex-1 py-1 rounded-full text-center ${
-              modo === 'login' ? 'bg-amber-500 text-black font-semibold' : 'text-zinc-300'
+              modo === 'login' ? 'bg-amber-500 text-black font-semibold' : 'text-gray-700 dark:text-zinc-300'
             }`}
           >
             Já tenho conta
@@ -127,7 +127,7 @@ export default function ClientLoginPage() {
             type="button"
             onClick={() => setModo('register')}
             className={`flex-1 py-1 rounded-full text-center ${
-              modo === 'register' ? 'bg-amber-500 text-black font-semibold' : 'text-zinc-300'
+              modo === 'register' ? 'bg-amber-500 text-black font-semibold' : 'text-gray-700 dark:text-zinc-300'
             }`}
           >
             Criar conta
@@ -138,48 +138,48 @@ export default function ClientLoginPage() {
           {modo === 'register' && (
             <>
               <div className="space-y-1">
-                <label className="text-xs text-zinc-400">Nome completo</label>
+                <label className="text-xs text-gray-600 dark:text-zinc-400">Nome completo</label>
                 <input
                   type="text"
                   autoComplete="name"
                   value={nome}
                   onChange={e => setNome(e.target.value)}
-                  className="w-full h-10 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-sm text-zinc-100 outline-none"
+                  className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs text-zinc-400">Endereço</label>
+                <label className="text-xs text-gray-600 dark:text-zinc-400">Endereço</label>
                 <input
                   type="text"
                   autoComplete="street-address"
                   value={endereco}
                   onChange={e => setEndereco(e.target.value)}
-                  className="w-full h-10 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-sm text-zinc-100 outline-none"
+                  className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
                 />
               </div>
             </>
           )}
 
           <div className="space-y-1">
-            <label className="text-xs text-zinc-400">Telefone</label>
+            <label className="text-xs text-gray-600 dark:text-zinc-400">Telefone</label>
             <input
               type="tel"
               autoComplete="tel"
               value={telefone}
               onChange={e => setTelefone(e.target.value)}
-              className="w-full h-10 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-sm text-zinc-100 outline-none"
+              className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs text-zinc-400">Senha</label>
+            <label className="text-xs text-gray-600 dark:text-zinc-400">Senha</label>
             <input
               type="password"
               autoComplete="current-password"
               value={senha}
               onChange={e => setSenha(e.target.value)}
-              className="w-full h-10 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-sm text-zinc-100 outline-none"
+              className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
             />
           </div>
 
@@ -194,7 +194,7 @@ export default function ClientLoginPage() {
           </button>
         </form>
 
-        <div className="text-[11px] text-zinc-500">
+        <div className="text-[11px] text-gray-600 dark:text-zinc-500">
           Lojista? Acesse o painel em{' '}
           <button
             type="button"

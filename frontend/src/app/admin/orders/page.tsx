@@ -142,60 +142,60 @@ export default function AdminOrdersPage() {
   const pendentes = orders.filter(o => o.status !== 'finalizado' && o.status !== 'cancelado');
 
   return (
-    <main className="flex-1 bg-zinc-950 p-4 sm:p-6">
+    <main className="flex-1 bg-gray-50 dark:bg-zinc-950 p-4 sm:p-6">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-white">Pedidos</h1>
-            <p className="text-zinc-400">
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Pedidos</h1>
+            <p className="text-gray-600 dark:text-zinc-400">
               {pendentes.length} pendentes
             </p>
           </div>
         </div>
 
         {loading ? (
-          <div className="text-center py-16 text-zinc-500">Carregando pedidos...</div>
+          <div className="text-center py-16 text-gray-600 dark:text-zinc-500">Carregando pedidos...</div>
         ) : (
           <div className="space-y-3">
             {orders.map(order => {
               const isFinal = order.status === 'finalizado' || order.status === 'cancelado';
               return (
-                <div key={order.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                <div key={order.id} className="bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-xl p-4">
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-white font-bold">
+                        <span className="text-gray-900 dark:text-white font-bold">
                           #{order.id.slice(-6).toUpperCase()}
                         </span>
                         <span className="text-xs px-2 py-0.5 rounded-full border border-amber-500/50 text-amber-400">
                           {order.status}
                         </span>
                       </div>
-                      <p className="text-zinc-400 text-xs">
+                      <p className="text-gray-600 dark:text-zinc-400 text-xs">
                         {order.createdAt}
                       </p>
                       {order.clienteNome && (
-                        <p className="text-zinc-300 text-xs mt-1">
+                        <p className="text-gray-700 dark:text-zinc-300 text-xs mt-1">
                           Cliente: {order.clienteNome}
                         </p>
                       )}
                       {order.clienteTelefone && (
-                        <p className="text-zinc-400 text-[11px]">
+                        <p className="text-gray-600 dark:text-zinc-400 text-[11px]">
                           Telefone: {order.clienteTelefone}
                         </p>
                       )}
                       {order.clienteEndereco && (
-                        <p className="text-zinc-400 text-[11px]">
+                        <p className="text-gray-600 dark:text-zinc-400 text-[11px]">
                           Endereço: {order.clienteEndereco}
                         </p>
                       )}
                       {order.formaPagamento && (
-                        <p className="text-zinc-400 text-[11px]">
+                        <p className="text-gray-600 dark:text-zinc-400 text-[11px]">
                           Pagamento: {order.formaPagamento}
                         </p>
                       )}
                       {order.entregadorNome && (
-                        <p className="text-zinc-400 text-[11px]">
+                        <p className="text-gray-600 dark:text-zinc-400 text-[11px]">
                           Entregador: {order.entregadorNome}
                         </p>
                       )}
@@ -212,7 +212,7 @@ export default function AdminOrdersPage() {
                       {order.status === 'confirmado' && (
                         <div className="mt-2">
                           {entregadores.length === 0 ? (
-                            <p className="text-[11px] text-zinc-500">
+                            <p className="text-[11px] text-gray-600 dark:text-zinc-500">
                               Cadastre entregadores em Configurações &gt; Entregadores para vincular pedidos.
                             </p>
                           ) : (
@@ -223,7 +223,7 @@ export default function AdminOrdersPage() {
                                 if (!id) return;
                                 vincularEntregador(order.id, id);
                               }}
-                              className="w-full h-8 rounded-lg bg-zinc-950 border border-zinc-700 px-2 text-[11px] text-zinc-100 outline-none"
+                              className="w-full h-8 rounded-lg bg-white border border-gray-300 px-2 text-[11px] text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
                             >
                               <option value="">Vincular entregador...</option>
                               {entregadores.map(e => (
@@ -317,7 +317,7 @@ export default function AdminOrdersPage() {
               );
             })}
             {orders.length === 0 && (
-              <div className="text-center py-16 text-zinc-500">
+              <div className="text-center py-16 text-gray-600 dark:text-zinc-500">
                 Nenhum pedido registrado
               </div>
             )}

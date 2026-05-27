@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 
 export function MainShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const isAdmin = pathname.startsWith('/admin');
+  const isAdmin = pathname.startsWith('/admin') || pathname.startsWith('/platform');
 
   if (isAdmin) {
     return <>{children}</>;

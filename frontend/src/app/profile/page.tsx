@@ -180,47 +180,47 @@ export default function ProfilePage() {
   const cashbackTotal = Number((ordersTotal * 0.01).toFixed(2));
 
   return (
-    <main className="flex-1 bg-zinc-950 pb-16">
+    <main className="flex-1 bg-gray-50 dark:bg-zinc-950 pb-16">
       <div className="max-w-md mx-auto px-4 py-6">
         <div className="flex items-center gap-4 mb-6">
           <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
             <span className="text-2xl font-semibold text-black">BH</span>
           </div>
           <div>
-            <h1 className="text-xl font-bold text-white">{user.name}</h1>
-            {user.telefone && <p className="text-zinc-400 text-sm">{user.telefone}</p>}
-            {user.endereco && <p className="text-zinc-500 text-xs">{user.endereco}</p>}
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">{user.name}</h1>
+            {user.telefone && <p className="text-gray-600 dark:text-zinc-400 text-sm">{user.telefone}</p>}
+            {user.endereco && <p className="text-gray-600 dark:text-zinc-500 text-xs">{user.endereco}</p>}
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-3 mb-6">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-center">
+          <div className="bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-xl p-4 text-center">
             <p className="text-3xl font-bold text-amber-400">{ordersCount}</p>
-            <p className="text-zinc-500 text-xs mt-1">Pedidos</p>
+            <p className="text-gray-600 dark:text-zinc-500 text-xs mt-1">Pedidos</p>
           </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-center">
+          <div className="bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-xl p-4 text-center">
             <p className="text-3xl font-bold text-green-400">R$ {cashbackTotal.toFixed(2)}</p>
-            <p className="text-zinc-500 text-xs mt-1">Cashback</p>
+            <p className="text-gray-600 dark:text-zinc-500 text-xs mt-1">Cashback</p>
           </div>
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-center">
+          <div className="bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-xl p-4 text-center">
             <p className="text-3xl font-bold text-purple-400">0</p>
-            <p className="text-zinc-500 text-xs mt-1">Pontos</p>
+            <p className="text-gray-600 dark:text-zinc-500 text-xs mt-1">Pontos</p>
           </div>
         </div>
 
         <div className="space-y-3 text-sm">
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
+          <div className="bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-zinc-800">
               <div className="flex items-center gap-3">
                 <span className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-400 text-lg">
                   📍
                 </span>
                 <div>
-                  <div className="font-semibold text-white">Meus endereços</div>
+                  <div className="font-semibold text-gray-900 dark:text-white">Meus endereços</div>
                   {addresses.length === 0 ? (
-                    <div className="text-xs text-zinc-500">Nenhum endereço cadastrado</div>
+                    <div className="text-xs text-gray-600 dark:text-zinc-500">Nenhum endereço cadastrado</div>
                   ) : (
-                    <div className="text-xs text-zinc-400">
+                    <div className="text-xs text-gray-600 dark:text-zinc-400">
                       {addresses[0]}
                     </div>
                   )}
@@ -260,14 +260,14 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 flex items-center justify-between">
+          <div className="bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-xl px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="w-8 h-8 rounded-full bg-pink-500/10 flex items-center justify-center text-pink-400 text-lg">
                 ❤
               </span>
               <div>
-                <div className="font-semibold text-white">Favoritos</div>
-                <div className="text-xs text-zinc-500">{favoritesCount} produtos</div>
+                <div className="font-semibold text-gray-900 dark:text-white">Favoritos</div>
+                <div className="text-xs text-gray-600 dark:text-zinc-500">{favoritesCount} produtos</div>
               </div>
             </div>
             <button
@@ -279,13 +279,13 @@ export default function ProfilePage() {
             </button>
           </div>
 
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 flex items-center justify-between">
+          <div className="bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-xl px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 text-lg">
                 💳
               </span>
               <div>
-                <div className="font-semibold text-white">Carteira</div>
+                <div className="font-semibold text-gray-900 dark:text-white">Carteira</div>
                 <div className="text-sm font-semibold text-green-400">
                   R$ {walletBalance.toFixed(2)}
                 </div>
@@ -300,14 +300,14 @@ export default function ProfilePage() {
             </button>
           </div>
 
-          <div className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 flex items-center justify-between">
+          <div className="bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-xl px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <span className="w-8 h-8 rounded-full bg-violet-500/10 flex items-center justify-center text-violet-400 text-lg">
                 🎁
               </span>
               <div>
-                <div className="font-semibold text-white">Cupons</div>
-                <div className="text-xs text-zinc-500">{coupons.length} disponível(is)</div>
+                <div className="font-semibold text-gray-900 dark:text-white">Cupons</div>
+                <div className="text-xs text-gray-600 dark:text-zinc-500">{coupons.length} disponível(is)</div>
               </div>
             </div>
             <button
@@ -320,7 +320,7 @@ export default function ProfilePage() {
           </div>
 
           <button
-            className="w-full h-11 rounded-full border border-zinc-800 text-sm font-semibold text-red-400 mt-2"
+            className="w-full h-11 rounded-full border border-gray-300 text-sm font-semibold text-red-600 mt-2 dark:border-zinc-800 dark:text-red-400"
             onClick={() => {
               try {
                 if (typeof window !== 'undefined') {
@@ -347,12 +347,12 @@ export default function ProfilePage() {
             className="fixed inset-0 bg-black/60 z-40"
             onClick={() => setFavoritesOpen(false)}
           />
-          <div className="fixed inset-x-0 bottom-0 max-w-md mx-auto bg-zinc-900 border-t border-zinc-800 rounded-t-2xl z-50">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
-              <span className="text-sm font-semibold text-white">Favoritos</span>
+          <div className="fixed inset-x-0 bottom-0 max-w-md mx-auto bg-white border-t border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-t-2xl z-50">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-zinc-800">
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">Favoritos</span>
               <button
                 type="button"
-                className="text-xs text-zinc-400"
+                className="text-xs text-gray-600 dark:text-zinc-400"
                 onClick={() => setFavoritesOpen(false)}
               >
                 Fechar
@@ -360,19 +360,19 @@ export default function ProfilePage() {
             </div>
             <div className="max-h-80 overflow-y-auto px-4 py-3 space-y-2">
               {favorites.length === 0 ? (
-                <div className="text-xs text-zinc-500 py-6 text-center">
+                <div className="text-xs text-gray-600 dark:text-zinc-500 py-6 text-center">
                   Nenhum produto favoritado
                 </div>
               ) : (
                 favorites.map((fav, index) => (
                   <div
                     key={fav.id ?? index}
-                    className="flex items-center justify-between rounded-lg border border-zinc-800 px-3 py-2"
+                    className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-zinc-800 px-3 py-2"
                   >
-                    <div className="text-sm text-white truncate">
+                    <div className="text-sm text-gray-900 dark:text-white truncate">
                       {fav.name || fav.nome || 'Produto'}
                     </div>
-                    <div className="text-xs text-zinc-400">
+                    <div className="text-xs text-gray-600 dark:text-zinc-400">
                       {typeof fav.price === 'number'
                         ? `R$ ${fav.price.toFixed(2)}`
                         : null}
@@ -391,12 +391,12 @@ export default function ProfilePage() {
             className="fixed inset-0 bg-black/60 z-40"
             onClick={() => setWalletOpen(false)}
           />
-          <div className="fixed inset-x-0 bottom-0 max-w-md mx-auto bg-zinc-900 border-t border-zinc-800 rounded-t-2xl z-50">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
-              <span className="text-sm font-semibold text-white">Carteira</span>
+          <div className="fixed inset-x-0 bottom-0 max-w-md mx-auto bg-white border-t border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-t-2xl z-50">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-zinc-800">
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">Carteira</span>
               <button
                 type="button"
-                className="text-xs text-zinc-400"
+                className="text-xs text-gray-600 dark:text-zinc-400"
                 onClick={() => setWalletOpen(false)}
               >
                 Fechar
@@ -404,12 +404,12 @@ export default function ProfilePage() {
             </div>
             <div className="px-4 py-4 space-y-3">
               <div>
-                <div className="text-xs text-zinc-500">Saldo disponível</div>
+                <div className="text-xs text-gray-600 dark:text-zinc-500">Saldo disponível</div>
                 <div className="text-2xl font-bold text-green-400">
                   R$ {walletBalance.toFixed(2)}
                 </div>
               </div>
-              <p className="text-xs text-zinc-400">
+              <p className="text-xs text-gray-600 dark:text-zinc-400">
                 Para adicionar seu saldo dirija-se até a loja e adicione seu saldo em dinheiro em espécie.
               </p>
             </div>
@@ -423,12 +423,12 @@ export default function ProfilePage() {
             className="fixed inset-0 bg-black/60 z-40"
             onClick={() => setCouponsOpen(false)}
           />
-          <div className="fixed inset-x-0 bottom-0 max-w-md mx-auto bg-zinc-900 border-t border-zinc-800 rounded-t-2xl z-50">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
-              <span className="text-sm font-semibold text-white">Cupons</span>
+          <div className="fixed inset-x-0 bottom-0 max-w-md mx-auto bg-white border-t border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-t-2xl z-50">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-zinc-800">
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">Cupons</span>
               <button
                 type="button"
-                className="text-xs text-zinc-400"
+                className="text-xs text-gray-600 dark:text-zinc-400"
                 onClick={() => setCouponsOpen(false)}
               >
                 Fechar
@@ -436,7 +436,7 @@ export default function ProfilePage() {
             </div>
             <div className="px-4 py-4 max-h-80 overflow-y-auto space-y-2">
               {coupons.length === 0 ? (
-                <div className="text-xs text-zinc-500 text-center py-6">
+                <div className="text-xs text-gray-600 dark:text-zinc-500 text-center py-6">
                   Nenhum cupom disponível no momento
                 </div>
               ) : (
@@ -466,13 +466,13 @@ export default function ProfilePage() {
                   return (
                     <div
                       key={c.id}
-                      className="flex items-center justify-between rounded-lg border border-zinc-800 px-3 py-2"
+                      className="flex items-center justify-between rounded-lg border border-gray-200 dark:border-zinc-800 px-3 py-2"
                     >
                       <div>
-                        <div className="text-sm font-semibold text-white">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white">
                           {c.nome} • {c.codigo}
                         </div>
-                        <div className="text-[11px] text-zinc-500">
+                        <div className="text-[11px] text-gray-600 dark:text-zinc-500">
                           {inicioTexto} até {fimTexto}
                         </div>
                         {c.descontoPercentual && (
@@ -483,15 +483,15 @@ export default function ProfilePage() {
                       </div>
                       <div className="text-right text-[11px]">
                         {restante != null ? (
-                          <div className="text-zinc-500">{restante} uso(s) restante(s)</div>
+                          <div className="text-gray-600 dark:text-zinc-500">{restante} uso(s) restante(s)</div>
                         ) : (
-                          <div className="text-zinc-500">Sem limite por cliente</div>
+                          <div className="text-gray-600 dark:text-zinc-500">Sem limite por cliente</div>
                         )}
                         <div
                           className={
                             c.disponivel
                               ? 'text-emerald-400 font-semibold'
-                              : 'text-zinc-500 font-semibold'
+                              : 'text-gray-600 dark:text-zinc-500 font-semibold'
                           }
                         >
                           {c.disponivel ? 'Disponível' : 'Indisponível'}

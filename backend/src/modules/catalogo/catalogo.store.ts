@@ -14,7 +14,7 @@ export type ProdutoLoja = {
 };
 
 export const produtosPorLoja: Record<string, ProdutoLoja[]> = {
-  'pc-bebidas': []
+  dilbebidas: []
 };
 
 export function listarProdutos(lojaId: string): ProdutoLoja[] {

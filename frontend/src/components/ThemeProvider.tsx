@@ -30,19 +30,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>('light');
 
   useEffect(() => {
-    const initial = getInitialTheme();
-    setTheme(initial);
+    setTheme(getInitialTheme());
   }, []);
 
   useEffect(() => {
     if (typeof document === 'undefined') return;
     const root = document.documentElement;
-    if (theme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
+    root.classList.toggle('dark', theme === 'dark');
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('theme', theme);
     }
-    window.localStorage.setItem('theme', theme);
   }, [theme]);
 
   const toggleTheme = () => {
@@ -63,4 +60,3 @@ export function useTheme() {
   }
   return ctx;
 }
-

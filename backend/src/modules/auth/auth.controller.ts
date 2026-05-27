@@ -1,54 +1,11 @@
 import { Body, Controller, Get, Post, UnauthorizedException } from '@nestjs/common';
-
-type Loja = {
-  id: string;
-  nome: string;
-  slug: string;
-};
-
-type AdminUser = {
-  id: string;
-  username: string;
-  senha: string;
-  lojaId: string;
-};
-
-type ClienteUser = {
-  id: string;
-  nome: string;
-  telefone: string;
-  senha: string;
-  endereco: string;
-  lojaId: string;
-};
-
-const lojas: Loja[] = [
-  {
-    id: 'pc-bebidas',
-    nome: 'PC Bebidas',
-    slug: 'pc-bebidas'
-  }
-];
-
-const admins: AdminUser[] = [
-  {
-    id: 'admin-1',
-    username: 'bhnsilva',
-    senha: 'Brasill1',
-    lojaId: 'pc-bebidas'
-  }
-];
-
-const clientes: ClienteUser[] = [
-  {
-    id: 'cliente-1',
-    nome: 'Cliente Exemplo',
-    telefone: '82993107309',
-    senha: '123456',
-    endereco: 'Rua das Bebidas, 123',
-    lojaId: 'pc-bebidas'
-  }
-];
+import {
+  adminsStore,
+  clientesStore,
+  lojasStore,
+  platformAdminsStore,
+  type Loja
+} from '../platform/platform.store';
 
 type AdminLoginDto = {
   username: string;
@@ -67,6 +24,11 @@ type RegistrarClienteDto = {
   endereco: string;
 };
 
+type PlatformLoginDto = {
+  username: string;
+  password: string;
+};
+
 type AdminLoginResponse = {
   tipo: 'admin';
   adminId: string;
@@ -83,22 +45,30 @@ type ClienteLoginResponse = {
   loja: Loja;
 };
 
+type PlatformLoginResponse = {
+  tipo: 'plataforma';
+  adminId: string;
+  username: string;
+};
+
 @Controller('auth')
 export class AuthController {
   @Get('lojas')
   listarLojas(): Loja[] {
-    return lojas;
+    return lojasStore.filter(l => l.ativo !== false);
   }
 
   @Post('login-admin')
   loginAdmin(@Body() body: AdminLoginDto): AdminLoginResponse {
-    const admin = admins.find(a => a.username === body.username && a.senha === body.password);
+    const admin = adminsStore.find(
+      a => a.ativo !== false && a.username === body.username && a.senha === body.password
+    );
 
     if (!admin) {
       throw new UnauthorizedException('Credenciais inválidas');
     }
 
-    const loja = lojas.find(l => l.id === admin.lojaId);
+    const loja = lojasStore.find(l => l.ativo !== false && l.id === admin.lojaId);
 
     if (!loja) {
       throw new UnauthorizedException('Loja não encontrada para este administrador');
@@ -114,13 +84,15 @@ export class AuthController {
 
   @Post('login-cliente')
   loginCliente(@Body() body: ClienteLoginDto): ClienteLoginResponse {
-    const cliente = clientes.find(c => c.telefone === body.telefone && c.senha === body.senha);
+    const cliente = clientesStore.find(
+      c => c.ativo !== false && c.telefone === body.telefone && c.senha === body.senha
+    );
 
     if (!cliente) {
       throw new UnauthorizedException('Credenciais inválidas');
     }
 
-    const loja = lojas.find(l => l.id === cliente.lojaId);
+    const loja = lojasStore.find(l => l.ativo !== false && l.id === cliente.lojaId);
 
     if (!loja) {
       throw new UnauthorizedException('Loja não encontrada para este cliente');
@@ -138,27 +110,28 @@ export class AuthController {
 
   @Post('register-cliente')
   registrarCliente(@Body() body: RegistrarClienteDto): ClienteLoginResponse {
-    const lojaPadrao = lojas[0];
+    const lojaPadrao = lojasStore.find(l => l.ativo !== false) || null;
 
     if (!lojaPadrao) {
       throw new UnauthorizedException('Nenhuma loja disponível para cadastro');
     }
 
-    const exists = clientes.find(c => c.telefone === body.telefone);
+    const exists = clientesStore.find(c => c.ativo !== false && c.telefone === body.telefone);
     if (exists) {
       throw new UnauthorizedException('Telefone já cadastrado');
     }
 
-    const novo: ClienteUser = {
-      id: `cliente-${clientes.length + 1}`,
+    const novo = {
+      id: `cliente-${clientesStore.length + 1}`,
       nome: body.nome,
       telefone: body.telefone,
       senha: body.senha,
       endereco: body.endereco,
-      lojaId: lojaPadrao.id
+      lojaId: lojaPadrao.id,
+      ativo: true
     };
 
-    clientes.push(novo);
+    clientesStore.push(novo);
 
     return {
       tipo: 'cliente',
@@ -168,5 +141,28 @@ export class AuthController {
       endereco: novo.endereco,
       loja: lojaPadrao
     };
+  }
+
+  @Post('login-plataforma')
+  loginPlataforma(@Body() body: PlatformLoginDto): PlatformLoginResponse {
+    const envUser = process.env.PLATFORM_ADMIN_USER;
+    const envPass = process.env.PLATFORM_ADMIN_PASS;
+
+    if (envUser && envPass) {
+      if (body.username !== envUser || body.password !== envPass) {
+        throw new UnauthorizedException('Credenciais inválidas');
+      }
+      return { tipo: 'plataforma', adminId: 'platform-env', username: envUser };
+    }
+
+    const admin = platformAdminsStore.find(
+      a => a.ativo !== false && a.username === body.username && a.senha === body.password
+    );
+
+    if (!admin) {
+      throw new UnauthorizedException('Credenciais inválidas');
+    }
+
+    return { tipo: 'plataforma', adminId: admin.id, username: admin.username };
   }
 }

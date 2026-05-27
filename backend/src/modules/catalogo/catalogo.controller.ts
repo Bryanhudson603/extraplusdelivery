@@ -37,7 +37,7 @@ export class CatalogoController {
 
   @Get('produtos-mais-pedidos')
   listarProdutosMaisPedidos() {
-    const todos = listarProdutos('pc-bebidas');
+    const todos = listarProdutos('dilbebidas');
     const filtrados = todos.filter(p => p.active);
     const destaque = filtrados.filter(p => (p.tags || []).includes('mais_vendido'));
     const top = (destaque.length ? destaque : filtrados).slice(0, 4);
@@ -57,7 +57,7 @@ export class CatalogoController {
 
   @Get('produtos')
   listarTodosProdutos(): ProdutoCliente[] {
-    const todos = listarProdutos('pc-bebidas').filter(p => p.active);
+    const todos = listarProdutos('dilbebidas').filter(p => p.active);
     return todos.map(p => ({
       id: p.id,
       name: p.name,

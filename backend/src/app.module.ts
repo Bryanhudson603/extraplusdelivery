@@ -6,6 +6,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { PedidosModule } from './modules/pedidos/pedidos.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { EntregadoresModule } from './modules/entregadores/entregadores.module';
+import { PlatformModule } from './modules/platform/platform.module';
 
 function createDatabaseModule() {
   if (process.env.DATABASE_URL) {
@@ -45,7 +46,8 @@ function createDatabaseModule() {
     AdminModule,
     PedidosModule,
     AuthModule,
-    EntregadoresModule
+    EntregadoresModule,
+    PlatformModule
   ]
 })
 export class AppModule {}

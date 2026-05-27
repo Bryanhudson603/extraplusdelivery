@@ -1,44 +1,23 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 
-type Loja = {
-  id: string;
-  nome: string;
-  slug: string;
-};
-
-type AdminLoginResponse = {
-  tipo: 'admin';
+type PlatformLoginResponse = {
+  tipo: 'plataforma';
   adminId: string;
   username: string;
-  loja: Loja;
 };
 
-const SESSION_KEY = 'extraplus-session';
+const SESSION_KEY = 'extraplus-platform-session';
 
-export default function AdminLoginPage() {
+export default function PlatformLoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState('bhnsilva');
-  const [password, setPassword] = useState('Brasill1');
+  const [username, setUsername] = useState('master');
+  const [password, setPassword] = useState('master123');
   const [submitting, setSubmitting] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    try {
-      const raw = window.localStorage.getItem(SESSION_KEY);
-      if (!raw) return;
-      const parsed = JSON.parse(raw);
-      if (parsed?.tipo === 'admin') {
-        router.replace('/admin');
-      }
-    } catch {
-    }
-  }, [router]);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -48,19 +27,15 @@ export default function AdminLoginPage() {
     setErro(null);
 
     try {
-      const resposta = await api.post<AdminLoginResponse>('/auth/login-admin', {
+      const resp = await api.post<PlatformLoginResponse>('/auth/login-plataforma', {
         username,
         password
       });
 
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(SESSION_KEY, JSON.stringify(resposta));
-      }
-
-      router.replace('/admin/store');
-    } catch (e) {
+      window.localStorage.setItem(SESSION_KEY, JSON.stringify(resp));
+      router.replace('/platform');
+    } catch {
       setErro('Usuário ou senha inválidos');
-      console.error(e);
     } finally {
       setSubmitting(false);
     }
@@ -70,10 +45,10 @@ export default function AdminLoginPage() {
     <main className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950 px-4">
       <div className="w-full max-w-sm bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-2xl p-6 space-y-6">
         <div className="space-y-1">
-          <p className="text-xs text-amber-400 font-semibold uppercase tracking-wide">Dilbebidas</p>
-          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Login do lojista</h1>
+          <p className="text-xs text-amber-500 font-semibold uppercase tracking-wide">Plataforma</p>
+          <h1 className="text-xl font-bold text-gray-900 dark:text-white">Login do sistema</h1>
           <p className="text-xs text-gray-600 dark:text-zinc-400">
-            Acesse o painel administrativo para gerenciar pedidos e produtos.
+            Acesso para gerenciar lojas e usuários dos seus clientes.
           </p>
         </div>
 
@@ -81,8 +56,6 @@ export default function AdminLoginPage() {
           <div className="space-y-1">
             <label className="text-xs text-gray-600 dark:text-zinc-400">Usuário</label>
             <input
-              type="text"
-              autoComplete="username"
               value={username}
               onChange={e => setUsername(e.target.value)}
               className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
@@ -93,27 +66,22 @@ export default function AdminLoginPage() {
             <label className="text-xs text-gray-600 dark:text-zinc-400">Senha</label>
             <input
               type="password"
-              autoComplete="current-password"
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
             />
           </div>
 
-          {erro && <div className="text-xs text-red-400">{erro}</div>}
+          {erro && <div className="text-xs text-red-500">{erro}</div>}
 
           <button
             type="submit"
             disabled={submitting}
-            className="w-full h-10 rounded-full bg-amber-500 hover:bg-amber-600 text-black text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+            className="w-full h-10 rounded-full bg-amber-500 hover:bg-amber-600 text-black text-sm font-semibold disabled:opacity-60"
           >
             {submitting ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
-
-        <div className="text-[11px] text-gray-600 dark:text-zinc-500">
-          Cliente? Acesse o app pelo login de cliente e faça seus pedidos normalmente.
-        </div>
       </div>
     </main>
   );

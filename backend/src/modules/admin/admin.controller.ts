@@ -87,7 +87,7 @@ export class AdminController {
         status: p.status
       }));
 
-    const estoque = listarProdutos('pc-bebidas');
+    const estoque = listarProdutos('dilbebidas');
     const estoqueBaixo = estoque
       .filter(p => p.active && p.stock <= 5)
       .map<EstoqueBaixo>(p => ({
@@ -290,7 +290,7 @@ export class AdminController {
 
   @Get('produtos')
   listarProdutosAdmin(): ProdutoLoja[] {
-    return listarProdutos('pc-bebidas');
+    return listarProdutos('dilbebidas');
   }
 
   @Get('cupons')
@@ -455,7 +455,7 @@ export class AdminController {
       packQuantity: body.packQuantity != null ? Number(body.packQuantity) : undefined,
       packPrice: body.packPrice != null ? Number(body.packPrice) : undefined
     };
-    return salvarProduto('pc-bebidas', produto);
+    return salvarProduto('dilbebidas', produto);
   }
 
   @Put('produtos/:id')
@@ -474,12 +474,12 @@ export class AdminController {
       packQuantity: body.packQuantity != null ? Number(body.packQuantity) : undefined,
       packPrice: body.packPrice != null ? Number(body.packPrice) : undefined
     };
-    return salvarProduto('pc-bebidas', produto);
+    return salvarProduto('dilbebidas', produto);
   }
 
   @Delete('produtos/:id')
   removerProduto(@Param('id') id: string): { ok: boolean } {
-    excluirProduto('pc-bebidas', id);
+    excluirProduto('dilbebidas', id);
     return { ok: true };
   }
 }
