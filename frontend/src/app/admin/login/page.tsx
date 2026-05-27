@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 
 type Loja = {
   id: string;
@@ -59,8 +59,20 @@ export default function AdminLoginPage() {
 
       router.replace('/admin/store');
     } catch (e) {
-      setErro('Usuário ou senha inválidos');
-      console.error(e);
+      if (e instanceof ApiError) {
+        if (typeof e.payload === 'object' && e.payload && 'message' in (e.payload as any)) {
+          const msg = (e.payload as any).message;
+          setErro(Array.isArray(msg) ? msg.join(', ') : String(msg));
+        } else if (typeof e.payload === 'string' && e.payload.trim()) {
+          setErro(e.payload);
+        } else if (e.status === 401) {
+          setErro('Usuário ou senha inválidos');
+        } else {
+          setErro(`Erro na API (${e.status})`);
+        }
+      } else {
+        setErro(e instanceof Error ? e.message : 'Falha ao conectar na API');
+      }
     } finally {
       setSubmitting(false);
     }

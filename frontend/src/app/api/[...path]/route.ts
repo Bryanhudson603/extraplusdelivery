@@ -1,23 +1,48 @@
 import { NextResponse } from 'next/server';
 
+function normalizeBackendBase(raw: string): string {
+  let base = raw.trim().replace(/\/$/, '');
+  if (base.endsWith('/api')) {
+    base = base.slice(0, -4);
+  }
+  return base;
+}
+
 async function proxy(request: Request, params: { path: string[] }) {
-  const backendBase =
-    process.env.BACKEND_URL ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    process.env.NEXT_PUBLIC_API_URL_PROD ||
-    'http://localhost:3000';
+  const requestUrl = new URL(request.url);
+  const isLocalhost = requestUrl.hostname === 'localhost' || requestUrl.hostname === '127.0.0.1';
+  const backendEnv = process.env.BACKEND_URL;
+
+  if (!backendEnv && !isLocalhost) {
+    return NextResponse.json(
+      { error: 'BACKEND_URL não configurado no ambiente' },
+      { status: 500 }
+    );
+  }
+
+  const backendBase = normalizeBackendBase(backendEnv || 'http://localhost:3000');
 
   const path = Array.isArray(params.path) ? params.path.join('/') : '';
-  const targetUrl = `${backendBase.replace(/\/$/, '')}/api/${path}`;
+  const targetUrl = `${backendBase}/api/${path}${requestUrl.search}`;
 
-  let body: ArrayBuffer | undefined;
+  let body: BodyInit | undefined;
   if (request.method !== 'GET' && request.method !== 'HEAD') {
-    body = await request.arrayBuffer();
+    const contentType = request.headers.get('content-type') || '';
+    if (
+      contentType.includes('application/json') ||
+      contentType.includes('application/x-www-form-urlencoded') ||
+      contentType.startsWith('text/')
+    ) {
+      body = await request.text();
+    } else {
+      body = await request.arrayBuffer();
+    }
   }
 
   const headers = new Headers(request.headers);
   headers.delete('host');
   headers.delete('content-length');
+  headers.delete('connection');
 
   let upstream: Response;
   try {

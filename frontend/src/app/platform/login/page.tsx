@@ -39,12 +39,15 @@ export default function PlatformLoginPage() {
         setErro('Usuário ou senha inválidos');
       } else if (e instanceof ApiError) {
         if (typeof e.payload === 'object' && e.payload && 'message' in (e.payload as any)) {
-          setErro(String((e.payload as any).message));
+          const msg = (e.payload as any).message;
+          setErro(Array.isArray(msg) ? msg.join(', ') : String(msg));
+        } else if (typeof e.payload === 'string' && e.payload.trim()) {
+          setErro(e.payload);
         } else {
           setErro(`Erro na API (${e.status})`);
         }
       } else {
-        setErro('Falha ao conectar na API');
+        setErro(e instanceof Error ? e.message : 'Falha ao conectar na API');
       }
     } finally {
       setSubmitting(false);

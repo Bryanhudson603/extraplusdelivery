@@ -98,7 +98,10 @@ export default function ClientLoginPage() {
     } catch (e) {
       if (e instanceof ApiError) {
         if (typeof e.payload === 'object' && e.payload && 'message' in (e.payload as any)) {
-          setErro(String((e.payload as any).message));
+          const msg = (e.payload as any).message;
+          setErro(Array.isArray(msg) ? msg.join(', ') : String(msg));
+        } else if (typeof e.payload === 'string' && e.payload.trim()) {
+          setErro(e.payload);
         } else if (e.status === 401) {
           setErro('Telefone ou senha inválidos.');
         } else {
