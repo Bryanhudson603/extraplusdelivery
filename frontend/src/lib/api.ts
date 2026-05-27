@@ -1,6 +1,15 @@
 import { API_BASE_URL } from '@/config/api';
 const BASE_URL = `${API_BASE_URL}/api`;
 
+export class ApiError extends Error {
+  status: number;
+
+  constructor(status: number) {
+    super(`Erro na API (${status})`);
+    this.status = status;
+  }
+}
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
@@ -11,7 +20,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   });
 
   if (!res.ok) {
-    throw new Error(`Erro na API (${res.status})`);
+    throw new ApiError(res.status);
   }
 
   return res.json() as Promise<T>;

@@ -149,10 +149,12 @@ export class AuthController {
     const envPass = process.env.PLATFORM_ADMIN_PASS;
 
     if (envUser && envPass) {
-      if (body.username !== envUser || body.password !== envPass) {
-        throw new UnauthorizedException('Credenciais inválidas');
+      if (body.username === envUser) {
+        if (body.password !== envPass) {
+          throw new UnauthorizedException('Credenciais inválidas');
+        }
+        return { tipo: 'plataforma', adminId: 'platform-env', username: envUser };
       }
-      return { tipo: 'plataforma', adminId: 'platform-env', username: envUser };
     }
 
     const admin = platformAdminsStore.find(
