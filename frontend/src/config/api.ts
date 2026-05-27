@@ -13,6 +13,11 @@ export const API_BASE_URL = (() => {
   const env = getEnv('NEXT_PUBLIC_API_URL');
 
   if (typeof window !== 'undefined') {
+    const hostname = window.location.hostname;
+    const isLocalhost = hostname === 'localhost' || hostname === '127.0.0.1';
+    if (!isLocalhost) {
+      return '';
+    }
     if (env) {
       const isHttpsPage = window.location.protocol === 'https:';
       if (isHttpsPage && env.startsWith('http://')) {

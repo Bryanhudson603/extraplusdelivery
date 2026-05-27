@@ -105,7 +105,7 @@ export default function ClientLoginPage() {
           setErro(`Erro na API (${e.status}).`);
         }
       } else {
-        setErro('Falha ao conectar na API.');
+        setErro(e instanceof Error ? e.message : 'Falha ao conectar na API.');
       }
     } finally {
       setSubmitting(false);
