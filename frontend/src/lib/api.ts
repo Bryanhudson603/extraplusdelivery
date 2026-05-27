@@ -21,21 +21,42 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
     }
   });
 
+  const contentType = res.headers.get('content-type') || '';
+  const raw = await res.text();
+
   if (!res.ok) {
     let payload: unknown = undefined;
     try {
-      const contentType = res.headers.get('content-type') || '';
       if (contentType.includes('application/json')) {
-        payload = await res.json();
+        payload = raw ? JSON.parse(raw) : undefined;
       } else {
-        payload = await res.text();
+        payload = raw;
       }
     } catch {
+      payload = raw;
     }
     throw new ApiError(res.status, payload);
   }
 
-  return res.json() as Promise<T>;
+  if (!contentType.includes('application/json')) {
+    if (!raw.trim()) return undefined as T;
+    throw new ApiError(res.status, {
+      message: 'Resposta não é JSON',
+      body: raw.slice(0, 500)
+    });
+  }
+
+  if (!raw.trim()) return undefined as T;
+
+  try {
+    return JSON.parse(raw) as T;
+  } catch (e) {
+    throw new ApiError(res.status, {
+      message: 'Resposta JSON inválida',
+      detail: e instanceof Error ? e.message : String(e),
+      body: raw.slice(0, 500)
+    });
+  }
 }
 
 export const api = {
@@ -64,6 +85,10 @@ export const api = {
 export async function checkBackend(): Promise<void> {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || API_BASE_URL;
   const res = await fetch(`${apiUrl}/api/health`);
-  const data = await res.json();
-  console.log(data);
+  const raw = await res.text();
+  try {
+    console.log(JSON.parse(raw));
+  } catch {
+    console.log(raw);
+  }
 }
