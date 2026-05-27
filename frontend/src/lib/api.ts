@@ -3,10 +3,12 @@ const BASE_URL = `${API_BASE_URL}/api`;
 
 export class ApiError extends Error {
   status: number;
+  payload?: unknown;
 
-  constructor(status: number) {
+  constructor(status: number, payload?: unknown) {
     super(`Erro na API (${status})`);
     this.status = status;
+    this.payload = payload;
   }
 }
 
@@ -20,7 +22,17 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
   });
 
   if (!res.ok) {
-    throw new ApiError(res.status);
+    let payload: unknown = undefined;
+    try {
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        payload = await res.json();
+      } else {
+        payload = await res.text();
+      }
+    } catch {
+    }
+    throw new ApiError(res.status, payload);
   }
 
   return res.json() as Promise<T>;

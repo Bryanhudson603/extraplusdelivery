@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 
 type Loja = {
   id: string;
@@ -23,6 +23,8 @@ const SESSION_KEY = 'extraplus-session';
 
 export default function ClientLoginPage() {
   const router = useRouter();
+  const [lojas, setLojas] = useState<Loja[]>([]);
+  const [loadingLojas, setLoadingLojas] = useState(true);
   const [modo, setModo] = useState<'login' | 'register'>('login');
   const [nome, setNome] = useState('');
   const [endereco, setEndereco] = useState('');
@@ -44,6 +46,25 @@ export default function ClientLoginPage() {
     } catch {
     }
   }, [router]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function carregarLojas() {
+      setLoadingLojas(true);
+      try {
+        const resp = await api.get<Loja[]>('/auth/lojas');
+        if (mounted) setLojas(Array.isArray(resp) ? resp : []);
+      } catch {
+        if (mounted) setLojas([]);
+      } finally {
+        if (mounted) setLoadingLojas(false);
+      }
+    }
+    carregarLojas();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -75,12 +96,24 @@ export default function ClientLoginPage() {
 
       router.replace('/stores');
     } catch (e) {
-      setErro('Não foi possível entrar. Verifique os dados e tente novamente.');
-      console.error(e);
+      if (e instanceof ApiError) {
+        if (typeof e.payload === 'object' && e.payload && 'message' in (e.payload as any)) {
+          setErro(String((e.payload as any).message));
+        } else if (e.status === 401) {
+          setErro('Telefone ou senha inválidos.');
+        } else {
+          setErro(`Erro na API (${e.status}).`);
+        }
+      } else {
+        setErro('Falha ao conectar na API.');
+      }
     } finally {
       setSubmitting(false);
     }
   }
+
+  const lojaNome = lojas.length > 0 ? lojas[0].nome : 'Extraplus';
+  const bloqueadoSemLojas = !loadingLojas && lojas.length === 0;
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950 px-4">
@@ -102,7 +135,7 @@ export default function ClientLoginPage() {
         </div>
 
         <div className="space-y-1">
-          <p className="text-xs text-amber-400 font-semibold uppercase tracking-wide">Dilbebidas</p>
+          <p className="text-xs text-amber-400 font-semibold uppercase tracking-wide">{lojaNome}</p>
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">
             {modo === 'login' ? 'Entrar no app' : 'Criar meu cadastro'}
           </h1>
@@ -112,6 +145,12 @@ export default function ClientLoginPage() {
               : 'Informe seus dados para criar sua conta e comprar com mais facilidade.'}
           </p>
         </div>
+
+        {bloqueadoSemLojas && (
+          <div className="text-xs rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 px-3 py-2">
+            Nenhuma loja cadastrada. Acesse /platform para cadastrar uma loja primeiro.
+          </div>
+        )}
 
         <div className="flex items-center gap-2 text-[11px] bg-gray-100 border border-gray-200 dark:bg-zinc-950 dark:border-zinc-800 rounded-full p-1">
           <button
@@ -187,7 +226,7 @@ export default function ClientLoginPage() {
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || bloqueadoSemLojas}
             className="w-full h-10 rounded-full bg-amber-500 hover:bg-amber-600 text-black text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed mt-2"
           >
             {submitting ? 'Entrando...' : 'Entrar'}

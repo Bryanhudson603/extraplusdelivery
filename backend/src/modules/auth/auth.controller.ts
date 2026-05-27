@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Post, UnauthorizedException } from '@nestjs/common';
 import {
   adminsStore,
   clientesStore,
@@ -113,7 +113,7 @@ export class AuthController {
     const lojaPadrao = lojasStore.find(l => l.ativo !== false) || null;
 
     if (!lojaPadrao) {
-      throw new UnauthorizedException('Nenhuma loja disponível para cadastro');
+      throw new BadRequestException('Nenhuma loja disponível para cadastro');
     }
 
     const exists = clientesStore.find(c => c.ativo !== false && c.telefone === body.telefone);

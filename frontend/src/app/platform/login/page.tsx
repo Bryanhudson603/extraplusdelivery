@@ -2,8 +2,7 @@
 
 import { FormEvent, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
-import { ApiError } from '@/lib/api';
+import { api, ApiError } from '@/lib/api';
 
 type PlatformLoginResponse = {
   tipo: 'plataforma';
@@ -39,7 +38,11 @@ export default function PlatformLoginPage() {
       if (e instanceof ApiError && e.status === 401) {
         setErro('Usuário ou senha inválidos');
       } else if (e instanceof ApiError) {
-        setErro(`Erro na API (${e.status})`);
+        if (typeof e.payload === 'object' && e.payload && 'message' in (e.payload as any)) {
+          setErro(String((e.payload as any).message));
+        } else {
+          setErro(`Erro na API (${e.status})`);
+        }
       } else {
         setErro('Falha ao conectar na API');
       }
