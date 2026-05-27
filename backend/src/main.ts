@@ -3,12 +3,22 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  const allowedOrigins = [
-    'http://localhost:3001',
-    'https://extraplusdelivery.vercel.app'
-  ];
   app.enableCors({
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
+      if (origin === 'http://localhost:3001') {
+        return callback(null, true);
+      }
+      if (origin === 'https://extraplusdelivery.vercel.app') {
+        return callback(null, true);
+      }
+      if (origin.endsWith('.vercel.app')) {
+        return callback(null, true);
+      }
+      return callback(null, false);
+    },
     credentials: true
   });
   const http = app.getHttpAdapter().getInstance();
