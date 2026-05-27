@@ -14,8 +14,8 @@ const SESSION_KEY = 'extraplus-platform-session';
 
 export default function PlatformLoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState('master');
-  const [password, setPassword] = useState('master123');
+  const [username, setUsername] = useState('bhnsilva');
+  const [password, setPassword] = useState('Brasill1');
   const [submitting, setSubmitting] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 

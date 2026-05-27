@@ -31,43 +31,17 @@ export type PlatformAdminUser = {
   ativo: boolean;
 };
 
-export const lojasStore: Loja[] = [
-  {
-    id: 'dilbebidas',
-    nome: 'Dilbebidas',
-    slug: 'dilbebidas',
-    ativo: true,
-    criadoEm: new Date().toISOString()
-  }
-];
+export const lojasStore: Loja[] = [];
 
-export const adminsStore: AdminUser[] = [
-  {
-    id: 'admin-1',
-    username: 'bhnsilva',
-    senha: 'Brasill1',
-    lojaId: 'dilbebidas',
-    ativo: true
-  }
-];
+export const adminsStore: AdminUser[] = [];
 
-export const clientesStore: ClienteUser[] = [
-  {
-    id: 'cliente-1',
-    nome: 'Cliente Exemplo',
-    telefone: '82993107309',
-    senha: '123456',
-    endereco: 'Rua das Bebidas, 123',
-    lojaId: 'dilbebidas',
-    ativo: true
-  }
-];
+export const clientesStore: ClienteUser[] = [];
 
 export const platformAdminsStore: PlatformAdminUser[] = [
   {
     id: 'platform-1',
-    username: 'master',
-    senha: 'master123',
+    username: 'bhnsilva',
+    senha: 'Brasill1',
     ativo: true
   }
 ];
