@@ -61,13 +61,16 @@ async function proxy(request: Request, params: { path: string[] }) {
 
   const upstreamContentType = upstream.headers.get('content-type') || '';
   if (upstreamContentType.includes('application/json')) {
+    const responseHeaders = new Headers(upstream.headers);
+    responseHeaders.delete('content-encoding');
+    responseHeaders.delete('content-length');
     const raw = await upstream.text();
     if (!raw.trim()) {
-      return NextResponse.json(null, { status: upstream.status });
+      return new NextResponse('', { status: upstream.status, headers: responseHeaders });
     }
     try {
-      const parsed = JSON.parse(raw);
-      return NextResponse.json(parsed, { status: upstream.status });
+      JSON.parse(raw);
+      return new NextResponse(raw, { status: upstream.status, headers: responseHeaders });
     } catch (e) {
       return NextResponse.json(
         {

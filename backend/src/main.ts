@@ -1,24 +1,34 @@
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
+  if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+    throw new Error('JWT_SECRET obrigatório em produção');
+  }
+  if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
+    throw new Error('DATABASE_URL obrigatório em produção');
+  }
+  if (process.env.NODE_ENV === 'production' && !process.env.FRONTEND_URL) {
+    throw new Error('FRONTEND_URL obrigatório em produção');
+  }
+  if (!process.env.PLATFORM_ADMIN_USER || !process.env.PLATFORM_ADMIN_PASS_HASH) {
+    throw new Error('PLATFORM_ADMIN_USER e PLATFORM_ADMIN_PASS_HASH são obrigatórios');
+  }
   const app = await NestFactory.create(AppModule);
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true
+    })
+  );
+  const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    process.env.NODE_ENV !== 'production' ? 'http://localhost:3001' : undefined
+  ].filter(Boolean) as string[];
   app.enableCors({
-    origin: (origin, callback) => {
-      if (!origin) {
-        return callback(null, true);
-      }
-      if (origin === 'http://localhost:3001') {
-        return callback(null, true);
-      }
-      if (origin === 'https://extraplusdelivery.vercel.app') {
-        return callback(null, true);
-      }
-      if (origin.endsWith('.vercel.app')) {
-        return callback(null, true);
-      }
-      return callback(null, false);
-    },
+    origin: allowedOrigins,
     credentials: true
   });
   const http = app.getHttpAdapter().getInstance();

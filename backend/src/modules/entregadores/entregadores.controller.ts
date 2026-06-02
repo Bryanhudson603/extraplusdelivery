@@ -1,75 +1,30 @@
-import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
-import { randomUUID } from 'crypto';
-import { entregadoresStore, type Entregador } from './entregadores.store';
-import { pedidosStore } from '../pedidos/pedidos.store';
-
-type CriarEntregadorDto = {
-  nome: string;
-  telefone?: string;
-};
-
-type AtualizarEntregadorDto = {
-  nome?: string;
-  telefone?: string;
-  ativo?: boolean;
-};
+import { Body, Controller, Get, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
+import { RequireAuth } from '../../auth/require-auth.guard';
+import { AtualizarEntregadorDto, CriarEntregadorDto } from './entregadores.dto';
+import { EntregadoresService } from './entregadores.service';
 
 @Controller('admin/entregadores')
+@UseGuards(RequireAuth('admin'))
 export class EntregadoresController {
+  constructor(private readonly entregadoresService: EntregadoresService) {}
+
   @Get()
-  listar(): Entregador[] {
-    return entregadoresStore.slice();
+  listar(@Req() req: any) {
+    return this.entregadoresService.listar(req);
   }
 
   @Post()
-  criar(@Body() body: CriarEntregadorDto): Entregador {
-    const nome = String(body.nome || '').trim();
-    const telefone =
-      body.telefone && String(body.telefone).trim() ? String(body.telefone).trim() : undefined;
-    const novo: Entregador = {
-      id: randomUUID(),
-      nome: nome || 'Entregador',
-      telefone,
-      ativo: true
-    };
-    entregadoresStore.push(novo);
-    return novo;
+  criar(@Req() req: any, @Body() body: CriarEntregadorDto) {
+    return this.entregadoresService.criar(req, body);
   }
 
   @Put(':id')
-  atualizar(@Param('id') id: string, @Body() body: AtualizarEntregadorDto): Entregador | null {
-    const existente = entregadoresStore.find(e => e.id === id);
-    if (!existente) return null;
-    if (body.nome !== undefined) {
-      existente.nome = String(body.nome || '').trim() || existente.nome;
-    }
-    if (body.telefone !== undefined) {
-      const texto = String(body.telefone || '').trim();
-      existente.telefone = texto || undefined;
-    }
-    if (body.ativo !== undefined) {
-      existente.ativo = !!body.ativo;
-    }
-    return existente;
+  atualizar(@Req() req: any, @Param('id') id: string, @Body() body: AtualizarEntregadorDto) {
+    return this.entregadoresService.atualizar(req, id, body);
   }
 
   @Get('estatisticas')
-  estatisticas(): Array<{ entregadorId: string; nome: string; entregas: number }> {
-    const mapa: Record<string, { entregadorId: string; nome: string; entregas: number }> = {};
-    for (const pedido of pedidosStore) {
-      const id = (pedido as any).entregadorId as string | undefined;
-      if (!id) continue;
-      if (!mapa[id]) {
-        const entregador = entregadoresStore.find(e => e.id === id);
-        mapa[id] = {
-          entregadorId: id,
-          nome: entregador?.nome || 'Entregador',
-          entregas: 0
-        };
-      }
-      mapa[id].entregas += 1;
-    }
-    return Object.values(mapa).sort((a, b) => b.entregas - a.entregas);
+  estatisticas(@Req() req: any) {
+    return this.entregadoresService.estatisticas(req);
   }
 }
-

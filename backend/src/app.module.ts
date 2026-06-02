@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CatalogoModule } from './modules/catalogo/catalogo.module';
 import { AdminModule } from './modules/admin/admin.module';
@@ -14,6 +16,8 @@ function createDatabaseModule() {
         type: 'postgres',
         url: process.env.DATABASE_URL,
         autoLoadEntities: true,
+        migrations: [__dirname + '/migrations/*{.ts,.js}'],
+        migrationsRun: true,
         synchronize: false
       })
     ];
@@ -29,6 +33,8 @@ function createDatabaseModule() {
         password: process.env.DB_PASS || '',
         database: process.env.DB_NAME,
         autoLoadEntities: true,
+        migrations: [__dirname + '/migrations/*{.ts,.js}'],
+        migrationsRun: true,
         synchronize: false
       })
     ];
@@ -40,12 +46,14 @@ function createDatabaseModule() {
 @Module({
   imports: [
     ...createDatabaseModule(),
+    ThrottlerModule.forRoot([{ ttl: 60, limit: 120 }]),
     CatalogoModule,
     AdminModule,
     PedidosModule,
     AuthModule,
     EntregadoresModule,
     PlatformModule
-  ]
+  ],
+  providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }]
 })
 export class AppModule {}

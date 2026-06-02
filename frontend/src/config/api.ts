@@ -28,5 +28,5 @@ export const API_BASE_URL = (() => {
     return '';
   }
 
-  return env || process.env.BACKEND_URL || 'http://localhost:3000';
+  return env || process.env.BACKEND_URL || '';
 })();
