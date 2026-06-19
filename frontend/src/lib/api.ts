@@ -1,6 +1,16 @@
 import { API_BASE_URL } from '@/config/api';
 const BASE_URL = `${API_BASE_URL}/api`;
 
+function isFormDataBody(body: unknown): body is FormData {
+  return typeof FormData !== 'undefined' && body instanceof FormData;
+}
+
+function prepareBody(body?: unknown): BodyInit | undefined {
+  if (body == null) return undefined;
+  if (isFormDataBody(body)) return body;
+  return JSON.stringify(body);
+}
+
 export class ApiError extends Error {
   status: number;
   payload?: unknown;
@@ -13,13 +23,15 @@ export class ApiError extends Error {
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const headers = new Headers(options && options.headers ? options.headers : undefined);
+  if (options?.body !== undefined && !isFormDataBody(options.body) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
+
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
     credentials: 'include',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options && options.headers ? options.headers : {})
-    }
+    headers
   });
 
   const contentType = res.headers.get('content-type') || '';
@@ -67,13 +79,13 @@ export const api = {
   post<T>(path: string, body?: unknown) {
     return request<T>(path, {
       method: 'POST',
-      body: body ? JSON.stringify(body) : undefined
+      body: prepareBody(body)
     });
   },
   put<T>(path: string, body?: unknown) {
     return request<T>(path, {
       method: 'PUT',
-      body: body ? JSON.stringify(body) : undefined
+      body: prepareBody(body)
     });
   },
   delete<T>(path: string) {

@@ -1,6 +1,5 @@
 'use client';
 import { useMemo, useState, ChangeEvent } from 'react';
-import Image from 'next/image';
 import { useEffect } from 'react';
 import { api } from '@/lib/api';
 
@@ -9,6 +8,7 @@ type Product = {
   name: string;
   description?: string;
   imageUrl?: string;
+  imagePath?: string;
   category: string;
   volume: string;
   unitPrice: number;
@@ -32,6 +32,8 @@ export default function AdminProductsPage() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     async function carregar() {
@@ -42,6 +44,7 @@ export default function AdminProductsPage() {
           name: p.name,
           description: '',
           imageUrl: p.imageUrl,
+          imagePath: p.imagePath,
           category: p.category || 'Outros',
           volume: p.volume || '350ml',
           unitPrice: Number(p.price ?? 0),
@@ -61,6 +64,15 @@ export default function AdminProductsPage() {
     carregar();
   }, []);
 
+  useEffect(
+    () => () => {
+      if (previewImage?.startsWith('blob:')) {
+        URL.revokeObjectURL(previewImage);
+      }
+    },
+    [previewImage]
+  );
+
   const filtered = useMemo(
     () =>
       products.filter((p) => {
@@ -77,6 +89,7 @@ export default function AdminProductsPage() {
     name: '',
     description: '',
     imageUrl: '',
+    imagePath: '',
     category: '',
     volume: '',
     unitPrice: '',
@@ -96,6 +109,7 @@ export default function AdminProductsPage() {
       name: '',
       description: '',
       imageUrl: '',
+      imagePath: '',
       category: '',
       volume: '',
       unitPrice: '',
@@ -107,6 +121,7 @@ export default function AdminProductsPage() {
       tags: [],
       active: true
     });
+    setSelectedImageFile(null);
     setPreviewImage(null);
     setDrawerOpen(true);
   }
@@ -118,6 +133,7 @@ export default function AdminProductsPage() {
       name: p.name,
       description: p.description || '',
       imageUrl: p.imageUrl || '',
+      imagePath: p.imagePath || '',
       category: p.category,
       volume: p.volume,
       unitPrice: String(p.unitPrice),
@@ -129,6 +145,7 @@ export default function AdminProductsPage() {
       tags: p.tags,
       active: p.active
     });
+    setSelectedImageFile(null);
     setPreviewImage(p.imageUrl || null);
     setDrawerOpen(true);
   }
@@ -136,42 +153,52 @@ export default function AdminProductsPage() {
   function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === 'string' ? reader.result : '';
-      if (!result) return;
-      setForm((prev) => ({
-        ...prev,
-        imageUrl: result
-      }));
-      setPreviewImage(result);
-    };
-    reader.readAsDataURL(file);
+    setSelectedImageFile(file);
+    setPreviewImage(URL.createObjectURL(file));
   }
 
-  function saveProduct() {
-    const parsed: Product = {
-      id: form.id || `p-${Date.now()}`,
-      name: form.name,
-      description: form.description || undefined,
-      imageUrl: form.imageUrl || undefined,
-      category: form.category || 'Outros',
-      volume: form.volume || '350ml',
-      unitPrice: Number(form.unitPrice || 0),
-      promoPrice: form.promoPrice ? Number(form.promoPrice) : undefined,
-      packQuantity: form.packQuantity ? Number(form.packQuantity) : undefined,
-      packPrice: form.packPrice ? Number(form.packPrice) : undefined,
-      stock: Number(form.stock || 0),
-      minStockAlert: Number(form.minStockAlert || 10),
-      tags: form.tags,
-      active: form.active
-    };
+  async function uploadProductImage(file: File): Promise<{ success: true; url: string; path: string }> {
+    const formData = new FormData();
+    formData.append('image', file);
+    formData.append('tipo', 'produtos');
+    return api.post<{ success: true; url: string; path: string }>('/storage/upload', formData);
+  }
 
-    api
-      .post<any>('/admin/produtos', {
+  async function saveProduct() {
+    setIsSaving(true);
+    try {
+      let imageUrl = form.imageUrl || undefined;
+      let imagePath = form.imagePath || undefined;
+
+      if (selectedImageFile) {
+        const uploaded = await uploadProductImage(selectedImageFile);
+        imageUrl = uploaded.url;
+        imagePath = uploaded.path;
+      }
+
+      const parsed: Product = {
+        id: form.id || `p-${Date.now()}`,
+        name: form.name,
+        description: form.description || undefined,
+        imageUrl,
+        imagePath,
+        category: form.category || 'Outros',
+        volume: form.volume || '350ml',
+        unitPrice: Number(form.unitPrice || 0),
+        promoPrice: form.promoPrice ? Number(form.promoPrice) : undefined,
+        packQuantity: form.packQuantity ? Number(form.packQuantity) : undefined,
+        packPrice: form.packPrice ? Number(form.packPrice) : undefined,
+        stock: Number(form.stock || 0),
+        minStockAlert: Number(form.minStockAlert || 10),
+        tags: form.tags,
+        active: form.active
+      };
+
+      const saved = await api.post<any>('/admin/produtos', {
         id: parsed.id,
         name: parsed.name,
         imageUrl: parsed.imageUrl,
+        imagePath: parsed.imagePath,
         category: parsed.category,
         volume: parsed.volume,
         price: parsed.unitPrice,
@@ -181,38 +208,42 @@ export default function AdminProductsPage() {
         packPrice: parsed.packPrice,
         tags: parsed.tags,
         active: parsed.active
-      })
-      .then((saved) => {
-        setProducts((prev) => {
-          const exists = prev.find((p) => p.id === saved.id);
-          const mapped: Product = {
-            id: saved.id,
-            name: saved.name,
-            description: '',
-            imageUrl: saved.imageUrl,
-            category: saved.category || 'Outros',
-            volume: saved.volume || '350ml',
-            unitPrice: Number(saved.price ?? 0),
-            promoPrice: saved.promoPrice != null ? Number(saved.promoPrice) : undefined,
-            packQuantity: saved.packQuantity != null ? Number(saved.packQuantity) : undefined,
-            packPrice: saved.packPrice != null ? Number(saved.packPrice) : undefined,
-            stock: Number(saved.stock ?? 0),
-            minStockAlert: 10,
-            tags: Array.isArray(saved.tags) ? saved.tags : [],
-            active: typeof saved.active === 'boolean' ? saved.active : true
-          };
-          if (exists) {
-            return prev.map((p) => (p.id === mapped.id ? mapped : p));
-          }
-          return [mapped, ...prev];
-        });
-      })
-      .catch((e) => {
-        console.error('Erro ao salvar produto', e);
       });
 
-    setDrawerOpen(false);
-    setEditing(null);
+      setProducts((prev) => {
+        const exists = prev.find((p) => p.id === saved.id);
+        const mapped: Product = {
+          id: saved.id,
+          name: saved.name,
+          description: '',
+          imageUrl: saved.imageUrl,
+          imagePath: saved.imagePath,
+          category: saved.category || 'Outros',
+          volume: saved.volume || '350ml',
+          unitPrice: Number(saved.price ?? 0),
+          promoPrice: saved.promoPrice != null ? Number(saved.promoPrice) : undefined,
+          packQuantity: saved.packQuantity != null ? Number(saved.packQuantity) : undefined,
+          packPrice: saved.packPrice != null ? Number(saved.packPrice) : undefined,
+          stock: Number(saved.stock ?? 0),
+          minStockAlert: 10,
+          tags: Array.isArray(saved.tags) ? saved.tags : [],
+          active: typeof saved.active === 'boolean' ? saved.active : true
+        };
+        if (exists) {
+          return prev.map((p) => (p.id === mapped.id ? mapped : p));
+        }
+        return [mapped, ...prev];
+      });
+
+      setDrawerOpen(false);
+      setEditing(null);
+      setSelectedImageFile(null);
+      setPreviewImage(null);
+    } catch (e) {
+      console.error('Erro ao salvar produto', e);
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   function toggleTag(tag: string) {
@@ -229,6 +260,7 @@ export default function AdminProductsPage() {
         id: updated.id,
         name: updated.name,
         imageUrl: updated.imageUrl,
+        imagePath: updated.imagePath,
         category: updated.category,
         volume: updated.volume,
         price: updated.unitPrice,
@@ -312,11 +344,7 @@ export default function AdminProductsPage() {
               >
                 <div className="relative h-40 bg-gray-100 dark:bg-zinc-800">
                   {product.imageUrl ? (
-                    product.imageUrl.startsWith('http') ? (
-                      <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <Image src={product.imageUrl} alt={product.name} fill className="object-cover" />
-                    )
+                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <span className="text-zinc-600 text-3xl">🍺</span>
@@ -432,11 +460,7 @@ export default function AdminProductsPage() {
                 <div className="flex items-center gap-3">
                   <div className="w-20 h-20 rounded-lg bg-gray-100 border border-gray-300 dark:bg-zinc-800 dark:border-zinc-700 flex items-center justify-center overflow-hidden">
                     {previewImage ? (
-                      previewImage.startsWith('http') ? (
-                        <img src={previewImage} alt={form.name || 'Pré-visualização'} className="w-full h-full object-cover" />
-                      ) : (
-                        <Image src={previewImage} alt={form.name || 'Pré-visualização'} width={160} height={160} className="w-full h-full object-cover" />
-                      )
+                      <img src={previewImage} alt={form.name || 'Pré-visualização'} className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-gray-600 dark:text-zinc-500 text-xs text-center px-1">Prévia</span>
                     )}
@@ -604,9 +628,10 @@ export default function AdminProductsPage() {
               </button>
               <button
                 onClick={saveProduct}
+                disabled={isSaving}
                 className="flex-1 h-10 rounded-lg bg-amber-500 hover:bg-amber-600 text-black text-sm font-semibold"
               >
-                Salvar
+                {isSaving ? 'Salvando...' : 'Salvar'}
               </button>
             </div>
           </aside>
