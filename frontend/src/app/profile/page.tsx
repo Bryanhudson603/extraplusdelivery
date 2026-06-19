@@ -332,7 +332,7 @@ export default function ProfilePage() {
               } catch {
               }
               clear();
-              router.push('/start');
+              router.replace('/login');
             }}
           >
             Sair da conta

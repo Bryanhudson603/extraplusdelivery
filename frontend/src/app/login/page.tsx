@@ -241,7 +241,7 @@ export default function ClientLoginPage() {
             disabled={submitting || bloqueadoSemLojas}
             className="w-full h-10 rounded-full bg-amber-500 hover:bg-amber-600 text-black text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed mt-2"
           >
-            {submitting ? 'Entrando...' : 'Entrar'}
+            {submitting ? (modo === 'login' ? 'Entrando...' : 'Cadastrando...') : modo === 'login' ? 'Entrar' : 'Cadastrar'}
           </button>
         </form>
       </div>

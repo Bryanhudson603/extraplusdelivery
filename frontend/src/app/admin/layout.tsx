@@ -8,6 +8,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const pathname = usePathname();
   const router = useRouter();
 
+  function sair() {
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.removeItem('extraplus-session');
+        window.localStorage.removeItem('extraplus-store');
+      }
+    } catch {
+    }
+    router.replace('/admin/login');
+  }
+
   const items = [
     { href: '/admin', label: 'Dashboard', icon: '▦' },
     { href: '/admin/orders', label: 'Pedidos', icon: '🧾' },
@@ -68,12 +79,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             >
               Ver Loja
             </Link>
-            <Link
-              href="/start"
+            <button
+              type="button"
+              onClick={sair}
               className="mt-2 w-full h-10 rounded-lg border border-red-500/50 text-red-400 font-semibold text-sm flex items-center justify-center"
             >
               Sair
-            </Link>
+            </button>
           </div>
         </aside>
 
@@ -162,13 +174,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               >
                 Ver Loja
               </Link>
-              <Link
-                href="/start"
-                onClick={() => setOpen(false)}
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  sair();
+                }}
                 className="mt-2 w-full h-10 rounded-lg border border-red-500/50 text-red-400 font-semibold text-sm flex items-center justify-center"
               >
                 Sair
-              </Link>
+              </button>
             </div>
           </aside>
         </>
