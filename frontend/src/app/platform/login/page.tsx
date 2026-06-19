@@ -14,8 +14,8 @@ const SESSION_KEY = 'extraplus-platform-session';
 
 export default function PlatformLoginPage() {
   const router = useRouter();
-  const [username, setUsername] = useState('bhnsilva');
-  const [password, setPassword] = useState('Brasill1');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -74,10 +74,12 @@ export default function PlatformLoginPage() {
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           <div className="space-y-1">
             <label className="text-xs text-gray-600 dark:text-zinc-400">Usuário</label>
             <input
+              type="text"
+              autoComplete="off"
               value={username}
               onChange={e => setUsername(e.target.value)}
               className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
@@ -88,6 +90,7 @@ export default function PlatformLoginPage() {
             <label className="text-xs text-gray-600 dark:text-zinc-400">Senha</label>
             <input
               type="password"
+              autoComplete="off"
               value={password}
               onChange={e => setPassword(e.target.value)}
               className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"

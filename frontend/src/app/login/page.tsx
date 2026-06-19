@@ -28,8 +28,8 @@ export default function ClientLoginPage() {
   const [modo, setModo] = useState<'login' | 'register'>('login');
   const [nome, setNome] = useState('');
   const [endereco, setEndereco] = useState('');
-  const [telefone, setTelefone] = useState('82993107309');
-  const [senha, setSenha] = useState('123456');
+  const [telefone, setTelefone] = useState('');
+  const [senha, setSenha] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -185,14 +185,14 @@ export default function ClientLoginPage() {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
           {modo === 'register' && (
             <>
               <div className="space-y-1">
                 <label className="text-xs text-gray-600 dark:text-zinc-400">Nome completo</label>
                 <input
                   type="text"
-                  autoComplete="name"
+                  autoComplete="off"
                   value={nome}
                   onChange={e => setNome(e.target.value)}
                   className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
@@ -203,7 +203,7 @@ export default function ClientLoginPage() {
                 <label className="text-xs text-gray-600 dark:text-zinc-400">Endereço</label>
                 <input
                   type="text"
-                  autoComplete="street-address"
+                  autoComplete="off"
                   value={endereco}
                   onChange={e => setEndereco(e.target.value)}
                   className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
@@ -216,7 +216,7 @@ export default function ClientLoginPage() {
             <label className="text-xs text-gray-600 dark:text-zinc-400">Telefone</label>
             <input
               type="tel"
-              autoComplete="tel"
+              autoComplete="off"
               value={telefone}
               onChange={e => setTelefone(e.target.value)}
               className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
@@ -227,7 +227,7 @@ export default function ClientLoginPage() {
             <label className="text-xs text-gray-600 dark:text-zinc-400">Senha</label>
             <input
               type="password"
-              autoComplete="current-password"
+              autoComplete="off"
               value={senha}
               onChange={e => setSenha(e.target.value)}
               className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
@@ -244,18 +244,6 @@ export default function ClientLoginPage() {
             {submitting ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
-
-        <div className="text-[11px] text-gray-600 dark:text-zinc-500">
-          Lojista? Acesse o painel em{' '}
-          <button
-            type="button"
-            onClick={() => router.push('/admin/login')}
-            className="text-amber-400 underline underline-offset-2"
-          >
-            login do lojista
-          </button>
-          .
-        </div>
       </div>
     </main>
   );

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { api } from '@/lib/api';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { ApiError, api } from '@/lib/api';
 
 type Loja = {
   id: string;
@@ -32,9 +33,11 @@ type UsuariosResp = {
 };
 
 export default function PlatformHomePage() {
+  const router = useRouter();
   const [lojas, setLojas] = useState<Loja[]>([]);
   const [usuarios, setUsuarios] = useState<UsuariosResp>({ admins: [], clientes: [] });
   const [loading, setLoading] = useState(true);
+  const [erro, setErro] = useState<string | null>(null);
 
   const [novaLojaNome, setNovaLojaNome] = useState('');
   const [novaLojaSlug, setNovaLojaSlug] = useState('');
@@ -54,8 +57,9 @@ export default function PlatformHomePage() {
 
   const lojasAtivas = useMemo(() => lojas.filter(l => l.ativo), [lojas]);
 
-  async function carregar() {
+  const carregar = useCallback(async () => {
     setLoading(true);
+    setErro(null);
     try {
       const [ls, us] = await Promise.all([
         api.get<Loja[]>('/platform/lojas'),
@@ -65,14 +69,23 @@ export default function PlatformHomePage() {
       setUsuarios(us);
       if (!novoAdminLoja && ls.length) setNovoAdminLoja(ls[0].id);
       if (!novoClienteLoja && ls.length) setNovoClienteLoja(ls[0].id);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        window.localStorage.removeItem('extraplus-platform-session');
+        router.replace('/platform/login');
+        return;
+      }
+      setLojas([]);
+      setUsuarios({ admins: [], clientes: [] });
+      setErro(e instanceof Error ? e.message : 'Falha ao carregar lojas e usuarios.');
     } finally {
       setLoading(false);
     }
-  }
+  }, [novoAdminLoja, novoClienteLoja, router]);
 
   useEffect(() => {
     carregar();
-  }, []);
+  }, [carregar]);
 
   async function criarLoja() {
     if (criandoLoja) return;
@@ -160,6 +173,12 @@ export default function PlatformHomePage() {
           </div>
         </div>
 
+        {erro && (
+          <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-600 dark:text-red-300">
+            {erro}
+          </div>
+        )}
+
         <div className="mt-4 grid md:grid-cols-3 gap-3">
           <input
             value={novaLojaNome}
@@ -205,6 +224,11 @@ export default function PlatformHomePage() {
               </button>
             </div>
           ))}
+          {lojas.length === 0 && (
+            <div className="py-4 text-xs text-gray-600 dark:text-zinc-400">
+              Nenhuma loja encontrada.
+            </div>
+          )}
         </div>
       </section>
 
@@ -275,6 +299,11 @@ export default function PlatformHomePage() {
                   </button>
                 </div>
               ))}
+              {usuarios.admins.length === 0 && (
+                <div className="py-4 text-xs text-gray-600 dark:text-zinc-400">
+                  Nenhum admin cadastrado.
+                </div>
+              )}
             </div>
           </div>
 
@@ -348,6 +377,11 @@ export default function PlatformHomePage() {
                   </button>
                 </div>
               ))}
+              {usuarios.clientes.length === 0 && (
+                <div className="py-4 text-xs text-gray-600 dark:text-zinc-400">
+                  Nenhum cliente cadastrado.
+                </div>
+              )}
             </div>
           </div>
         </div>

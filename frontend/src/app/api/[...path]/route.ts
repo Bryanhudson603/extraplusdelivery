@@ -50,7 +50,8 @@ async function proxy(request: Request, params: { path: string[] }) {
       method: request.method,
       headers,
       body,
-      redirect: 'manual'
+      redirect: 'manual',
+      cache: 'no-store'
     });
   } catch (e) {
     return NextResponse.json(
@@ -64,6 +65,7 @@ async function proxy(request: Request, params: { path: string[] }) {
     const responseHeaders = new Headers(upstream.headers);
     responseHeaders.delete('content-encoding');
     responseHeaders.delete('content-length');
+    responseHeaders.set('cache-control', 'no-store');
     const raw = await upstream.text();
     if (!raw.trim()) {
       return new NextResponse('', { status: upstream.status, headers: responseHeaders });
@@ -86,6 +88,7 @@ async function proxy(request: Request, params: { path: string[] }) {
   }
 
   const responseHeaders = new Headers(upstream.headers);
+  responseHeaders.set('cache-control', 'no-store');
 
   return new NextResponse(upstream.body, {
     status: upstream.status,

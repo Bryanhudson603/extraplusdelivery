@@ -12,11 +12,6 @@ type Loja = {
 
 const SESSION_KEY = 'extraplus-session';
 const STORE_KEY = 'extraplus-store';
-const DEFAULT_LOJA: Loja = {
-  id: 'dilbebidas',
-  nome: 'Dilbebidas',
-  slug: 'dilbebidas'
-};
 
 export default function StoreSelectPage() {
   const router = useRouter();
@@ -50,11 +45,11 @@ export default function StoreSelectPage() {
         if (resposta && resposta.length > 0) {
           setLojas(resposta);
         } else {
-          setLojas([DEFAULT_LOJA]);
+          setLojas([]);
         }
       } catch (e) {
         console.error('Erro ao carregar lojas', e);
-        setLojas([DEFAULT_LOJA]);
+        setLojas([]);
       } finally {
         setLoading(false);
       }
