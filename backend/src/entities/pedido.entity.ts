@@ -71,7 +71,7 @@ export class PedidoEntity {
   entregadorNome: string | null = null;
 
   @OneToMany(() => PedidoItemEntity, (it: PedidoItemEntity) => it.pedido, { cascade: false })
-  itens: PedidoItemEntity[] = [];
+  itens!: PedidoItemEntity[];
 
   @CreateDateColumn({ type: 'timestamptz', name: 'criado_em' })
   criadoEm!: Date;
