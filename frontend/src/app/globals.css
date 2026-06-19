@@ -3,7 +3,11 @@
 @tailwind utilities;
 
 :root {
-  --brand-red: #EA1D2C;
+  --brand-primary: #2563eb;
+  --brand-primary-strong: #1d4ed8;
+  --brand-soft-bg: #eef4ff;
+  --brand-soft-surface: #f8fbff;
+  --brand-soft-border: #c7d8fb;
 }
 
 html,
@@ -12,7 +16,8 @@ body {
 }
 
 body {
-  @apply bg-gray-50 text-gray-900;
+  background: linear-gradient(180deg, var(--brand-soft-bg) 0%, #f8fbff 100%);
+  @apply text-gray-900;
 }
 
 html.dark body {

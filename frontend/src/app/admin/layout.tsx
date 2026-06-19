@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { BrandLogo } from '@/components/BrandLogo';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -40,11 +41,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <aside className="hidden md:flex md:flex-col md:w-72 bg-white border-r border-gray-200 dark:bg-zinc-900 dark:border-zinc-800">
           <div className="h-14 px-4 flex items-center justify-between border-b border-gray-200 dark:border-zinc-800">
             <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
-                <span className="text-black font-bold">🍺</span>
+                <div className="w-10 h-10 rounded-xl overflow-hidden border border-blue-100 bg-blue-50">
+                  <BrandLogo size={40} />
               </div>
               <div>
-                <div className="text-gray-900 font-semibold dark:text-white">Depósito</div>
+                <div className="text-gray-900 font-semibold dark:text-white">Dil Bebidas</div>
                 <div className="text-[11px] text-gray-600 dark:text-zinc-400">Painel Admin</div>
               </div>
             </div>
@@ -60,7 +61,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     href={item.href}
                     className={`flex items-center gap-3 px-3 h-10 rounded-lg text-sm font-semibold ${
                       active
-                        ? 'bg-amber-500/10 text-amber-400'
+                        ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
                         : 'text-gray-700 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800'
                     }`}
                   >
@@ -93,11 +94,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <header className="sticky top-0 z-30 bg-gray-50 border-b border-gray-200 dark:bg-zinc-950 dark:border-zinc-800 md:border-b-0">
             <div className="max-w-7xl mx-auto h-14 px-4 flex items-center justify-between">
               <div className="flex items-center gap-3 md:hidden">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
-                  <span className="text-black font-bold">🍺</span>
+                <div className="w-10 h-10 rounded-xl overflow-hidden border border-blue-100 bg-blue-50">
+                  <BrandLogo size={40} />
                 </div>
                 <div className="leading-tight">
-                  <div className="text-gray-900 font-semibold dark:text-white">Depósito</div>
+                  <div className="text-gray-900 font-semibold dark:text-white">Dil Bebidas</div>
                   <div className="text-[11px] text-gray-600 dark:text-zinc-400">Painel Admin</div>
                 </div>
               </div>
@@ -126,11 +127,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <aside className="fixed top-0 left-0 bottom-0 w-72 bg-white border-r border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 z-50 flex flex-col md:hidden">
             <div className="h-14 px-4 flex items-center justify-between border-b border-gray-200 dark:border-zinc-800">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
-                  <span className="text-black font-bold">🍺</span>
+                <div className="w-10 h-10 rounded-xl overflow-hidden border border-blue-100 bg-blue-50">
+                  <BrandLogo size={40} />
                 </div>
                 <div>
-                  <div className="text-gray-900 font-semibold dark:text-white">Depósito</div>
+                  <div className="text-gray-900 font-semibold dark:text-white">Dil Bebidas</div>
                   <div className="text-[11px] text-gray-600 dark:text-zinc-400">Painel Admin</div>
                 </div>
               </div>
@@ -154,7 +155,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                       onClick={() => setOpen(false)}
                       className={`flex items-center gap-3 px-3 h-10 rounded-lg text-sm font-semibold ${
                         active
-                          ? 'bg-amber-500/10 text-amber-400'
+                          ? 'bg-blue-500/10 text-blue-600 dark:text-blue-400'
                           : 'text-gray-700 hover:bg-gray-100 dark:text-zinc-300 dark:hover:bg-zinc-800'
                       }`}
                     >

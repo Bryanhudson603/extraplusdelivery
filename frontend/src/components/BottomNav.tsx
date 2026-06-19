@@ -21,7 +21,7 @@ export function BottomNav() {
     });
   }, [router]);
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 h-14 dark:bg-zinc-900/95 dark:border-zinc-800 backdrop-blur">
+    <nav className="fixed bottom-0 left-0 right-0 bg-[var(--brand-soft-surface)] border-t border-[var(--brand-soft-border)] h-14 dark:bg-zinc-900/95 dark:border-zinc-800 backdrop-blur">
       <div className="max-w-md mx-auto h-full grid grid-cols-4">
         {items.map(item => {
           const active = pathname === item.href;

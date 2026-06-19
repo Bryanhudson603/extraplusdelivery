@@ -88,7 +88,7 @@ export function ProductCard({ name, image, price, promoPrice, onAdd, tags, packQ
               {tags.slice(0, 2).map(t => (
                 <span
                   key={t}
-                  className="text-[10px] px-2 py-0.5 rounded-full bg-red-100 text-red-600 dark:bg-red-500/10 dark:text-red-300"
+                  className="text-[10px] px-2 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300"
                 >
                   {t}
                 </span>
@@ -170,7 +170,7 @@ export function ProductCard({ name, image, price, promoPrice, onAdd, tags, packQ
               <button
                 type="button"
                 onClick={confirmarAdicionar}
-                className="h-9 px-4 rounded-full bg-amber-500 text-black text-xs font-semibold"
+                className="h-9 px-4 rounded-full bg-blue-600 text-white text-xs font-semibold"
               >
                 Adicionar
               </button>

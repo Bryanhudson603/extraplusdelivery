@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { BottomNav } from '@/components/BottomNav';
 import { useCart } from '@/components/CartProvider';
 import { api } from '@/lib/api';
+import { matchesClientOrder } from '@/lib/orders';
 
 type User = {
   name: string;
@@ -162,12 +163,9 @@ export default function ProfilePage() {
         const parsed = JSON.parse(rawSession);
         if (parsed?.tipo !== 'cliente') return;
         const resposta = await api.get<PedidoResumo[]>('/pedidos');
-        const filtrados = resposta.filter((p: PedidoResumo) => {
-          if (parsed.clienteId) {
-            return p.clienteId === parsed.clienteId;
-          }
-          return p.clienteTelefone === parsed.telefone;
-        });
+        const filtrados = resposta.filter((pedido: PedidoResumo) =>
+          matchesClientOrder(pedido, parsed.clienteId || null, parsed.telefone || null)
+        );
         setOrdersCount(filtrados.length);
         const total = filtrados.reduce((sum: number, p: PedidoResumo) => sum + p.total, 0);
         setOrdersTotal(total);
@@ -183,8 +181,8 @@ export default function ProfilePage() {
     <main className="flex-1 bg-gray-50 dark:bg-zinc-950 pb-16">
       <div className="max-w-md mx-auto px-4 py-6">
         <div className="flex items-center gap-4 mb-6">
-          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center">
-            <span className="text-2xl font-semibold text-black">BH</span>
+          <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center">
+            <span className="text-2xl font-semibold text-white">DB</span>
           </div>
           <div>
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">{user.name}</h1>
@@ -195,7 +193,7 @@ export default function ProfilePage() {
 
         <div className="grid grid-cols-3 gap-3 mb-6">
           <div className="bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-xl p-4 text-center">
-            <p className="text-3xl font-bold text-amber-400">{ordersCount}</p>
+            <p className="text-3xl font-bold text-blue-600">{ordersCount}</p>
             <p className="text-gray-600 dark:text-zinc-500 text-xs mt-1">Pedidos</p>
           </div>
           <div className="bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-xl p-4 text-center">
@@ -212,7 +210,7 @@ export default function ProfilePage() {
           <div className="bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-xl overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-zinc-800">
               <div className="flex items-center gap-3">
-                <span className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-400 text-lg">
+                <span className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 text-lg">
                   📍
                 </span>
                 <div>
@@ -227,7 +225,7 @@ export default function ProfilePage() {
                 </div>
               </div>
               <button
-                className="text-xs font-semibold text-amber-400"
+                className="text-xs font-semibold text-blue-600"
                 onClick={() => {
                   const novo = window.prompt('Informe o endereço de entrega:');
                   if (!novo) return;
@@ -272,7 +270,7 @@ export default function ProfilePage() {
             </div>
             <button
               type="button"
-              className="text-xs font-semibold text-amber-400"
+              className="text-xs font-semibold text-blue-600"
               onClick={() => setFavoritesOpen(true)}
             >
               Ver
@@ -293,7 +291,7 @@ export default function ProfilePage() {
             </div>
             <button
               type="button"
-              className="text-xs font-semibold text-amber-400"
+              className="text-xs font-semibold text-blue-600"
               onClick={() => setWalletOpen(true)}
             >
               Ver

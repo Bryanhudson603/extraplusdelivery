@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { OrderStatusBadge } from '@/components/OrderStatusBadge';
 import { api } from '@/lib/api';
+import { formatOrderShortId, matchesClientOrder } from '@/lib/orders';
 
 type BackendOrderItem = {
   name: string;
@@ -25,36 +26,72 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
   const id = params.id;
   const [order, setOrder] = useState<BackendOrder | null>(null);
   const [loading, setLoading] = useState(true);
+  const [clienteId, setClienteId] = useState<string | null>(null);
+  const [clienteTelefone, setClienteTelefone] = useState<string | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const raw = window.localStorage.getItem('extraplus-session');
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed?.tipo === 'cliente') {
+          setClienteId(parsed.clienteId || null);
+          setClienteTelefone(parsed.telefone || null);
+        }
+      }
+    } catch {
+    }
+
+    setSessionReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!sessionReady) return;
+
+    let ativo = true;
+
     async function carregar() {
       try {
         const lista = await api.get<BackendOrder[]>('/pedidos');
-        const encontrado = lista.find(p => p.id === id);
-        if (encontrado) {
+        const encontrado = lista.find(
+          p => p.id === id && matchesClientOrder(p, clienteId, clienteTelefone)
+        );
+        if (ativo && encontrado) {
           setOrder(encontrado);
+        } else if (ativo) {
+          setOrder(null);
         }
       } catch (e) {
         console.error('Erro ao carregar pedido', e);
       } finally {
-        setLoading(false);
+        if (ativo) {
+          setLoading(false);
+        }
       }
     }
     carregar();
-  }, [id]);
+    const intervalId = window.setInterval(carregar, 5000);
+    return () => {
+      ativo = false;
+      window.clearInterval(intervalId);
+    };
+  }, [clienteId, clienteTelefone, id, sessionReady]);
 
   if (loading) {
     return (
-      <main className="flex-1 flex flex-col p-4 pb-24 bg-zinc-950">
+      <main className="flex-1 flex flex-col p-4 pb-24 bg-[var(--brand-soft-bg)]">
         <div className="max-w-md mx-auto w-full">
           <button
             type="button"
             onClick={() => router.back()}
-            className="text-xs text-zinc-400 mb-4"
+            className="text-xs text-slate-500 mb-4"
           >
             ← Voltar
           </button>
-          <div className="text-sm text-zinc-500">Carregando pedido...</div>
+          <div className="text-sm text-slate-500">Carregando pedido...</div>
         </div>
       </main>
     );
@@ -62,16 +99,18 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
 
   if (!order) {
     return (
-      <main className="flex-1 flex flex-col p-4 pb-24 bg-zinc-950">
+      <main className="flex-1 flex flex-col p-4 pb-24 bg-[var(--brand-soft-bg)]">
         <div className="max-w-md mx-auto w-full">
           <button
             type="button"
             onClick={() => router.back()}
-            className="text-xs text-zinc-400 mb-4"
+            className="text-xs text-slate-500 mb-4"
           >
             ← Voltar
           </button>
-          <div className="text-sm text-zinc-500">Pedido não encontrado.</div>
+          <div className="rounded-2xl border border-blue-100 bg-white/90 p-4 text-sm text-slate-500 shadow-sm">
+            Pedido nao encontrado.
+          </div>
         </div>
       </main>
     );
@@ -89,53 +128,53 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
   const totalItens = itens.reduce((sum, it) => sum + it.quantity, 0);
 
   return (
-    <main className="flex-1 flex flex-col p-4 pb-24 bg-zinc-950">
+    <main className="flex-1 flex flex-col p-4 pb-24 bg-[var(--brand-soft-bg)]">
       <div className="max-w-md mx-auto w-full space-y-4">
         <button
           type="button"
           onClick={() => router.back()}
-          className="text-xs text-zinc-400"
+          className="text-xs text-slate-500"
         >
           ← Voltar
         </button>
 
-        <h1 className="text-lg font-bold text-white">
-          Pedido #{order.id.slice(-6).toUpperCase()}
+        <h1 className="text-lg font-bold text-slate-900">
+          Pedido {formatOrderShortId(order.id)}
         </h1>
 
-        <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4 space-y-2">
+        <div className="bg-white/95 rounded-2xl border border-blue-100 p-4 space-y-2 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-zinc-300">Status</span>
+            <span className="text-sm text-slate-700">Status</span>
             <OrderStatusBadge status={order.status} />
           </div>
-          <div className="text-xs text-zinc-500">
+          <div className="text-xs text-slate-500">
             Realizado em {createdAt}
           </div>
           {(order.clienteNome || order.clienteTelefone) && (
-            <div className="text-xs text-zinc-400">
+            <div className="text-xs text-slate-600">
               Cliente: {order.clienteNome || order.clienteTelefone}
             </div>
           )}
           {order.clienteEndereco && (
-            <div className="text-xs text-zinc-400">
+            <div className="text-xs text-slate-600">
               Endereço: {order.clienteEndereco}
             </div>
           )}
         </div>
 
-        <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4">
+        <div className="bg-white/95 rounded-2xl border border-blue-100 p-4 shadow-sm">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-sm font-semibold text-white">Itens</span>
-            <span className="text-xs text-zinc-400">{totalItens} item(s)</span>
+            <span className="text-sm font-semibold text-slate-900">Itens</span>
+            <span className="text-xs text-slate-500">{totalItens} item(s)</span>
           </div>
           {itens.length === 0 ? (
-            <div className="text-xs text-zinc-500">Itens não disponíveis.</div>
+            <div className="text-xs text-slate-500">Itens nao disponiveis.</div>
           ) : (
             <div className="space-y-1">
               {itens.map(it => (
                 <div
                   key={`${it.name}-${it.quantity}-${order.id}`}
-                  className="flex items-center justify-between text-xs text-zinc-300"
+                  className="flex items-center justify-between text-xs text-slate-700"
                 >
                   <span>
                     {it.quantity}x {it.name}
@@ -146,10 +185,10 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
           )}
         </div>
 
-        <div className="bg-zinc-900 rounded-2xl border border-zinc-800 p-4">
+        <div className="bg-white/95 rounded-2xl border border-blue-100 p-4 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-sm text-zinc-300">Total</span>
-            <span className="text-lg font-bold text-amber-400">
+            <span className="text-sm text-slate-700">Total</span>
+            <span className="text-lg font-bold text-blue-700">
               R$ {order.total.toFixed(2)}
             </span>
           </div>

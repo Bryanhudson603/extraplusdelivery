@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { BrandLogo } from './BrandLogo';
 
 type DeferredPromptEvent = {
   prompt: () => void;
@@ -75,18 +76,18 @@ export function PwaPrompt() {
   return (
     <div className="fixed bottom-4 left-4 right-4 z-40 md:left-auto md:right-4 md:max-w-sm">
       <div className="rounded-2xl bg-zinc-900 text-white border border-zinc-700 shadow-xl p-4 flex items-start gap-3">
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-amber-600 flex items-center justify-center text-black text-lg">
-          🍺
+        <div className="shrink-0 rounded-2xl overflow-hidden border border-white/10 bg-white/5">
+          <BrandLogo size={44} />
         </div>
         <div className="flex-1">
-          <div className="text-sm font-semibold">Instalar Extraplus?</div>
+          <div className="text-sm font-semibold">Instalar Dil Bebidas?</div>
           <div className="mt-1 text-xs text-zinc-300">
             Tenha acesso rápido ao app direto da tela inicial do seu celular.
           </div>
           <div className="mt-3 flex gap-2">
             <button
               onClick={handleInstall}
-              className="flex-1 h-9 rounded-lg bg-amber-500 text-black text-xs font-semibold"
+              className="flex-1 h-9 rounded-lg bg-blue-500 text-white text-xs font-semibold"
             >
               Instalar app
             </button>

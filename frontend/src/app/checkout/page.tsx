@@ -215,18 +215,18 @@ export default function CheckoutPage() {
   );
 
   return (
-    <main className="flex-1 bg-zinc-950 pb-16">
+    <main className="flex-1 bg-[var(--brand-soft-bg)] dark:bg-zinc-950 pb-16">
       <div className="max-w-md mx-auto px-4 py-6 space-y-6">
-        <h1 className="text-2xl font-bold text-white mb-2">Finalizar pedido</h1>
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Finalizar pedido</h1>
 
-        <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-3">
+        <section className="bg-white border border-blue-100 dark:bg-zinc-900 dark:border-zinc-800 rounded-2xl p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-white">Resumo</span>
-            <span className="text-sm text-zinc-400">
+            <span className="text-sm font-semibold text-slate-900 dark:text-white">Resumo</span>
+            <span className="text-sm text-slate-500 dark:text-zinc-400">
               {items.length} item(s) • R$ {total.toFixed(2)}
             </span>
           </div>
-          <div className="space-y-1 max-h-32 overflow-y-auto text-xs text-zinc-400">
+          <div className="space-y-1 max-h-32 overflow-y-auto text-xs text-slate-500 dark:text-zinc-400">
             {items.map(it => (
               <div key={it.product.id} className="flex items-center justify-between">
                 <span>
@@ -241,16 +241,16 @@ export default function CheckoutPage() {
           </div>
         </section>
 
-        <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-3">
-          <h2 className="text-sm font-semibold text-white">Forma de entrega</h2>
+        <section className="bg-white border border-blue-100 dark:bg-zinc-900 dark:border-zinc-800 rounded-2xl p-4 space-y-3">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Forma de entrega</h2>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
               onClick={() => setTipoEntrega('delivery')}
               className={`h-11 rounded-xl text-sm font-semibold border ${
                 tipoEntrega === 'delivery'
-                  ? 'bg-amber-500 text-black border-amber-400'
-                  : 'bg-zinc-950 text-zinc-300 border-zinc-700'
+                  ? 'bg-blue-600 text-white border-blue-500'
+                  : 'bg-blue-50 text-slate-700 border-blue-100 dark:bg-zinc-950 dark:text-zinc-300 dark:border-zinc-700'
               }`}
             >
               Entrega
@@ -260,8 +260,8 @@ export default function CheckoutPage() {
               onClick={() => setTipoEntrega('retirada')}
               className={`h-11 rounded-xl text-sm font-semibold border ${
                 tipoEntrega === 'retirada'
-                  ? 'bg-amber-500 text-black border-amber-400'
-                  : 'bg-zinc-950 text-zinc-300 border-zinc-700'
+                  ? 'bg-blue-600 text-white border-blue-500'
+                  : 'bg-blue-50 text-slate-700 border-blue-100 dark:bg-zinc-950 dark:text-zinc-300 dark:border-zinc-700'
               }`}
             >
               Retirada
@@ -269,8 +269,8 @@ export default function CheckoutPage() {
           </div>
         </section>
 
-        <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-3">
-          <h2 className="text-sm font-semibold text-white">Forma de pagamento</h2>
+        <section className="bg-white border border-blue-100 dark:bg-zinc-900 dark:border-zinc-800 rounded-2xl p-4 space-y-3">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Forma de pagamento</h2>
           <div className="grid grid-cols-2 gap-2">
             <button
               type="button"
@@ -278,7 +278,7 @@ export default function CheckoutPage() {
               className={`h-11 rounded-xl text-sm font-semibold border ${
                 formaPagamento === 'pix'
                   ? 'bg-emerald-500 text-black border-emerald-400'
-                  : 'bg-zinc-950 text-zinc-300 border-zinc-700'
+                  : 'bg-blue-50 text-slate-700 border-blue-100 dark:bg-zinc-950 dark:text-zinc-300 dark:border-zinc-700'
               }`}
             >
               PIX
@@ -288,8 +288,8 @@ export default function CheckoutPage() {
               onClick={() => setFormaPagamento('cartao_entrega')}
               className={`h-11 rounded-xl text-sm font-semibold border ${
                 formaPagamento === 'cartao_entrega'
-                  ? 'bg-amber-500 text-black border-amber-400'
-                  : 'bg-zinc-950 text-zinc-300 border-zinc-700'
+                  ? 'bg-blue-600 text-white border-blue-500'
+                  : 'bg-blue-50 text-slate-700 border-blue-100 dark:bg-zinc-950 dark:text-zinc-300 dark:border-zinc-700'
               }`}
             >
               Cartão na entrega
@@ -299,8 +299,8 @@ export default function CheckoutPage() {
               onClick={() => setFormaPagamento('dinheiro')}
               className={`h-11 rounded-xl text-sm font-semibold border ${
                 formaPagamento === 'dinheiro'
-                  ? 'bg-amber-500 text-black border-amber-400'
-                  : 'bg-zinc-950 text-zinc-300 border-zinc-700'
+                  ? 'bg-blue-600 text-white border-blue-500'
+                  : 'bg-blue-50 text-slate-700 border-blue-100 dark:bg-zinc-950 dark:text-zinc-300 dark:border-zinc-700'
               }`}
             >
               Dinheiro
@@ -311,7 +311,7 @@ export default function CheckoutPage() {
               className={`h-11 rounded-xl text-sm font-semibold border ${
                 formaPagamento === 'carteira'
                   ? 'bg-purple-500 text-black border-purple-400'
-                  : 'bg-zinc-950 text-zinc-300 border-zinc-700'
+                  : 'bg-blue-50 text-slate-700 border-blue-100 dark:bg-zinc-950 dark:text-zinc-300 dark:border-zinc-700'
               }`}
             >
               Carteira digital
@@ -320,7 +320,7 @@ export default function CheckoutPage() {
 
           {walletBalance > 0 && formaPagamento !== 'carteira' && (
             <div className="mt-3 flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 text-zinc-200">
+              <label className="flex items-center gap-2 text-slate-700 dark:text-zinc-200">
                 <input
                   type="checkbox"
                   checked={usarCarteira}
@@ -342,7 +342,7 @@ export default function CheckoutPage() {
 
           {formaPagamento === 'dinheiro' && (
             <div className="mt-3 space-y-1">
-              <label className="text-xs text-zinc-400">
+              <label className="text-xs text-slate-500 dark:text-zinc-400">
                 Troco para quanto?
               </label>
               <input
@@ -351,9 +351,9 @@ export default function CheckoutPage() {
                 placeholder={`Ex: ${(total + 10).toFixed(2)}`}
                 value={trocoPara}
                 onChange={e => setTrocoPara(e.target.value)}
-                className="w-full h-10 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-sm text-zinc-100 outline-none"
+                className="w-full h-10 rounded-lg bg-white border border-blue-100 px-3 text-sm text-slate-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
               />
-              <p className="text-[11px] text-zinc-500">
+              <p className="text-[11px] text-slate-500 dark:text-zinc-500">
                 Informe o valor em dinheiro que você vai pagar para o entregador.
               </p>
             </div>
@@ -362,19 +362,19 @@ export default function CheckoutPage() {
 
         {erro && <div className="text-xs text-red-400">{erro}</div>}
 
-        <section className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 space-y-2">
-          <h2 className="text-sm font-semibold text-white">Cupom de desconto</h2>
+        <section className="bg-white border border-blue-100 dark:bg-zinc-900 dark:border-zinc-800 rounded-2xl p-4 space-y-2">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Cupom de desconto</h2>
           <div className="flex gap-2">
             <input
               type="text"
               placeholder="Digite o código"
               value={cupomCodigo}
               onChange={e => setCupomCodigo(e.target.value.toUpperCase())}
-              className="flex-1 h-10 rounded-lg bg-zinc-950 border border-zinc-700 px-3 text-sm text-zinc-100 outline-none"
+              className="flex-1 h-10 rounded-lg bg-white border border-blue-100 px-3 text-sm text-slate-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
             />
             <button
               type="button"
-              className="h-10 px-3 rounded-lg bg-zinc-950 border border-zinc-700 text-[11px] text-zinc-400 flex items-center whitespace-nowrap"
+              className="h-10 px-3 rounded-lg bg-white border border-blue-100 text-[11px] text-slate-500 dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-400 flex items-center whitespace-nowrap"
               onClick={() =>
                 cuponsDisponiveis.filter(c => c.disponivel).length > 0 &&
                 setMostrarListaCupons(v => !v)
@@ -395,10 +395,10 @@ export default function CheckoutPage() {
                       setCupomCodigo(c.codigo);
                       setMostrarListaCupons(false);
                     }}
-                    className="w-full flex items-center justify-between text-[11px] rounded-lg border border-amber-500/40 bg-zinc-950 px-3 py-2 text-amber-100"
+                    className="w-full flex items-center justify-between text-[11px] rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-blue-900 dark:border-amber-500/40 dark:bg-zinc-950 dark:text-amber-100"
                   >
                     <span className="font-semibold">{c.codigo}</span>
-                    <span className="text-xs text-amber-300">
+                    <span className="text-xs text-blue-600 dark:text-amber-300">
                       {c.descontoPercentual ? `${c.descontoPercentual}% off` : 'Aplicar'}
                     </span>
                   </button>
@@ -406,7 +406,7 @@ export default function CheckoutPage() {
             </div>
           )}
           {cupomCodigo && (
-            <div className="text-[11px] text-zinc-500 space-y-1">
+            <div className="text-[11px] text-slate-500 dark:text-zinc-500 space-y-1">
               <div>
                 {(() => {
                   const c = cuponsDisponiveis.find(
@@ -439,9 +439,9 @@ export default function CheckoutPage() {
         </button>
 
         {pixPayload && formaPagamento === 'pix' && (
-          <div className="mt-2 text-xs text-zinc-400">
+          <div className="mt-2 text-xs text-slate-500 dark:text-zinc-400">
             Código PIX gerado:
-            <div className="mt-1 break-all rounded-md bg-zinc-950 border border-zinc-800 p-2">
+            <div className="mt-1 break-all rounded-md bg-white border border-blue-100 p-2 dark:bg-zinc-950 dark:border-zinc-800">
               {pixPayload}
             </div>
           </div>

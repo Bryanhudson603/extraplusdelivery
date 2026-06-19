@@ -74,16 +74,16 @@ export default function AdminSettingsPage() {
       const raw = window.localStorage.getItem('extraplus-store');
       if (raw) {
         const parsed = JSON.parse(raw);
-        setNomeLoja(parsed.name || parsed.nome || 'Dilbebidas');
+        setNomeLoja(parsed.name || parsed.nome || 'Dil Bebidas');
         setTelefoneLoja(parsed.phone || '');
         setEnderecoLoja(parsed.address || '');
         setHoraAbertura(parsed.horaAbertura || '');
         setHoraFechamento(parsed.horaFechamento || '');
       } else {
-        setNomeLoja('Dilbebidas');
+        setNomeLoja('Dil Bebidas');
       }
     } catch {
-      setNomeLoja('Dilbebidas');
+      setNomeLoja('Dil Bebidas');
     }
 
     try {
@@ -340,7 +340,7 @@ export default function AdminSettingsPage() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Configurações</h1>
               <p className="text-xs text-gray-600 dark:text-zinc-500">
-                Ajustes da loja Dilbebidas e preferências do painel.
+                Ajustes da loja Dil Bebidas e preferências do painel.
               </p>
             </div>
           </div>
@@ -354,7 +354,7 @@ export default function AdminSettingsPage() {
           >
             <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Dados da loja</h2>
             <p className="text-xs text-gray-600 dark:text-zinc-500">
-              Editar nome, telefone, endereço e horários da Dilbebidas.
+              Editar nome, telefone, endereço e horários da Dil Bebidas.
             </p>
           </button>
 
@@ -434,7 +434,7 @@ export default function AdminSettingsPage() {
                     value={nomeLoja}
                     onChange={e => setNomeLoja(e.target.value)}
                     className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
-                    placeholder="Dilbebidas"
+                    placeholder="Dil Bebidas"
                   />
                 </div>
                 <div>

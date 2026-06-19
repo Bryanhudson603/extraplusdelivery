@@ -1,6 +1,14 @@
 'use client';
-import { useEffect, useState } from 'react';
+
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '@/lib/api';
+import { OrderStatusBadge } from '@/components/OrderStatusBadge';
+import {
+  formatOrderShortId,
+  getOrderStatusLabel,
+  isFinishedOrderStatus,
+  isIncomingOrderStatus
+} from '@/lib/orders';
 
 type BackendOrderItem = { name: string; quantity: number };
 
@@ -25,6 +33,8 @@ type Order = {
   status: string;
   total: number;
   createdAt: string;
+  createdAtLabel: string;
+  items: BackendOrderItem[];
   motivoRecusa?: string;
   clienteNome?: string;
   clienteTelefone?: string;
@@ -35,47 +45,305 @@ type Order = {
   entregadorNome?: string;
 };
 
+const POLL_INTERVAL_MS = 5000;
+const PREFS_KEY = 'extraplus-admin-orders-preferences';
+
+function formatOrderDate(value: string): string {
+  return new Date(value).toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
+function buildPrintMarkup(order: Order): string {
+  const itemsHtml = order.items
+    .map(
+      item => `
+        <tr>
+          <td style="padding: 6px 0; border-bottom: 1px dashed #cbd5e1;">${escapeHtml(item.name)}</td>
+          <td style="padding: 6px 0; border-bottom: 1px dashed #cbd5e1; text-align: right;">${item.quantity}x</td>
+        </tr>
+      `
+    )
+    .join('');
+
+  return `
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8" />
+        <title>Pedido ${escapeHtml(formatOrderShortId(order.id))}</title>
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            padding: 18px;
+            color: #0f172a;
+          }
+          h1, h2, p {
+            margin: 0;
+          }
+          .section {
+            margin-top: 16px;
+          }
+          .muted {
+            color: #475569;
+            font-size: 12px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+          }
+          .total {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1d4ed8;
+          }
+        </style>
+      </head>
+      <body>
+        <h1 style="font-size: 20px;">Dil Bebidas</h1>
+        <p class="muted">Pedido ${escapeHtml(formatOrderShortId(order.id))}</p>
+        <p class="muted">${escapeHtml(order.createdAtLabel)}</p>
+
+        <div class="section">
+          <h2 style="font-size: 14px; margin-bottom: 6px;">Cliente</h2>
+          <p>${escapeHtml(order.clienteNome || 'Cliente')}</p>
+          <p class="muted">${escapeHtml(order.clienteTelefone || 'Telefone nao informado')}</p>
+          <p class="muted">${escapeHtml(order.clienteEndereco || 'Endereco nao informado')}</p>
+        </div>
+
+        <div class="section">
+          <h2 style="font-size: 14px; margin-bottom: 6px;">Pedido</h2>
+          <p class="muted">Status: ${escapeHtml(getOrderStatusLabel(order.status))}</p>
+          <p class="muted">Pagamento: ${escapeHtml(order.formaPagamento || 'Nao informado')}</p>
+          <p class="muted">Entrega: ${escapeHtml(order.tipoEntrega || 'Nao informado')}</p>
+          ${
+            order.entregadorNome
+              ? `<p class="muted">Entregador: ${escapeHtml(order.entregadorNome)}</p>`
+              : ''
+          }
+        </div>
+
+        <div class="section">
+          <h2 style="font-size: 14px; margin-bottom: 6px;">Itens</h2>
+          <table>
+            <tbody>${itemsHtml || '<tr><td>Nenhum item informado</td><td></td></tr>'}</tbody>
+          </table>
+        </div>
+
+        ${
+          order.motivoRecusa
+            ? `
+              <div class="section">
+                <h2 style="font-size: 14px; margin-bottom: 6px;">Motivo da recusa</h2>
+                <p class="muted">${escapeHtml(order.motivoRecusa)}</p>
+              </div>
+            `
+            : ''
+        }
+
+        <div class="section">
+          <p class="total">Total: R$ ${order.total.toFixed(2)}</p>
+        </div>
+      </body>
+    </html>
+  `;
+}
+
 export default function AdminOrdersPage() {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const knownOrderIdsRef = useRef<Set<string>>(new Set());
+  const printTimeoutsRef = useRef<number[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [autoPrintEnabled, setAutoPrintEnabled] = useState(true);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState('');
+  const [highlightedOrderIds, setHighlightedOrderIds] = useState<string[]>([]);
   const [entregadores, setEntregadores] = useState<
     Array<{ id: string; nome: string; telefone?: string; ativo: boolean }>
   >([]);
 
   useEffect(() => {
-    async function carregar() {
-      try {
-        const r = await api.get<BackendOrder[]>('/pedidos');
-        const normalizados: Order[] = r.map(p => ({
-          id: p.id,
-          status: p.status,
-          total: p.total,
-          createdAt: new Date(p.createdAt).toLocaleString('pt-BR', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-          }),
-          motivoRecusa: p.motivoRecusa,
-          clienteNome: p.clienteNome,
-          clienteTelefone: p.clienteTelefone,
-          clienteEndereco: p.clienteEndereco,
-          formaPagamento: p.formaPagamento,
-          tipoEntrega: p.tipoEntrega,
-          entregadorId: p.entregadorId,
-          entregadorNome: p.entregadorNome
-        }));
-        setOrders(normalizados);
-      } catch (e) {
-        console.error('Erro ao carregar pedidos admin', e);
-      } finally {
-        setLoading(false);
+    if (typeof window === 'undefined') return;
+
+    try {
+      const raw = window.localStorage.getItem(PREFS_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as {
+        isPaused?: boolean;
+        autoPrintEnabled?: boolean;
+      };
+      if (typeof parsed.isPaused === 'boolean') {
+        setIsPaused(parsed.isPaused);
       }
+      if (typeof parsed.autoPrintEnabled === 'boolean') {
+        setAutoPrintEnabled(parsed.autoPrintEnabled);
+      }
+    } catch {
     }
-    carregar();
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(
+      PREFS_KEY,
+      JSON.stringify({
+        isPaused,
+        autoPrintEnabled
+      })
+    );
+  }, [autoPrintEnabled, isPaused]);
+
+  useEffect(() => {
+    function syncFullscreenState() {
+      setIsFullscreen(Boolean(document.fullscreenElement));
+    }
+
+    document.addEventListener('fullscreenchange', syncFullscreenState);
+    return () => {
+      document.removeEventListener('fullscreenchange', syncFullscreenState);
+    };
+  }, []);
+
+  useEffect(() => {
+    const timeoutIds = printTimeoutsRef.current;
+    return () => {
+      timeoutIds.forEach(timeoutId => window.clearTimeout(timeoutId));
+    };
+  }, []);
+
+  const printOrder = useCallback((order: Order) => {
+    if (typeof window === 'undefined') return;
+
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.opacity = '0';
+    iframe.style.pointerEvents = 'none';
+    iframe.style.border = '0';
+    document.body.appendChild(iframe);
+
+    const doc = iframe.contentWindow?.document;
+    if (!doc) {
+      document.body.removeChild(iframe);
+      return;
+    }
+
+    doc.open();
+    doc.write(buildPrintMarkup(order));
+    doc.close();
+
+    const cleanup = () => {
+      window.setTimeout(() => {
+        if (document.body.contains(iframe)) {
+          document.body.removeChild(iframe);
+        }
+      }, 1500);
+    };
+
+    iframe.onload = () => {
+      try {
+        iframe.contentWindow?.focus();
+        iframe.contentWindow?.print();
+      } catch (error) {
+        console.error('Erro ao imprimir pedido', error);
+      } finally {
+        cleanup();
+      }
+    };
+  }, []);
+
+  const queuePrintOrders = useCallback(
+    (incomingOrders: Order[]) => {
+      incomingOrders.forEach((order, index) => {
+        const timeoutId = window.setTimeout(() => {
+          printOrder(order);
+        }, index * 1200);
+        printTimeoutsRef.current.push(timeoutId);
+      });
+    },
+    [printOrder]
+  );
+
+  const carregarPedidos = useCallback(async () => {
+    try {
+      const response = await api.get<BackendOrder[]>('/pedidos');
+      const normalized: Order[] = response.map(order => ({
+        id: order.id,
+        status: order.status,
+        total: Number(order.total ?? 0),
+        createdAt: order.createdAt,
+        createdAtLabel: formatOrderDate(order.createdAt),
+        items: order.items ?? [],
+        motivoRecusa: order.motivoRecusa,
+        clienteNome: order.clienteNome,
+        clienteTelefone: order.clienteTelefone,
+        clienteEndereco: order.clienteEndereco,
+        formaPagamento: order.formaPagamento,
+        tipoEntrega: order.tipoEntrega,
+        entregadorId: order.entregadorId,
+        entregadorNome: order.entregadorNome
+      }));
+
+      const previousIds = knownOrderIdsRef.current;
+      const incomingOrders =
+        previousIds.size === 0
+          ? []
+          : normalized.filter(order => isIncomingOrderStatus(order.status) && !previousIds.has(order.id));
+
+      knownOrderIdsRef.current = new Set(normalized.map(order => order.id));
+      setOrders(normalized);
+      setLastUpdatedAt(
+        new Date().toLocaleTimeString('pt-BR', {
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          hour12: false
+        })
+      );
+
+      if (!isPaused && incomingOrders.length > 0) {
+        const newIds = incomingOrders.map(order => order.id);
+        setHighlightedOrderIds(prev => Array.from(new Set([...prev, ...newIds])));
+        window.setTimeout(() => {
+          setHighlightedOrderIds(prev => prev.filter(id => !newIds.includes(id)));
+        }, 12000);
+
+        if (autoPrintEnabled) {
+          queuePrintOrders(incomingOrders);
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar pedidos admin', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [autoPrintEnabled, isPaused, queuePrintOrders]);
+
+  useEffect(() => {
+    carregarPedidos();
+    const intervalId = window.setInterval(carregarPedidos, POLL_INTERVAL_MS);
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [carregarPedidos]);
 
   useEffect(() => {
     async function carregarEntregadores() {
@@ -83,244 +351,406 @@ export default function AdminOrdersPage() {
         const lista = await api.get<
           Array<{ id: string; nome: string; telefone?: string; ativo: boolean }>
         >('/admin/entregadores');
-        setEntregadores(lista.filter(e => e.ativo));
-      } catch (e) {
-        console.error('Erro ao carregar entregadores', e);
+        setEntregadores(lista.filter(entregador => entregador.ativo));
+      } catch (error) {
+        console.error('Erro ao carregar entregadores', error);
       }
     }
+
     carregarEntregadores();
   }, []);
 
   async function vincularEntregador(pedidoId: string, entregadorId: string) {
     try {
-      const entregador = entregadores.find(e => e.id === entregadorId);
+      const entregador = entregadores.find(item => item.id === entregadorId);
       const atualizado = await api.post<BackendOrder>(`/pedidos/${pedidoId}/entregador`, {
         entregadorId
       });
       setOrders(prev =>
-        prev.map(o =>
-          o.id === pedidoId
+        prev.map(order =>
+          order.id === pedidoId
             ? {
-                ...o,
+                ...order,
                 entregadorId: atualizado.entregadorId,
                 entregadorNome: atualizado.entregadorNome || entregador?.nome
               }
-            : o
+            : order
         )
       );
-    } catch (e) {
-      console.error('Erro ao vincular entregador ao pedido', e);
+    } catch (error) {
+      console.error('Erro ao vincular entregador ao pedido', error);
     }
   }
 
-  async function atualizarStatus(id: string, status: 'confirmado' | 'cancelado') {
+  async function atualizarStatus(id: string, status: string) {
     try {
       let motivoRecusa: string | undefined;
       if (status === 'cancelado') {
         motivoRecusa = window.prompt('Informe o motivo da recusa do pedido:') || '';
       }
+
       const atualizado = await api.post<BackendOrder>(`/pedidos/${id}/status`, {
         status,
         motivoRecusa
       });
+
       setOrders(prev =>
-        prev.map(o =>
-          o.id === id
+        prev.map(order =>
+          order.id === id
             ? {
-                ...o,
+                ...order,
                 status: atualizado.status,
-                motivoRecusa: atualizado.motivoRecusa
+                motivoRecusa: atualizado.motivoRecusa,
+                entregadorId: atualizado.entregadorId,
+                entregadorNome: atualizado.entregadorNome
               }
-            : o
+            : order
         )
       );
-    } catch (e) {
-      console.error('Erro ao atualizar status do pedido', e);
+    } catch (error) {
+      console.error('Erro ao atualizar status do pedido', error);
     }
   }
 
-  const pendentes = orders.filter(o => o.status !== 'finalizado' && o.status !== 'cancelado');
+  async function toggleFullscreen() {
+    const target = containerRef.current;
+    if (!target) return;
+
+    try {
+      if (!document.fullscreenElement) {
+        await target.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (error) {
+      console.error('Erro ao alternar tela cheia', error);
+    }
+  }
+
+  const pendingOrders = useMemo(
+    () => orders.filter(order => !isFinishedOrderStatus(order.status)),
+    [orders]
+  );
+  const finishedOrders = useMemo(
+    () => orders.filter(order => isFinishedOrderStatus(order.status)),
+    [orders]
+  );
 
   return (
-    <main className="flex-1 bg-gray-50 dark:bg-zinc-950 p-4 sm:p-6">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Pedidos</h1>
-            <p className="text-gray-600 dark:text-zinc-400">
-              {pendentes.length} pendentes
-            </p>
+    <main
+      ref={containerRef}
+      className="flex-1 bg-[var(--brand-soft-bg)] p-4 sm:p-6 text-slate-900 dark:bg-zinc-950 dark:text-white"
+    >
+      <div className={`${isFullscreen ? 'max-w-none' : 'max-w-7xl'} mx-auto space-y-6`}>
+        <section className="rounded-3xl border border-blue-100 bg-white/90 p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Pedidos</h1>
+              <p className="mt-1 text-sm text-slate-600 dark:text-zinc-400">
+                Atualizacao automatica a cada 5 segundos para acompanhar os novos pedidos.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2 text-xs">
+                <span className="rounded-full bg-blue-50 px-3 py-1 font-semibold text-blue-700">
+                  {pendingOrders.length} em andamento
+                </span>
+                <span className="rounded-full bg-slate-100 px-3 py-1 font-semibold text-slate-700">
+                  {finishedOrders.length} finalizados ou cancelados
+                </span>
+                {lastUpdatedAt && (
+                  <span className="rounded-full bg-emerald-50 px-3 py-1 font-semibold text-emerald-700">
+                    Atualizado as {lastUpdatedAt}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 lg:justify-end">
+              <button
+                type="button"
+                onClick={() => setIsPaused(prev => !prev)}
+                className={`h-10 rounded-full px-4 text-sm font-semibold ${
+                  isPaused
+                    ? 'bg-amber-100 text-amber-800'
+                    : 'bg-emerald-100 text-emerald-800'
+                }`}
+              >
+                {isPaused ? 'Retomar chegada de pedidos' : 'Pausar chegada de pedidos'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setAutoPrintEnabled(prev => !prev)}
+                className={`h-10 rounded-full px-4 text-sm font-semibold ${
+                  autoPrintEnabled
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-slate-200 text-slate-700 hover:bg-slate-300'
+                }`}
+              >
+                {autoPrintEnabled ? 'Autoimpressao ligada' : 'Autoimpressao desligada'}
+              </button>
+              <button
+                type="button"
+                onClick={carregarPedidos}
+                className="h-10 rounded-full border border-blue-200 px-4 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+              >
+                Atualizar agora
+              </button>
+              <button
+                type="button"
+                onClick={toggleFullscreen}
+                className="h-10 rounded-full border border-slate-200 px-4 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-zinc-700 dark:text-zinc-100 dark:hover:bg-zinc-800"
+              >
+                {isFullscreen ? 'Sair da tela cheia' : 'Modo tela cheia'}
+              </button>
+            </div>
           </div>
-        </div>
+
+          <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-blue-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
+            {isPaused
+              ? 'Chegada de pedidos pausada. Novos pedidos continuam sendo listados, mas nao disparam impressao automatica.'
+              : autoPrintEnabled
+                ? 'Novos pedidos recebidos abrem a impressao usando o fluxo do navegador para a impressora padrao configurada no Windows.'
+                : 'Novos pedidos continuam aparecendo na tela, mas a impressao automatica esta desligada.'}
+          </div>
+        </section>
 
         {loading ? (
-          <div className="text-center py-16 text-gray-600 dark:text-zinc-500">Carregando pedidos...</div>
+          <div className="py-16 text-center text-slate-600 dark:text-zinc-500">Carregando pedidos...</div>
+        ) : orders.length === 0 ? (
+          <div className="rounded-3xl border border-blue-100 bg-white/90 py-16 text-center text-slate-600 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-500">
+            Nenhum pedido registrado
+          </div>
         ) : (
-          <div className="space-y-3">
-            {orders.map(order => {
-              const isFinal = order.status === 'finalizado' || order.status === 'cancelado';
-              return (
-                <div key={order.id} className="bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-xl p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="text-gray-900 dark:text-white font-bold">
-                          #{order.id.slice(-6).toUpperCase()}
-                        </span>
-                        <span className="text-xs px-2 py-0.5 rounded-full border border-amber-500/50 text-amber-400">
-                          {order.status}
-                        </span>
-                      </div>
-                      <p className="text-gray-600 dark:text-zinc-400 text-xs">
-                        {order.createdAt}
-                      </p>
-                      {order.clienteNome && (
-                        <p className="text-gray-700 dark:text-zinc-300 text-xs mt-1">
-                          Cliente: {order.clienteNome}
-                        </p>
-                      )}
-                      {order.clienteTelefone && (
-                        <p className="text-gray-600 dark:text-zinc-400 text-[11px]">
-                          Telefone: {order.clienteTelefone}
-                        </p>
-                      )}
-                      {order.clienteEndereco && (
-                        <p className="text-gray-600 dark:text-zinc-400 text-[11px]">
-                          Endereço: {order.clienteEndereco}
-                        </p>
-                      )}
-                      {order.formaPagamento && (
-                        <p className="text-gray-600 dark:text-zinc-400 text-[11px]">
-                          Pagamento: {order.formaPagamento}
-                        </p>
-                      )}
-                      {order.entregadorNome && (
-                        <p className="text-gray-600 dark:text-zinc-400 text-[11px]">
-                          Entregador: {order.entregadorNome}
-                        </p>
-                      )}
-                      {order.motivoRecusa && (
-                        <p className="text-red-400 text-xs mt-1">
-                          Motivo da recusa: {order.motivoRecusa}
-                        </p>
-                      )}
-                    </div>
-                    <div className="text-right">
-                      <p className="text-amber-400 font-bold text-lg">
-                        R$ {order.total.toFixed(2)}
-                      </p>
-                      {order.status === 'confirmado' && (
-                        <div className="mt-2">
-                          {entregadores.length === 0 ? (
-                            <p className="text-[11px] text-gray-600 dark:text-zinc-500">
-                              Cadastre entregadores em Configurações &gt; Entregadores para vincular pedidos.
-                            </p>
-                          ) : (
-                            <select
-                              value={order.entregadorId || ''}
-                              onChange={e => {
-                                const id = e.target.value;
-                                if (!id) return;
-                                vincularEntregador(order.id, id);
-                              }}
-                              className="w-full h-8 rounded-lg bg-white border border-gray-300 px-2 text-[11px] text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
-                            >
-                              <option value="">Vincular entregador...</option>
-                              {entregadores.map(e => (
-                                <option key={e.id} value={e.id}>
-                                  {e.nome}
-                                </option>
-                              ))}
-                            </select>
+          <div className="space-y-6">
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Em andamento</h2>
+                <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                  {pendingOrders.length} pedido(s)
+                </span>
+              </div>
+
+              {pendingOrders.length === 0 ? (
+                <div className="rounded-3xl border border-blue-100 bg-white/90 py-12 text-center text-slate-600 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-500">
+                  Nenhum pedido em andamento no momento.
+                </div>
+              ) : (
+                <div className="grid gap-4 xl:grid-cols-2">
+                  {pendingOrders.map(order => {
+                    const highlighted = highlightedOrderIds.includes(order.id);
+                    return (
+                      <article
+                        key={order.id}
+                        className={`rounded-3xl border bg-white/95 p-5 shadow-sm transition ${
+                          highlighted
+                            ? 'border-blue-400 ring-2 ring-blue-200'
+                            : 'border-blue-100'
+                        } dark:border-zinc-800 dark:bg-zinc-900`}
+                      >
+                        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                          <div className="space-y-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="text-lg font-bold text-slate-900 dark:text-white">
+                                {formatOrderShortId(order.id)}
+                              </span>
+                              <OrderStatusBadge status={order.status} />
+                              {highlighted && (
+                                <span className="rounded-full bg-blue-600 px-2 py-1 text-[11px] font-semibold text-white">
+                                  Novo pedido
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="space-y-1 text-sm text-slate-600 dark:text-zinc-400">
+                              <p>{order.createdAtLabel}</p>
+                              <p>Cliente: {order.clienteNome || 'Cliente'}</p>
+                              <p>Telefone: {order.clienteTelefone || 'Nao informado'}</p>
+                              <p>Endereco: {order.clienteEndereco || 'Nao informado'}</p>
+                              <p>Pagamento: {order.formaPagamento || 'Nao informado'}</p>
+                              <p>Entrega: {order.tipoEntrega || 'Nao informado'}</p>
+                              {order.entregadorNome && <p>Entregador: {order.entregadorNome}</p>}
+                              {order.motivoRecusa && (
+                                <p className="font-medium text-red-600">Motivo da recusa: {order.motivoRecusa}</p>
+                              )}
+                            </div>
+
+                            <div className="rounded-2xl bg-blue-50/80 p-3 dark:bg-zinc-950">
+                              <div className="mb-2 flex items-center justify-between">
+                                <span className="text-sm font-semibold text-slate-900 dark:text-white">Itens</span>
+                                <span className="text-xs text-slate-500 dark:text-zinc-400">
+                                  {order.items.reduce((sum, item) => sum + item.quantity, 0)} item(ns)
+                                </span>
+                              </div>
+                              <div className="space-y-2">
+                                {order.items.map(item => (
+                                  <div
+                                    key={`${order.id}-${item.name}-${item.quantity}`}
+                                    className="flex items-center justify-between text-sm text-slate-700 dark:text-zinc-300"
+                                  >
+                                    <span>{item.name}</span>
+                                    <span>{item.quantity}x</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="w-full lg:max-w-[260px]">
+                            <div className="rounded-2xl border border-blue-100 bg-slate-50 p-4 text-right dark:border-zinc-800 dark:bg-zinc-950">
+                              <div className="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-zinc-400">
+                                Total
+                              </div>
+                              <p className="mt-1 text-2xl font-bold text-blue-700 dark:text-blue-400">
+                                R$ {order.total.toFixed(2)}
+                              </p>
+                            </div>
+
+                            {order.status === 'confirmado' && (
+                              <div className="mt-3">
+                                {entregadores.length === 0 ? (
+                                  <p className="text-[11px] text-slate-500 dark:text-zinc-500">
+                                    Cadastre entregadores em Configuracoes &gt; Entregadores para vincular pedidos.
+                                  </p>
+                                ) : (
+                                  <select
+                                    value={order.entregadorId || ''}
+                                    onChange={event => {
+                                      const selectedId = event.target.value;
+                                      if (!selectedId) return;
+                                      vincularEntregador(order.id, selectedId);
+                                    }}
+                                    className="h-10 w-full rounded-xl border border-blue-200 bg-white px-3 text-sm text-slate-900 outline-none dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                                  >
+                                    <option value="">Vincular entregador...</option>
+                                    {entregadores.map(entregador => (
+                                      <option key={entregador.id} value={entregador.id}>
+                                        {entregador.nome}
+                                      </option>
+                                    ))}
+                                  </select>
+                                )}
+                              </div>
+                            )}
+
+                            <div className="mt-3 flex flex-wrap gap-2">
+                              <button
+                                type="button"
+                                onClick={() => printOrder(order)}
+                                className="h-10 rounded-full border border-blue-200 px-4 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+                              >
+                                Imprimir pedido
+                              </button>
+
+                              {(order.status === 'recebido' || order.status === 'aguardando_pagamento') && (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => atualizarStatus(order.id, 'em_separacao')}
+                                    className="h-10 rounded-full bg-emerald-500 px-4 text-sm font-semibold text-white hover:bg-emerald-600"
+                                  >
+                                    Aceitar
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => atualizarStatus(order.id, 'cancelado')}
+                                    className="h-10 rounded-full bg-red-500 px-4 text-sm font-semibold text-white hover:bg-red-600"
+                                  >
+                                    Recusar
+                                  </button>
+                                </>
+                              )}
+
+                              {order.status === 'em_separacao' && (
+                                <button
+                                  type="button"
+                                  onClick={() => atualizarStatus(order.id, 'confirmado')}
+                                  className="h-10 rounded-full bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
+                                >
+                                  Confirmar separacao
+                                </button>
+                              )}
+
+                              {order.status === 'confirmado' && (
+                                <button
+                                  type="button"
+                                  onClick={() => atualizarStatus(order.id, 'saiu_para_entrega')}
+                                  className="h-10 rounded-full bg-violet-600 px-4 text-sm font-semibold text-white hover:bg-violet-700"
+                                >
+                                  Saiu para entrega
+                                </button>
+                              )}
+
+                              {order.status === 'saiu_para_entrega' && (
+                                <button
+                                  type="button"
+                                  onClick={() => atualizarStatus(order.id, 'finalizado')}
+                                  className="h-10 rounded-full bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700"
+                                >
+                                  Marcar entregue
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+
+            <section className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Historico</h2>
+                <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400">
+                  {finishedOrders.length} pedido(s)
+                </span>
+              </div>
+
+              {finishedOrders.length === 0 ? (
+                <div className="rounded-3xl border border-blue-100 bg-white/90 py-10 text-center text-slate-600 shadow-sm dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-500">
+                  Ainda nao ha pedidos finalizados ou cancelados.
+                </div>
+              ) : (
+                <div className="grid gap-3 xl:grid-cols-2">
+                  {finishedOrders.map(order => (
+                    <article
+                      key={order.id}
+                      className="rounded-3xl border border-blue-100 bg-white/90 p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-slate-900 dark:text-white">
+                              {formatOrderShortId(order.id)}
+                            </span>
+                            <OrderStatusBadge status={order.status} />
+                          </div>
+                          <p className="text-sm text-slate-600 dark:text-zinc-400">{order.createdAtLabel}</p>
+                          <p className="text-sm text-slate-600 dark:text-zinc-400">
+                            Cliente: {order.clienteNome || 'Cliente'}
+                          </p>
+                          {order.motivoRecusa && (
+                            <p className="text-sm text-red-600">Motivo da recusa: {order.motivoRecusa}</p>
                           )}
                         </div>
-                      )}
-                      {!isFinal && (
-                        <div className="flex flex-wrap gap-2 mt-3 justify-end">
-                          {order.status === 'recebido' || order.status === 'aguardando_pagamento' ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={async () => {
-                                  await api.post<BackendOrder>(`/pedidos/${order.id}/status`, {
-                                    status: 'em_separacao'
-                                  });
-                                  setOrders(prev =>
-                                    prev.map(o => (o.id === order.id ? { ...o, status: 'em_separacao' } : o))
-                                  );
-                                }}
-                                className="px-3 h-8 rounded-lg bg-emerald-500 text-xs font-semibold text-black"
-                              >
-                                Aceitar
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => atualizarStatus(order.id, 'cancelado')}
-                                className="px-3 h-8 rounded-lg bg-red-500 text-xs font-semibold text-white"
-                              >
-                                Recusar
-                              </button>
-                            </>
-                          ) : order.status === 'em_separacao' ? (
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                await api.post<BackendOrder>(`/pedidos/${order.id}/status`, {
-                                  status: 'confirmado'
-                                });
-                                setOrders(prev =>
-                                  prev.map(o => (o.id === order.id ? { ...o, status: 'confirmado' } : o))
-                                );
-                              }}
-                              className="px-3 h-8 rounded-lg bg-blue-500 text-xs font-semibold text-white"
-                            >
-                              Confirmar separação
-                            </button>
-                          ) : order.status === 'confirmado' ? (
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                await api.post<BackendOrder>(`/pedidos/${order.id}/status`, {
-                                  status: 'saiu_para_entrega'
-                                });
-                                setOrders(prev =>
-                                  prev.map(o =>
-                                    o.id === order.id ? { ...o, status: 'saiu_para_entrega' } : o
-                                  )
-                                );
-                              }}
-                              className="px-3 h-8 rounded-lg bg-purple-500 text-xs font-semibold text-white"
-                            >
-                              Saiu para entrega
-                            </button>
-                          ) : order.status === 'saiu_para_entrega' ? (
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                await api.post<BackendOrder>(`/pedidos/${order.id}/status`, {
-                                  status: 'finalizado'
-                                });
-                                setOrders(prev =>
-                                  prev.map(o => (o.id === order.id ? { ...o, status: 'finalizado' } : o))
-                                );
-                              }}
-                              className="px-3 h-8 rounded-lg bg-green-500 text-xs font-semibold text-black"
-                            >
-                              Marcar entregue
-                            </button>
-                          ) : null}
+                        <div className="text-right">
+                          <p className="text-lg font-bold text-blue-700 dark:text-blue-400">
+                            R$ {order.total.toFixed(2)}
+                          </p>
+                          <button
+                            type="button"
+                            onClick={() => printOrder(order)}
+                            className="mt-2 h-9 rounded-full border border-blue-200 px-4 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+                          >
+                            Imprimir
+                          </button>
                         </div>
-                      )}
-                    </div>
-                  </div>
+                      </div>
+                    </article>
+                  ))}
                 </div>
-              );
-            })}
-            {orders.length === 0 && (
-              <div className="text-center py-16 text-gray-600 dark:text-zinc-500">
-                Nenhum pedido registrado
-              </div>
-            )}
+              )}
+            </section>
           </div>
         )}
       </div>

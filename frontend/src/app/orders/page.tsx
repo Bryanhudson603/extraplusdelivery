@@ -5,6 +5,11 @@ import Link from 'next/link';
 import { OrderStatusBadge } from '@/components/OrderStatusBadge';
 import { BottomNav } from '@/components/BottomNav';
 import { api } from '@/lib/api';
+import {
+  formatOrderShortId,
+  isFinishedOrderStatus,
+  matchesClientOrder
+} from '@/lib/orders';
 
 type Item = { productName: string; productImage?: string; quantity: number };
 
@@ -37,6 +42,7 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [clienteId, setClienteId] = useState<string | null>(null);
   const [clienteTelefone, setClienteTelefone] = useState<string | null>(null);
+  const [sessionReady, setSessionReady] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -51,24 +57,18 @@ export default function OrdersPage() {
       }
     } catch {
     }
+    setSessionReady(true);
   }, []);
 
   useEffect(() => {
+    if (!sessionReady) return;
+
+    let ativo = true;
+
     async function carregar() {
       try {
         const resposta = await api.get<BackendOrder[]>('/pedidos');
-        const doCliente = resposta.filter(p => {
-          if (!p.clienteId && !p.clienteTelefone) {
-            return true;
-          }
-          if (clienteId) {
-            return p.clienteId === clienteId;
-          }
-          if (clienteTelefone) {
-            return p.clienteTelefone === clienteTelefone;
-          }
-          return true;
-        });
+        const doCliente = resposta.filter(p => matchesClientOrder(p, clienteId, clienteTelefone));
         const normalizados: Order[] = doCliente.map(p => ({
           id: p.id,
           status: p.status,
@@ -87,42 +87,51 @@ export default function OrdersPage() {
               quantity: it.quantity
             })) ?? []
         }));
+        if (!ativo) return;
         setOrders(normalizados);
       } catch (e) {
         console.error('Erro ao carregar pedidos', e);
       } finally {
-        setLoading(false);
+        if (ativo) {
+          setLoading(false);
+        }
       }
     }
 
     carregar();
-  }, [clienteId, clienteTelefone]);
+    const intervalId = window.setInterval(carregar, 5000);
 
-  const activeOrders = orders.filter(o => o.status !== 'finalizado' && o.status !== 'cancelado');
-  const pastOrders = orders.filter(o => o.status === 'finalizado' || o.status === 'cancelado');
+    return () => {
+      ativo = false;
+      window.clearInterval(intervalId);
+    };
+  }, [clienteId, clienteTelefone, sessionReady]);
+
+  const activeOrders = orders.filter(o => !isFinishedOrderStatus(o.status));
+  const pastOrders = orders.filter(o => isFinishedOrderStatus(o.status));
 
   return (
-    <main className="flex-1 bg-zinc-950 pb-16">
+    <main className="flex-1 bg-[var(--brand-soft-bg)] pb-16">
       <div className="max-w-2xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-white">Meus Pedidos</h1>
-          <span className="text-xs px-2 py-1 rounded-full bg-zinc-900 border border-zinc-800 text-zinc-400">
+          <h1 className="text-2xl font-bold text-slate-900">Meus Pedidos</h1>
+          <span className="text-xs px-2 py-1 rounded-full bg-white border border-blue-100 text-slate-500">
             {orders.length} no histórico
           </span>
         </div>
 
         {loading ? (
-          <div className="text-center py-16 text-zinc-500 text-sm">Carregando pedidos...</div>
+          <div className="text-center py-16 text-slate-500 text-sm">Carregando pedidos...</div>
         ) : orders.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-zinc-800/50 flex items-center justify-center text-3xl">
+          <div className="text-center py-16 rounded-3xl border border-blue-100 bg-white/90 shadow-sm">
+            <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-blue-50 flex items-center justify-center text-3xl">
               📦
             </div>
-            <h3 className="text-lg font-semibold text-white mb-2">Nenhum pedido ainda</h3>
-            <p className="text-zinc-500 mb-6">Faça seu primeiro pedido!</p>
+            <h3 className="text-lg font-semibold text-slate-900 mb-2">Nenhum pedido ainda</h3>
+            <p className="text-slate-500 mb-6">Faça seu primeiro pedido!</p>
             <Link
               href="/home"
-              className="inline-flex items-center justify-center rounded-full bg-amber-500 hover:bg-amber-600 text-black text-sm font-semibold px-5 h-11"
+              className="inline-flex items-center justify-center rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-5 h-11"
             >
               Ver produtos
             </Link>
@@ -131,8 +140,8 @@ export default function OrdersPage() {
           <>
             {activeOrders.length > 0 && (
               <section className="mb-8">
-                <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <span className="text-amber-400 text-xl">⏱️</span>
+                <h2 className="text-lg font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                  <span className="text-blue-600 text-xl">⏱️</span>
                   Em andamento
                 </h2>
                 <div className="space-y-3">
@@ -142,32 +151,32 @@ export default function OrdersPage() {
                       <Link
                         key={order.id}
                         href={`/orders/${order.id}`}
-                        className="block bg-gradient-to-br from-zinc-900 to-zinc-900/40 border border-amber-500/30 rounded-2xl p-4"
+                        className="block bg-white/95 border border-blue-100 rounded-2xl p-4 shadow-sm"
                       >
                         <div className="flex items-start justify-between mb-3">
                           <div>
-                            <p className="text-zinc-400 text-xs">
-                              Pedido #{order.id.slice(-6).toUpperCase()}
+                            <p className="text-slate-500 text-xs">
+                              Pedido {formatOrderShortId(order.id)}
                             </p>
-                            <p className="text-white font-semibold text-sm">{order.createdAt}</p>
+                            <p className="text-slate-900 font-semibold text-sm">{order.createdAt}</p>
                           </div>
                           <OrderStatusBadge status={order.status} />
                         </div>
 
                         <div className="flex items-center gap-3">
                           <div className="flex-1">
-                            <p className="text-zinc-400 text-xs">
+                            <p className="text-slate-500 text-xs">
                               {totalItems} itens • R$ {order.total.toFixed(2)}
                             </p>
                             {order.items[0] && (
-                              <p className="text-zinc-300 text-xs mt-1 line-clamp-1">
+                              <p className="text-slate-700 text-xs mt-1 line-clamp-1">
                                 {order.items[0].productName}
                                 {order.items.length > 1 && ` + ${order.items.length - 1} itens`}
                               </p>
                             )}
                           </div>
-                          <div className="text-right text-xs text-zinc-500">
-                            <p className="mt-1 text-amber-400 font-semibold text-sm">
+                          <div className="text-right text-xs text-slate-500">
+                            <p className="mt-1 text-blue-600 font-semibold text-sm">
                               Ver detalhes →
                             </p>
                           </div>
@@ -181,7 +190,7 @@ export default function OrdersPage() {
 
             {pastOrders.length > 0 && (
               <section>
-                <h2 className="text-lg font-semibold text-white mb-4">Pedidos anteriores</h2>
+                <h2 className="text-lg font-semibold text-slate-900 mb-4">Pedidos anteriores</h2>
                 <div className="space-y-3">
                   {pastOrders.map(order => {
                     const totalItems = order.items.reduce((acc, it) => acc + it.quantity, 0);
@@ -189,18 +198,18 @@ export default function OrdersPage() {
                       <Link
                         key={order.id}
                         href={`/orders/${order.id}`}
-                        className="block bg-zinc-900 border border-zinc-800 rounded-2xl p-4"
+                        className="block bg-white/90 border border-blue-100 rounded-2xl p-4 shadow-sm"
                       >
                         <div className="flex items-start justify-between mb-2">
                           <div>
-                            <p className="text-zinc-500 text-xs">
-                              Pedido #{order.id.slice(-6).toUpperCase()}
+                            <p className="text-slate-500 text-xs">
+                              Pedido {formatOrderShortId(order.id)}
                             </p>
-                            <p className="text-white text-sm">{order.createdAt}</p>
+                            <p className="text-slate-900 text-sm">{order.createdAt}</p>
                           </div>
                           <OrderStatusBadge status={order.status} />
                         </div>
-                        <p className="text-zinc-400 text-xs">
+                        <p className="text-slate-600 text-xs">
                           {totalItems} itens • R$ {order.total.toFixed(2)}
                         </p>
                       </Link>
@@ -208,6 +217,12 @@ export default function OrdersPage() {
                   })}
                 </div>
               </section>
+            )}
+
+            {activeOrders.length === 0 && pastOrders.length > 0 && (
+              <div className="mt-6 rounded-2xl border border-blue-100 bg-white/90 px-4 py-3 text-sm text-slate-600 shadow-sm">
+                Nao ha pedido em andamento agora, mas seu historico continua disponivel logo abaixo.
+              </div>
             )}
           </>
         )}

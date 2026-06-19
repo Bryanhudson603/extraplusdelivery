@@ -22,9 +22,9 @@ export function CartDrawer({ open, items, onClose, onCheckout }: Props) {
           animate={{ x: 0 }}
           exit={{ x: '100%' }}
           transition={{ type: 'tween', duration: 0.2 }}
-          className="fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-white shadow-2xl border-l border-gray-200 z-50"
+          className="fixed top-0 right-0 bottom-0 w-[85%] max-w-sm bg-[var(--brand-soft-surface)] shadow-2xl border-l border-[var(--brand-soft-border)] z-50"
         >
-          <div className="p-4 flex items-center justify-between border-b border-gray-200">
+          <div className="p-4 flex items-center justify-between border-b border-[var(--brand-soft-border)]">
             <div className="text-sm font-semibold">Seu carrinho</div>
             <button className="text-sm text-gray-600" onClick={onClose}>
               Fechar
@@ -46,7 +46,7 @@ export function CartDrawer({ open, items, onClose, onCheckout }: Props) {
             )}
           </div>
 
-          <div className="p-4 border-t border-gray-200">
+          <div className="p-4 border-t border-[var(--brand-soft-border)]">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm">Subtotal</span>
               <span className="text-sm font-semibold">R$ {total.toFixed(2)}</span>

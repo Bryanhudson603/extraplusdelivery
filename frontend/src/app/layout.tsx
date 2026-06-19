@@ -8,8 +8,8 @@ import { MainShell } from '@/components/MainShell';
 import { PwaPrompt } from '@/components/PwaPrompt';
 
 export const metadata = {
-  title: 'Extraplus Delivery',
-  description: 'App de bebidas em PWA'
+  title: 'Dil Bebidas',
+  description: 'App de bebidas da Dil Bebidas'
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -18,7 +18,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
         {enablePwa ? <link rel="manifest" href="/manifest.webmanifest" /> : null}
-        <meta name="theme-color" content="#EA1D2C" />
+        <meta name="theme-color" content="#2563eb" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
       </head>
       <body>

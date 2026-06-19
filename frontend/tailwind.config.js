@@ -10,7 +10,7 @@ module.exports = {
     extend: {
       colors: {
         brand: {
-          red: "#EA1D2C"
+          red: "var(--brand-primary)"
         }
       }
     }

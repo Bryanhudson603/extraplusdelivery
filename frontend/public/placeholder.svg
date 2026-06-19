@@ -1,17 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#f97316" />
-      <stop offset="1" stop-color="#ea1d2c" />
-    </linearGradient>
-  </defs>
-  <rect width="400" height="300" fill="#f3f4f6" />
-  <rect x="40" y="40" width="320" height="220" rx="24" fill="url(#g)" />
-  <text x="200" y="160" text-anchor="middle" font-size="32" fill="#ffffff" font-family="system-ui, -apple-system, BlinkMacSystemFont">
-    Extraplus
+  <rect width="400" height="300" fill="#eef4ff" />
+  <rect x="36" y="32" width="328" height="236" rx="28" fill="#1f3b72" />
+  <g opacity="0.2" stroke="#f4b63d" stroke-width="3">
+    <line x1="82" y1="32" x2="82" y2="268" />
+    <line x1="118" y1="32" x2="118" y2="268" />
+    <line x1="154" y1="32" x2="154" y2="268" />
+    <line x1="190" y1="32" x2="190" y2="268" />
+    <line x1="226" y1="32" x2="226" y2="268" />
+    <line x1="262" y1="32" x2="262" y2="268" />
+    <line x1="298" y1="32" x2="298" y2="268" />
+  </g>
+  <text x="200" y="116" text-anchor="middle" font-size="30" fill="#fffaf2" font-family="Georgia, serif">
+    Dil Bebidas
   </text>
-  <text x="200" y="190" text-anchor="middle" font-size="14" fill="#fed7aa" font-family="system-ui, -apple-system, BlinkMacSystemFont">
-    imagem ilustrativa
+  <text x="200" y="154" text-anchor="middle" font-size="16" fill="#dbeafe" font-family="system-ui, -apple-system, BlinkMacSystemFont">
+    identidade visual
   </text>
 </svg>
-

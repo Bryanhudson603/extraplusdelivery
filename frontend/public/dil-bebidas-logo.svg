@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Dil Bebidas</title>
+  <desc id="desc">Logo da Dil Bebidas com fundo azul, canecas de cerveja e faixa dourada.</desc>
+  <rect width="512" height="512" rx="48" fill="#1f3b72"/>
+  <g opacity="0.22" stroke="#f4b63d" stroke-width="4">
+    <line x1="60" y1="0" x2="60" y2="512"/>
+    <line x1="95" y1="0" x2="95" y2="512"/>
+    <line x1="130" y1="0" x2="130" y2="512"/>
+    <line x1="165" y1="0" x2="165" y2="512"/>
+    <line x1="200" y1="0" x2="200" y2="512"/>
+    <line x1="235" y1="0" x2="235" y2="512"/>
+    <line x1="270" y1="0" x2="270" y2="512"/>
+    <line x1="305" y1="0" x2="305" y2="512"/>
+    <line x1="340" y1="0" x2="340" y2="512"/>
+    <line x1="375" y1="0" x2="375" y2="512"/>
+    <line x1="410" y1="0" x2="410" y2="512"/>
+    <line x1="445" y1="0" x2="445" y2="512"/>
+  </g>
+  <text x="256" y="108" text-anchor="middle" fill="#fff9ef" font-size="54" font-weight="700" font-family="Georgia, serif" transform="rotate(-10 256 108)">Deposito</text>
+  <g transform="translate(120 120)">
+    <ellipse cx="136" cy="164" rx="116" ry="24" fill="#77461c" opacity="0.42"/>
+    <path d="M110 42c17 0 30 12 34 28l18 86c4 21-12 41-34 41H79c-21 0-38-19-34-40l17-87c4-17 18-28 35-28h13z" fill="#f6c23c" stroke="#8b5521" stroke-width="6"/>
+    <path d="M178 42c17 0 31 11 35 28l17 87c4 20-13 40-34 40h-49c-22 0-38-20-34-41l18-86c4-16 17-28 34-28h13z" fill="#f0b228" stroke="#8b5521" stroke-width="6"/>
+    <path d="M86 60h36c6 0 12 4 13 10l11 60c2 10-6 19-16 19H94c-10 0-18-9-16-19l10-60c1-6 7-10 14-10z" fill="#ffda58"/>
+    <path d="M154 60h36c7 0 13 4 14 10l10 60c2 10-6 19-16 19h-36c-10 0-18-9-16-19l11-60c1-6 7-10 13-10z" fill="#ffd04a"/>
+    <path d="M60 76c-18 0-32 14-32 31s14 31 32 31h12v-20H60c-7 0-12-5-12-11 0-7 5-12 12-12h14V76H60z" fill="#fff7ef" stroke="#8b5521" stroke-width="6"/>
+    <path d="M229 76c18 0 32 14 32 31s-14 31-32 31h-12v-20h12c7 0 12-5 12-11 0-7-5-12-12-12h-14V76h14z" fill="#fff7ef" stroke="#8b5521" stroke-width="6"/>
+    <path d="M89 40c0-17 14-31 31-31 9 0 17 4 22 10 5-10 16-17 29-17 13 0 24 7 30 17 6-7 15-11 24-11 18 0 33 14 33 32 0 7-2 13-5 18 11 4 19 15 19 28 0 16-13 29-29 29H82c-16 0-29-13-29-29 0-13 9-25 22-28-4-5-6-11-6-18 0-17 14-31 31-31 7 0 13 2 19 6 0-1 0-3 0-4z" fill="#fff8f0" stroke="#b58a55" stroke-width="4"/>
+    <g fill="#fff7ef" opacity="0.85">
+      <circle cx="94" cy="104" r="7"/>
+      <circle cx="111" cy="130" r="6"/>
+      <circle cx="170" cy="102" r="7"/>
+      <circle cx="191" cy="128" r="6"/>
+    </g>
+  </g>
+  <g transform="translate(82 308)">
+    <path d="M34 24c56-18 142-16 300 8l32 14-20 18 22 78c-66-47-179-61-319-36-22 3-39 7-49 11l-1-77 35-16z" fill="#f6b222"/>
+    <text x="170" y="78" text-anchor="middle" fill="#1f3b72" font-size="42" font-weight="800" font-family="Georgia, serif">DIL BEBIDAS</text>
+  </g>
+</svg>

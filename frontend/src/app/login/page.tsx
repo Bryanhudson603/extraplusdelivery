@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
+import { BrandLogo } from '@/components/BrandLogo';
 
 type Loja = {
   id: string;
@@ -124,12 +125,12 @@ export default function ClientLoginPage() {
     }
   }
 
-  const lojaNome = lojas.length > 0 ? lojas[0].nome : 'Extraplus';
+  const lojaNome = lojas.length > 0 ? lojas[0].nome : 'Dil Bebidas';
   const bloqueadoSemLojas = !loadingLojas && lojas.length === 0;
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950 px-4">
-      <div className="w-full max-w-sm bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-2xl p-6 space-y-6">
+    <main className="min-h-screen flex items-center justify-center bg-[var(--brand-soft-bg)] dark:bg-zinc-950 px-4">
+      <div className="w-full max-w-sm bg-[var(--brand-soft-surface)] border border-[var(--brand-soft-border)] dark:bg-zinc-900 dark:border-zinc-800 rounded-2xl p-6 space-y-6 shadow-sm">
         <div className="flex items-center justify-between">
           <button
             type="button"
@@ -140,14 +141,17 @@ export default function ClientLoginPage() {
                 router.push('/');
               }
             }}
-            className="text-[11px] text-gray-600 hover:text-amber-600 dark:text-zinc-400 dark:hover:text-amber-400"
+            className="text-[11px] text-gray-600 hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400"
           >
             ← Voltar
           </button>
         </div>
 
-        <div className="space-y-1">
-          <p className="text-xs text-amber-400 font-semibold uppercase tracking-wide">{lojaNome}</p>
+        <div className="space-y-3">
+          <div className="flex justify-center">
+            <BrandLogo size={128} priority />
+          </div>
+          <p className="text-xs text-blue-600 font-semibold uppercase tracking-wide text-center">{lojaNome}</p>
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">
             {modo === 'login' ? 'Entrar no app' : 'Criar meu cadastro'}
           </h1>
@@ -159,17 +163,17 @@ export default function ClientLoginPage() {
         </div>
 
         {bloqueadoSemLojas && (
-          <div className="text-xs rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300 px-3 py-2">
+          <div className="text-xs rounded-xl border border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-300 px-3 py-2">
             Nenhuma loja cadastrada. Acesse /platform para cadastrar uma loja primeiro.
           </div>
         )}
 
-        <div className="flex items-center gap-2 text-[11px] bg-gray-100 border border-gray-200 dark:bg-zinc-950 dark:border-zinc-800 rounded-full p-1">
+        <div className="flex items-center gap-2 text-[11px] bg-blue-50 border border-blue-100 dark:bg-zinc-950 dark:border-zinc-800 rounded-full p-1">
           <button
             type="button"
             onClick={() => setModo('login')}
             className={`flex-1 py-1 rounded-full text-center ${
-              modo === 'login' ? 'bg-amber-500 text-black font-semibold' : 'text-gray-700 dark:text-zinc-300'
+              modo === 'login' ? 'bg-blue-600 text-white font-semibold' : 'text-gray-700 dark:text-zinc-300'
             }`}
           >
             Já tenho conta
@@ -178,7 +182,7 @@ export default function ClientLoginPage() {
             type="button"
             onClick={() => setModo('register')}
             className={`flex-1 py-1 rounded-full text-center ${
-              modo === 'register' ? 'bg-amber-500 text-black font-semibold' : 'text-gray-700 dark:text-zinc-300'
+              modo === 'register' ? 'bg-blue-600 text-white font-semibold' : 'text-gray-700 dark:text-zinc-300'
             }`}
           >
             Criar conta
@@ -239,7 +243,7 @@ export default function ClientLoginPage() {
           <button
             type="submit"
             disabled={submitting || bloqueadoSemLojas}
-            className="w-full h-10 rounded-full bg-amber-500 hover:bg-amber-600 text-black text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+            className="w-full h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed mt-2"
           >
             {submitting ? (modo === 'login' ? 'Entrando...' : 'Cadastrando...') : modo === 'login' ? 'Entrar' : 'Cadastrar'}
           </button>

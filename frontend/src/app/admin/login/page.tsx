@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
+import { BrandLogo } from '@/components/BrandLogo';
 
 type Loja = {
   id: string;
@@ -88,10 +89,13 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <main className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-zinc-950 px-4">
-      <div className="w-full max-w-sm bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-2xl p-6 space-y-6">
-        <div className="space-y-1">
-          <p className="text-xs text-amber-400 font-semibold uppercase tracking-wide">Dilbebidas</p>
+    <main className="min-h-screen flex items-center justify-center bg-[var(--brand-soft-bg)] dark:bg-zinc-950 px-4">
+      <div className="w-full max-w-sm bg-[var(--brand-soft-surface)] border border-[var(--brand-soft-border)] dark:bg-zinc-900 dark:border-zinc-800 rounded-2xl p-6 space-y-6 shadow-sm">
+        <div className="space-y-3">
+          <div className="flex justify-center">
+            <BrandLogo size={120} priority />
+          </div>
+          <p className="text-xs text-blue-600 font-semibold uppercase tracking-wide text-center">Dil Bebidas</p>
           <h1 className="text-xl font-bold text-gray-900 dark:text-white">Login do lojista</h1>
           <p className="text-xs text-gray-600 dark:text-zinc-400">
             Acesse o painel administrativo para gerenciar pedidos e produtos.
@@ -126,7 +130,7 @@ export default function AdminLoginPage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full h-10 rounded-full bg-amber-500 hover:bg-amber-600 text-black text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed mt-2"
+            className="w-full h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-60 disabled:cursor-not-allowed mt-2"
           >
             {submitting ? 'Entrando...' : 'Entrar'}
           </button>

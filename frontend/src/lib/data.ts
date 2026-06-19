@@ -43,13 +43,13 @@ export const categories: Category[] = [
 export const products: Product[] = [];
 
 export const banners: Banner[] = [
-  { id: 'b1', image: '/placeholder.svg', title: 'Promoções da Semana' },
-  { id: 'b2', image: '/placeholder.svg', title: 'Mais Vendidos' },
-  { id: 'b3', image: '/placeholder.svg', title: 'Combos Especiais' }
+  { id: 'b1', image: '/dil-bebidas-logo.svg', title: 'Promoções da Semana' },
+  { id: 'b2', image: '/dil-bebidas-logo.svg', title: 'Mais Vendidos' },
+  { id: 'b3', image: '/dil-bebidas-logo.svg', title: 'Combos Especiais' }
 ];
 
 export const store: StoreSettings = {
-  name: 'Dilbebidas',
+  name: 'Dil Bebidas',
   open: true,
   phone: '(82) 99310-7309',
   address: 'Rua das Bebidas, 123'
