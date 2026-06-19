@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -119,10 +119,38 @@ export class CriarOuAtualizarProdutoDto {
   stock?: number;
 
   @IsOptional()
+  @Transform(({ value }) => {
+    if (Array.isArray(value)) return value.map(String);
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (!trimmed) return [];
+      if (trimmed.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          return Array.isArray(parsed) ? parsed.map(String) : [String(trimmed)];
+        } catch {
+          return trimmed
+            .split(',')
+            .map(item => item.trim())
+            .filter(Boolean);
+        }
+      }
+      return trimmed
+        .split(',')
+        .map(item => item.trim())
+        .filter(Boolean);
+    }
+    return value;
+  })
   @IsArray()
   @IsString({ each: true })
   tags?: string[];
 
+  @Transform(({ value }) => {
+    if (value === true || value === 'true' || value === 1 || value === '1') return true;
+    if (value === false || value === 'false' || value === 0 || value === '0') return false;
+    return value;
+  })
   @IsOptional()
   @IsBoolean()
   active?: boolean;
@@ -131,6 +159,11 @@ export class CriarOuAtualizarProdutoDto {
   @IsString()
   @Length(0, 500)
   imageUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(0, 1000)
+  imagePath?: string;
 
   @IsOptional()
   @IsString()
@@ -156,4 +189,3 @@ export class CriarOuAtualizarProdutoDto {
 }
 
 export class AtualizarProdutoDto extends CriarOuAtualizarProdutoDto {}
-

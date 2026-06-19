@@ -8,6 +8,7 @@ import { ProdutoRepository } from '../../repositories/produto.repository';
 import { CupomClienteRepository } from '../../repositories/cupom-cliente.repository';
 import { CupomRepository } from '../../repositories/cupom.repository';
 import { ClienteCarteiraRepository } from '../../repositories/cliente-carteira.repository';
+import { StorageService } from '../../storage/storage.service';
 import type { PedidoEntity } from '../../entities/pedido.entity';
 import { ProdutoEntity } from '../../entities/produto.entity';
 import { CupomEntity } from '../../entities/cupom.entity';
@@ -72,7 +73,8 @@ export class AdminService {
     private readonly produtoRepo: ProdutoRepository,
     private readonly cupomRepo: CupomRepository,
     private readonly cupomClienteRepo: CupomClienteRepository,
-    private readonly carteiraRepo: ClienteCarteiraRepository
+    private readonly carteiraRepo: ClienteCarteiraRepository,
+    private readonly storageService: StorageService
   ) {}
 
   private getOverride(id: string): ClienteAdminOverride | undefined {
@@ -101,11 +103,165 @@ export class AdminService {
       tags: Array.isArray(p.tags) ? p.tags : [],
       active: p.ativo !== false,
       imageUrl: p.imageUrl || undefined,
+      imagePath: p.imagePath || undefined,
       category: p.categoriaNome || undefined,
       volume: p.volume || undefined,
       packQuantity: p.packQuantity != null ? Number(p.packQuantity) : undefined,
       packPrice: p.packPrice != null ? Number(p.packPrice) : undefined
     };
+  }
+
+  private hasOwn(body: any, key: string): boolean {
+    return !!body && Object.prototype.hasOwnProperty.call(body, key);
+  }
+
+  private parseStringArray(value: unknown): string[] {
+    if (Array.isArray(value)) {
+      return value.map(item => String(item).trim()).filter(Boolean);
+    }
+
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (!trimmed) return [];
+      if (trimmed.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) {
+            return parsed.map(item => String(item).trim()).filter(Boolean);
+          }
+        } catch {
+        }
+      }
+
+      return trimmed
+        .split(',')
+        .map(item => item.trim())
+        .filter(Boolean);
+    }
+
+    return [];
+  }
+
+  private parseBoolean(value: unknown, fallback: boolean): boolean {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'number') return value !== 0;
+    if (typeof value === 'string') {
+      const normalized = value.trim().toLowerCase();
+      if (['true', '1', 'sim', 'yes', 'on'].includes(normalized)) return true;
+      if (['false', '0', 'nao', 'não', 'no', 'off'].includes(normalized)) return false;
+    }
+    return fallback;
+  }
+
+  private parseNullableString(value: unknown): string | null {
+    if (value == null) return null;
+    const normalized = String(value).trim();
+    return normalized ? normalized : null;
+  }
+
+  private parseDecimalString(value: unknown, fallback = 0): string {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed.toFixed(2) : Number(fallback).toFixed(2);
+  }
+
+  private parseInteger(value: unknown, fallback = 0): number {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? Math.max(0, Math.trunc(parsed)) : fallback;
+  }
+
+  private async resolveProductImage(params: {
+    lojaId: string;
+    body: any;
+    file?: Express.Multer.File;
+    currentImageUrl?: string | null;
+    currentImagePath?: string | null;
+  }): Promise<{ imageUrl: string | null; imagePath: string | null }> {
+    const currentImageUrl = params.currentImageUrl || null;
+    const currentImagePath = params.currentImagePath || null;
+
+    if (params.file) {
+      const uploaded = currentImagePath
+        ? await this.storageService.replaceImage({
+            lojaId: params.lojaId,
+            tipo: 'produtos',
+            file: params.file,
+            currentPath: currentImagePath
+          })
+        : await this.storageService.uploadImage({
+            lojaId: params.lojaId,
+            tipo: 'produtos',
+            file: params.file
+          });
+
+      return {
+        imageUrl: uploaded.url,
+        imagePath: uploaded.path
+      };
+    }
+
+    const hasImageUrl = this.hasOwn(params.body, 'imageUrl');
+    const hasImagePath = this.hasOwn(params.body, 'imagePath');
+
+    if (!hasImageUrl && !hasImagePath) {
+      return {
+        imageUrl: currentImageUrl,
+        imagePath: currentImagePath
+      };
+    }
+
+    const nextPath = this.storageService.validateOwnedPath(
+      params.lojaId,
+      hasImagePath ? params.body.imagePath : currentImagePath
+    );
+    const nextUrl = nextPath
+      ? this.storageService.getPublicUrl(nextPath)
+      : hasImageUrl
+        ? this.parseNullableString(params.body.imageUrl)
+        : currentImageUrl;
+
+    if (currentImagePath && currentImagePath !== nextPath) {
+      await this.storageService.deleteImage(params.lojaId, currentImagePath);
+    }
+
+    return {
+      imageUrl: nextUrl,
+      imagePath: nextPath
+    };
+  }
+
+  private async applyProdutoFields(
+    produto: ProdutoEntity,
+    lojaId: string,
+    body: any,
+    file?: Express.Multer.File
+  ): Promise<void> {
+    produto.lojaId = lojaId;
+    produto.nome = String(body.name ?? body.nome ?? '').trim();
+    produto.categoriaNome = this.parseNullableString(body.category);
+    produto.preco = this.parseDecimalString(body.unitPrice ?? body.price ?? produto.preco ?? 0);
+    produto.precoPromocional =
+      body.promoPrice != null && body.promoPrice !== ''
+        ? this.parseDecimalString(body.promoPrice)
+        : null;
+    produto.estoqueAtual = this.parseInteger(body.stock ?? produto.estoqueAtual ?? 0);
+    produto.tags = this.parseStringArray(body.tags);
+    produto.ativo = this.parseBoolean(body.active, produto.ativo ?? true);
+    produto.volume = this.parseNullableString(body.volume);
+    produto.packQuantity =
+      body.packQuantity != null && body.packQuantity !== '' ? this.parseInteger(body.packQuantity) : null;
+    produto.packPrice =
+      body.packPrice != null && body.packPrice !== '' ? this.parseDecimalString(body.packPrice) : null;
+
+    const image = await this.resolveProductImage({
+      lojaId,
+      body,
+      file,
+      currentImageUrl: produto.imageUrl,
+      currentImagePath: produto.imagePath
+    });
+
+    produto.imageUrl = image.imageUrl;
+    produto.imagePath = image.imagePath;
   }
 
   private pedidoClienteKey(p: PedidoEntity): string | null {
@@ -524,7 +680,7 @@ export class AdminService {
       .sort((a, b) => (a.disponivel === b.disponivel ? 0 : a.disponivel ? -1 : 1));
   }
 
-  async criarOuAtualizarProduto(req: { headers?: Record<string, unknown> }, body: any) {
+  async criarOuAtualizarProduto(req: { headers?: Record<string, unknown> }, body: any, file?: Express.Multer.File) {
     const lojaId = await resolveLojaId(req, this.lojaRepo);
     if (!lojaId) {
       throw new BadRequestException('Nenhuma loja ativa disponível.');
@@ -539,24 +695,13 @@ export class AdminService {
 
     const p = produto || new ProdutoEntity();
     p.id = id;
-    p.lojaId = lojaId;
-    p.nome = String(body.name || '');
-    p.categoriaNome = body.category ? String(body.category) : null;
-    p.preco = Number(body.unitPrice ?? body.price ?? 0).toFixed(2);
-    p.precoPromocional = body.promoPrice != null ? Number(body.promoPrice).toFixed(2) : null;
-    p.estoqueAtual = Number(body.stock ?? 0);
-    p.tags = Array.isArray(body.tags) ? body.tags.map(String) : [];
-    p.ativo = typeof body.active === 'boolean' ? body.active : true;
-    p.imageUrl = body.imageUrl ? String(body.imageUrl) : null;
-    p.volume = body.volume ? String(body.volume) : null;
-    p.packQuantity = body.packQuantity != null ? Number(body.packQuantity) : null;
-    p.packPrice = body.packPrice != null ? Number(body.packPrice).toFixed(2) : null;
+    await this.applyProdutoFields(p, lojaId, body, file);
 
     const salvo = await this.produtoRepo.save(p);
     return this.produtoToAdminDto(salvo);
   }
 
-  async atualizarProduto(req: { headers?: Record<string, unknown> }, id: string, body: any) {
+  async atualizarProduto(req: { headers?: Record<string, unknown> }, id: string, body: any, file?: Express.Multer.File) {
     const lojaId = await resolveLojaId(req, this.lojaRepo);
     if (!lojaId) {
       throw new BadRequestException('Nenhuma loja ativa disponível.');
@@ -569,17 +714,7 @@ export class AdminService {
       // MULTI TENANT SECURITY CHECK
       throw new ForbiddenException();
     }
-    produto.nome = String(body.name || '');
-    produto.categoriaNome = body.category ? String(body.category) : null;
-    produto.preco = Number(body.unitPrice ?? body.price ?? 0).toFixed(2);
-    produto.precoPromocional = body.promoPrice != null ? Number(body.promoPrice).toFixed(2) : null;
-    produto.estoqueAtual = Number(body.stock ?? 0);
-    produto.tags = Array.isArray(body.tags) ? body.tags.map(String) : [];
-    produto.ativo = typeof body.active === 'boolean' ? body.active : true;
-    produto.imageUrl = body.imageUrl ? String(body.imageUrl) : null;
-    produto.volume = body.volume ? String(body.volume) : null;
-    produto.packQuantity = body.packQuantity != null ? Number(body.packQuantity) : null;
-    produto.packPrice = body.packPrice != null ? Number(body.packPrice).toFixed(2) : null;
+    await this.applyProdutoFields(produto, lojaId, body, file);
     const salvo = await this.produtoRepo.save(produto);
     return this.produtoToAdminDto(salvo);
   }
@@ -596,6 +731,9 @@ export class AdminService {
     if (produto.lojaId !== lojaId) {
       // MULTI TENANT SECURITY CHECK
       throw new ForbiddenException();
+    }
+    if (produto.imagePath) {
+      await this.storageService.deleteImage(lojaId, produto.imagePath);
     }
     await this.produtoRepo.removeById(produto.id);
     return { ok: true };

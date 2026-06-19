@@ -9,6 +9,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { EntregadoresModule } from './modules/entregadores/entregadores.module';
 import { PlatformModule } from './modules/platform/platform.module';
 import { createDatabaseOptions, hasDatabaseConfig } from './config/database.config';
+import { StorageModule } from './storage/storage.module';
 
 function createDatabaseModule() {
   if (hasDatabaseConfig()) {
@@ -27,7 +28,8 @@ function createDatabaseModule() {
     PedidosModule,
     AuthModule,
     EntregadoresModule,
-    PlatformModule
+    PlatformModule,
+    StorageModule
   ],
   providers: [{ provide: APP_GUARD, useClass: ThrottlerGuard }]
 })

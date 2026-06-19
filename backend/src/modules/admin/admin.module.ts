@@ -14,6 +14,7 @@ import { CupomRepository } from '../../repositories/cupom.repository';
 import { LojaRepository } from '../../repositories/loja.repository';
 import { PedidoRepository } from '../../repositories/pedido.repository';
 import { ProdutoRepository } from '../../repositories/produto.repository';
+import { StorageModule } from '../../storage/storage.module';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 
@@ -28,7 +29,8 @@ import { AdminService } from './admin.service';
       CupomEntity,
       CupomClienteEntity,
       ClienteCarteiraEntity
-    ])
+    ]),
+    StorageModule
   ],
   controllers: [AdminController],
   providers: [

@@ -1,4 +1,18 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Req,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors
+} from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import multer from 'multer';
 import { AdminService } from './admin.service';
 import { RequireAuth } from '../../auth/require-auth.guard';
 import {
@@ -76,13 +90,34 @@ export class AdminController {
   }
 
   @Post('produtos')
-  criarOuAtualizarProduto(@Req() req: any, @Body() body: CriarOuAtualizarProdutoDto) {
-    return this.adminService.criarOuAtualizarProduto(req, body);
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: multer.memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 }
+    })
+  )
+  criarOuAtualizarProduto(
+    @Req() req: any,
+    @Body() body: CriarOuAtualizarProdutoDto,
+    @UploadedFile() file?: Express.Multer.File
+  ) {
+    return this.adminService.criarOuAtualizarProduto(req, body, file);
   }
 
   @Put('produtos/:id')
-  atualizarProduto(@Req() req: any, @Param('id') id: string, @Body() body: AtualizarProdutoDto) {
-    return this.adminService.atualizarProduto(req, id, body);
+  @UseInterceptors(
+    FileInterceptor('image', {
+      storage: multer.memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 }
+    })
+  )
+  atualizarProduto(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() body: AtualizarProdutoDto,
+    @UploadedFile() file?: Express.Multer.File
+  ) {
+    return this.adminService.atualizarProduto(req, id, body, file);
   }
 
   @Delete('produtos/:id')

@@ -56,6 +56,9 @@ export class ProdutoEntity {
   @Column({ type: 'text', name: 'image_url', nullable: true })
   imageUrl: string | null = null;
 
+  @Column({ type: 'text', name: 'image_path', nullable: true })
+  imagePath: string | null = null;
+
   @Column({ type: 'varchar', length: 50, nullable: true })
   volume: string | null = null;
 
