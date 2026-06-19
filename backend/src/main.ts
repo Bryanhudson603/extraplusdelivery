@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import { getDatabaseConfigError } from './config/database.config';
 
 async function bootstrap() {
   if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
@@ -14,6 +15,12 @@ async function bootstrap() {
   }
   if (!process.env.PLATFORM_ADMIN_USER || !process.env.PLATFORM_ADMIN_PASS_HASH) {
     throw new Error('PLATFORM_ADMIN_USER e PLATFORM_ADMIN_PASS_HASH são obrigatórios');
+  }
+  const databaseConfigError = getDatabaseConfigError();
+  if (databaseConfigError) {
+    throw new Error(
+      `${databaseConfigError} Verifique as variáveis DATABASE_URL/DB_HOST no Render antes do deploy.`
+    );
   }
   const app = await NestFactory.create(AppModule);
   app.useGlobalPipes(

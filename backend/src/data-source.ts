@@ -11,17 +11,12 @@ import { PedidoItemEntity } from './entities/pedidoItem.entity';
 import { PedidoEntity } from './entities/pedido.entity';
 import { ProdutoEntity } from './entities/produto.entity';
 import { UsuarioEntity } from './entities/usuario.entity';
+import { createDatabaseOptions } from './config/database.config';
 
-const url = process.env.DATABASE_URL;
+const databaseOptions = createDatabaseOptions();
 
 export const AppDataSource = new DataSource({
-  type: 'postgres',
-  url,
-  host: !url ? process.env.DB_HOST : undefined,
-  port: !url ? Number(process.env.DB_PORT || 5432) : undefined,
-  username: !url ? process.env.DB_USER : undefined,
-  password: !url ? process.env.DB_PASS || '' : undefined,
-  database: !url ? process.env.DB_NAME : undefined,
+  ...databaseOptions,
   entities: [
     LojaEntity,
     UsuarioEntity,
@@ -35,6 +30,5 @@ export const AppDataSource = new DataSource({
     CupomClienteEntity,
     ClienteCarteiraEntity
   ],
-  migrations: [__dirname + '/migrations/*{.ts,.js}'],
   synchronize: false
 });
