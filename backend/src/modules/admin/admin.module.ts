@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { CategoriaEntity } from '../../entities/categoria.entity';
 import { ClienteCarteiraEntity } from '../../entities/clienteCarteira.entity';
 import { CupomClienteEntity } from '../../entities/cupomCliente.entity';
 import { CupomEntity } from '../../entities/cupom.entity';
@@ -20,6 +21,7 @@ import { AdminService } from './admin.service';
   imports: [
     TypeOrmModule.forFeature([
       LojaEntity,
+      CategoriaEntity,
       PedidoEntity,
       PedidoItemEntity,
       ProdutoEntity,
