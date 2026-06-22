@@ -34,6 +34,8 @@ export default function CheckoutPage() {
   const [clienteTelefone, setClienteTelefone] = useState<string | undefined>(undefined);
   const [clienteEndereco, setClienteEndereco] = useState<string | undefined>(undefined);
   const [cupomCodigo, setCupomCodigo] = useState<string>('');
+  const [cupomAplicadoCodigo, setCupomAplicadoCodigo] = useState<string>('');
+  const [feedbackCupom, setFeedbackCupom] = useState<string | null>(null);
   const [cuponsDisponiveis, setCuponsDisponiveis] = useState<
     Array<{ codigo: string; descontoPercentual?: number; disponivel: boolean }>
   >([]);
@@ -123,6 +125,12 @@ export default function CheckoutPage() {
   async function handleConfirmar() {
     if (items.length === 0 || submitting) return;
 
+    const cupomDigitado = cupomCodigo.trim().toUpperCase();
+    if (cupomDigitado && cupomAplicadoCodigo !== cupomDigitado) {
+      setErro('Clique em aplicar cupom antes de finalizar o pedido.');
+      return;
+    }
+
     if (formaPagamento === 'carteira' && walletBalance < totalComDesconto) {
       setErro(
         'Seu saldo de carteira é menor que o total. Use outra forma de pagamento ou combine com carteira.'
@@ -167,7 +175,7 @@ export default function CheckoutPage() {
         clienteNome,
         clienteTelefone,
         clienteEndereco,
-        cupomCodigo: cupomCodigo ? cupomCodigo.trim() : undefined,
+        cupomCodigo: cupomAplicadoCodigo || undefined,
         usarCarteira: formaPagamento !== 'carteira' ? usarCarteira : undefined
       };
 
@@ -187,11 +195,40 @@ export default function CheckoutPage() {
     }
   }
 
-  const cupomAtivo = (() => {
-    if (!cupomCodigo) return null;
+  function aplicarCupom() {
     const codigo = cupomCodigo.trim().toUpperCase();
+    if (!codigo) {
+      setCupomAplicadoCodigo('');
+      setFeedbackCupom('Digite um cupom para aplicar.');
+      return;
+    }
+
+    const encontrado = cuponsDisponiveis.find(x => x.codigo === codigo);
+    if (!encontrado) {
+      setCupomAplicadoCodigo('');
+      setFeedbackCupom('Cupom nao encontrado para seu perfil.');
+      return;
+    }
+
+    if (!encontrado.disponivel) {
+      setCupomAplicadoCodigo('');
+      setFeedbackCupom('Cupom encontrado, mas indisponivel no momento.');
+      return;
+    }
+
+    setCupomAplicadoCodigo(codigo);
+    setFeedbackCupom(
+      encontrado.descontoPercentual
+        ? `Cupom aplicado com sucesso: ${encontrado.descontoPercentual}% de desconto.`
+        : 'Cupom aplicado com sucesso.'
+    );
+    setErro(null);
+  }
+
+  const cupomAtivo = (() => {
+    if (!cupomAplicadoCodigo) return null;
     const encontrado = cuponsDisponiveis.find(
-      x => x.codigo === codigo && x.disponivel
+      x => x.codigo === cupomAplicadoCodigo && x.disponivel
     );
     return encontrado || null;
   })();
@@ -369,9 +406,23 @@ export default function CheckoutPage() {
               type="text"
               placeholder="Digite o código"
               value={cupomCodigo}
-              onChange={e => setCupomCodigo(e.target.value.toUpperCase())}
+              onChange={e => {
+                const nextValue = e.target.value.toUpperCase();
+                setCupomCodigo(nextValue);
+                if (cupomAplicadoCodigo && nextValue.trim().toUpperCase() !== cupomAplicadoCodigo) {
+                  setCupomAplicadoCodigo('');
+                }
+                setFeedbackCupom(null);
+              }}
               className="flex-1 h-10 rounded-lg bg-white border border-blue-100 px-3 text-sm text-slate-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
             />
+            <button
+              type="button"
+              onClick={aplicarCupom}
+              className="h-10 px-3 rounded-lg bg-blue-600 text-xs font-semibold text-white whitespace-nowrap hover:bg-blue-700"
+            >
+              Aplicar cupom
+            </button>
             <button
               type="button"
               className="h-10 px-3 rounded-lg bg-white border border-blue-100 text-[11px] text-slate-500 dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-400 flex items-center whitespace-nowrap"
@@ -393,6 +444,8 @@ export default function CheckoutPage() {
                     type="button"
                     onClick={() => {
                       setCupomCodigo(c.codigo);
+                      setCupomAplicadoCodigo('');
+                      setFeedbackCupom(null);
                       setMostrarListaCupons(false);
                     }}
                     className="w-full flex items-center justify-between text-[11px] rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-blue-900 dark:border-amber-500/40 dark:bg-zinc-950 dark:text-amber-100"
@@ -405,20 +458,12 @@ export default function CheckoutPage() {
                 ))}
             </div>
           )}
-          {cupomCodigo && (
+          {(cupomCodigo || feedbackCupom) && (
             <div className="text-[11px] text-slate-500 dark:text-zinc-500 space-y-1">
-              <div>
-                {(() => {
-                  const c = cuponsDisponiveis.find(
-                    x => x.codigo === cupomCodigo.trim().toUpperCase()
-                  );
-                if (!c) return 'Cupom não encontrado para seu perfil';
-                if (!c.disponivel) return 'Cupom encontrado, mas indisponível';
-                return c.descontoPercentual
-                  ? `Cupom válido: ${c.descontoPercentual}% de desconto`
-                  : 'Cupom válido';
-                })()}
-              </div>
+              {feedbackCupom && <div>{feedbackCupom}</div>}
+              {cupomCodigo && cupomAplicadoCodigo !== cupomCodigo.trim().toUpperCase() && (
+                <div>Cupom digitado ainda nao foi aplicado.</div>
+              )}
               {cupomAtivo && descontoPreview > 0 && (
                 <div className="text-emerald-400">
                   Desconto: R$ {descontoPreview.toFixed(2)} • Total com desconto: R${' '}

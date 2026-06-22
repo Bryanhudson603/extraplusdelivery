@@ -3,6 +3,29 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { getDatabaseConfigError } from './config/database.config';
 
+function expandAllowedOrigins(rawOrigins: string[]): string[] {
+  const expanded = new Set<string>();
+
+  for (const rawOrigin of rawOrigins) {
+    const origin = String(rawOrigin || '').trim();
+    if (!origin) continue;
+    expanded.add(origin);
+
+    try {
+      const parsed = new URL(origin);
+      const host = parsed.hostname.toLowerCase();
+      if (host.startsWith('www.')) {
+        expanded.add(`${parsed.protocol}//${host.slice(4)}${parsed.port ? `:${parsed.port}` : ''}`);
+      } else if (host.includes('.')) {
+        expanded.add(`${parsed.protocol}//www.${host}${parsed.port ? `:${parsed.port}` : ''}`);
+      }
+    } catch {
+    }
+  }
+
+  return Array.from(expanded);
+}
+
 async function bootstrap() {
   if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
     throw new Error('JWT_SECRET obrigatório em produção');
@@ -30,10 +53,10 @@ async function bootstrap() {
       transform: true
     })
   );
-  const allowedOrigins = [
+  const allowedOrigins = expandAllowedOrigins([
     process.env.FRONTEND_URL,
     process.env.NODE_ENV !== 'production' ? 'http://localhost:3001' : undefined
-  ].filter(Boolean) as string[];
+  ].filter(Boolean) as string[]);
   app.enableCors({
     origin: allowedOrigins,
     credentials: true

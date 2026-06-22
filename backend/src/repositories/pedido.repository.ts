@@ -3,6 +3,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PedidoEntity } from '../entities/pedido.entity';
 
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
 @Injectable()
 export class PedidoRepository {
   constructor(
@@ -37,12 +41,15 @@ export class PedidoRepository {
   async existsClienteKeyInLoja(lojaId: string, clienteKey: string): Promise<boolean> {
     const key = String(clienteKey || '').trim();
     if (!key) return false;
-    const count = await this.repo.count({
-      where: [
-        { lojaId, clienteId: key as any },
-        { lojaId, clienteTelefone: key }
-      ]
-    });
+    const where: Array<{ lojaId: string; clienteId?: string; clienteTelefone?: string }> = [
+      { lojaId, clienteTelefone: key }
+    ];
+
+    if (isUuid(key)) {
+      where.push({ lojaId, clienteId: key });
+    }
+
+    const count = await this.repo.count({ where });
     return count > 0;
   }
 

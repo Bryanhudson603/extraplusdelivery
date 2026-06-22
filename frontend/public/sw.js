@@ -1,4 +1,4 @@
-const CACHE_NAME = 'extraplus-cache-v4';
+const CACHE_NAME = 'dil-bebidas-cache-v5';
 const OFFLINE_URLS = ['/', '/home', '/catalog', '/login'];
 
 self.addEventListener('install', event => {

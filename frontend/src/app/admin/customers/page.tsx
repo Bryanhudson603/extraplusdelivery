@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { api } from '@/lib/api';
+import { ApiError, api } from '@/lib/api';
 
 type Cliente = {
   id: string;
@@ -207,10 +207,18 @@ export default function AdminCustomersPage() {
         `/admin/cupons/${cupomSelecionado}/enviar`,
         { clientes: ids }
       );
-      setFeedbackEnvio(`Cupom ${r.codigo} enviado para ${r.enviados} cliente(s).`);
+      setFeedbackEnvio(
+        r.enviados > 0
+          ? `Cupom ${r.codigo} enviado para ${r.enviados} cliente(s).`
+          : `Nenhum novo envio foi realizado para o cupom ${r.codigo}.`
+      );
       setSelecionados({});
     } catch (e) {
-      setFeedbackEnvio('Falha ao enviar cupom. Tente novamente.');
+      if (e instanceof ApiError && e.payload && typeof e.payload === 'object' && 'message' in e.payload) {
+        setFeedbackEnvio(String((e.payload as { message?: unknown }).message || 'Falha ao enviar cupom.'));
+      } else {
+        setFeedbackEnvio('Falha ao enviar cupom. Tente novamente.');
+      }
       console.error(e);
     } finally {
       setEnviando(false);

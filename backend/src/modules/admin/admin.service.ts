@@ -611,6 +611,7 @@ export class AdminService {
         if (p.clienteTelefone) chaves.add(p.clienteTelefone);
       }
 
+      let criouNovaAtribuicao = false;
       for (const chave of chaves) {
         const jaTem = await this.cupomClienteRepo.findByClienteKey(lojaId, codigo, chave);
         if (jaTem) continue;
@@ -622,11 +623,13 @@ export class AdminService {
         atrib.clienteKey = chave;
         atrib.usos = 0;
         await this.cupomClienteRepo.save(atrib);
+        criouNovaAtribuicao = true;
+      }
 
+      if (criouNovaAtribuicao) {
         enviados += 1;
         if (cupom.quantidadeRestante != null) {
           cupom.quantidadeRestante = Math.max(0, cupom.quantidadeRestante - 1);
-          if (cupom.quantidadeRestante <= 0) break;
         }
       }
     }
