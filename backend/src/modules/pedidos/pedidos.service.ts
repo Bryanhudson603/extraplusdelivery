@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, NotFoundException 
 import { randomUUID } from 'crypto';
 import { resolveLojaId } from '../../common/resolve-loja-id';
 import { ClienteCarteiraEntity } from '../../entities/clienteCarteira.entity';
+import { CupomClienteEntity } from '../../entities/cupomCliente.entity';
 import { PedidoEntity } from '../../entities/pedido.entity';
 import { PedidoItemEntity } from '../../entities/pedidoItem.entity';
 import { ClienteCarteiraRepository } from '../../repositories/cliente-carteira.repository';
@@ -12,7 +13,7 @@ import { LojaRepository } from '../../repositories/loja.repository';
 import { PedidoItemRepository } from '../../repositories/pedido-item.repository';
 import { PedidoRepository } from '../../repositories/pedido.repository';
 import { ProdutoRepository } from '../../repositories/produto.repository';
-import type { CriarPedidoDto, FormaPagamento, PedidoResponse, TipoEntrega } from './pedidos.dto';
+import type { CriarPedidoDto, FormaPagamento, PedidoResponse, TipoEntrega, ValidarCupomDto } from './pedidos.dto';
 
 @Injectable()
 export class PedidosService {
@@ -56,6 +57,86 @@ export class PedidosService {
     return pedidos.map(p => this.toResponse(p));
   }
 
+  private async avaliarCupom(
+    lojaId: string,
+    body: { cupomCodigo?: string; clienteId?: string; clienteTelefone?: string }
+  ): Promise<{
+    codigo: string;
+    valido: boolean;
+    mensagem: string;
+    descontoPercentual?: number;
+    descontoValor?: number;
+    atribuicao?: CupomClienteEntity | null;
+    clienteKeys: string[];
+  }> {
+    const codigo = String(body.cupomCodigo || '').trim().toUpperCase();
+    if (!codigo) {
+      return { codigo: '', valido: false, mensagem: 'Informe um cupom.' , clienteKeys: [] };
+    }
+
+    const cupom = await this.cupomRepo.findAtivoByCodigo(lojaId, codigo);
+    if (!cupom) {
+      return { codigo, valido: false, mensagem: 'Cupom não encontrado ou inativo.', clienteKeys: [] };
+    }
+
+    const agora = Date.now();
+    const dentroJanela =
+      (!cupom.validoDe || cupom.validoDe.getTime() <= agora) &&
+      (!cupom.validoAte || cupom.validoAte.getTime() >= agora);
+    if (!dentroJanela) {
+      return { codigo, valido: false, mensagem: 'Cupom fora do período de validade.', clienteKeys: [] };
+    }
+
+    if (cupom.quantidadeRestante != null && cupom.quantidadeRestante <= 0) {
+      return { codigo, valido: false, mensagem: 'Cupom indisponível no momento.', clienteKeys: [] };
+    }
+
+    const clienteKeys = [body.clienteId, body.clienteTelefone].map(v => String(v || '').trim()).filter(Boolean);
+    const atribuicao =
+      clienteKeys.length > 0
+        ? await this.cupomClienteRepo.findByAnyClienteKey(lojaId, codigo, clienteKeys)
+        : null;
+
+    if (atribuicao && cupom.usosPorCliente != null && atribuicao.usos >= cupom.usosPorCliente) {
+      return { codigo, valido: false, mensagem: 'Limite de uso deste cupom já foi atingido.', atribuicao, clienteKeys };
+    }
+
+    return {
+      codigo,
+      valido: true,
+      mensagem: cupom.descontoPercentual
+        ? `Cupom aplicado com ${cupom.descontoPercentual}% de desconto.`
+        : 'Cupom válido.',
+      descontoPercentual:
+        cupom.descontoPercentual != null ? Number(cupom.descontoPercentual) : undefined,
+      atribuicao,
+      clienteKeys
+    };
+  }
+
+  async validarCupom(
+    req: { headers?: Record<string, unknown> },
+    body: ValidarCupomDto
+  ): Promise<{ valido: boolean; codigo: string; mensagem: string; descontoPercentual?: number }> {
+    const lojaId = await resolveLojaId(req, this.lojaRepo);
+    if (!lojaId) {
+      throw new BadRequestException('Nenhuma loja ativa disponível.');
+    }
+
+    const avaliacao = await this.avaliarCupom(lojaId, {
+      cupomCodigo: body.codigo,
+      clienteId: body.clienteId,
+      clienteTelefone: body.clienteTelefone
+    });
+
+    return {
+      valido: avaliacao.valido,
+      codigo: avaliacao.codigo,
+      mensagem: avaliacao.mensagem,
+      descontoPercentual: avaliacao.descontoPercentual
+    };
+  }
+
   async criar(req: { headers?: Record<string, unknown> }, body: CriarPedidoDto): Promise<PedidoResponse> {
     const lojaId = await resolveLojaId(req, this.lojaRepo);
     if (!lojaId) {
@@ -66,24 +147,24 @@ export class PedidosService {
     let desconto = 0;
 
     if (body.cupomCodigo) {
-      const codigo = String(body.cupomCodigo).trim().toUpperCase();
-      const cupom = await this.cupomRepo.findAtivoByCodigo(lojaId, codigo);
-      const agora = Date.now();
-      const dentroJanela =
-        !!cupom &&
-        (!cupom.validoDe || cupom.validoDe.getTime() <= agora) &&
-        (!cupom.validoAte || cupom.validoAte.getTime() >= agora);
-      const clienteKeys = [body.clienteId, body.clienteTelefone].map(v => String(v || '')).filter(Boolean);
-      const atribuicao =
-        !!cupom &&
-        (body.clienteId || body.clienteTelefone) &&
-        (await this.cupomClienteRepo.findByAnyClienteKey(lojaId, codigo, clienteKeys));
-      const usosOk =
-        !!cupom && !!atribuicao && (cupom.usosPorCliente == null || atribuicao.usos < cupom.usosPorCliente);
-      if (cupom && dentroJanela && atribuicao && usosOk && cupom.descontoPercentual) {
-        desconto = Number(((totalBruto * Number(cupom.descontoPercentual)) / 100).toFixed(2));
-        atribuicao.usos += 1;
-        await this.cupomClienteRepo.save(atribuicao);
+      const avaliacao = await this.avaliarCupom(lojaId, body);
+      if (avaliacao.valido && avaliacao.descontoPercentual) {
+        desconto = Number(((totalBruto * Number(avaliacao.descontoPercentual)) / 100).toFixed(2));
+
+        if (avaliacao.clienteKeys.length > 0) {
+          const atribuicao = avaliacao.atribuicao || new CupomClienteEntity();
+          if (!avaliacao.atribuicao) {
+            atribuicao.id = randomUUID();
+            atribuicao.lojaId = lojaId;
+            atribuicao.codigo = avaliacao.codigo;
+            atribuicao.clienteKey = avaliacao.clienteKeys[0];
+            atribuicao.usos = 0;
+          }
+          atribuicao.usos += 1;
+          await this.cupomClienteRepo.save(atribuicao);
+        }
+      } else if (body.cupomCodigo) {
+        throw new BadRequestException(avaliacao.mensagem);
       }
     }
 

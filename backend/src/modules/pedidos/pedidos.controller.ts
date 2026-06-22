@@ -2,7 +2,12 @@ import { Body, Controller, Get, Param, Post, Req, UseGuards } from '@nestjs/comm
 import { Throttle } from '@nestjs/throttler';
 import { RequireAuth } from '../../auth/require-auth.guard';
 import { PedidosService } from './pedidos.service';
-import { AtualizarEntregadorPedidoDto, AtualizarStatusPedidoDto, CriarPedidoDto } from './pedidos.dto';
+import {
+  AtualizarEntregadorPedidoDto,
+  AtualizarStatusPedidoDto,
+  CriarPedidoDto,
+  ValidarCupomDto
+} from './pedidos.dto';
 
 @Controller('pedidos')
 export class PedidosController {
@@ -17,6 +22,11 @@ export class PedidosController {
   @Throttle({ default: { limit: 5, ttl: 60 } })
   criar(@Req() req: any, @Body() body: CriarPedidoDto) {
     return this.pedidosService.criar(req, body);
+  }
+
+  @Post('validar-cupom')
+  validarCupom(@Req() req: any, @Body() body: ValidarCupomDto) {
+    return this.pedidosService.validarCupom(req, body);
   }
 
   @Post(':id/entregador')

@@ -16,6 +16,7 @@ import { PedidoRepository } from '../../repositories/pedido.repository';
 import { ProdutoRepository } from '../../repositories/produto.repository';
 import { StorageModule } from '../../storage/storage.module';
 import { AdminController } from './admin.controller';
+import { ClientSelfController } from './client-self.controller';
 import { AdminService } from './admin.service';
 
 @Module({
@@ -32,7 +33,7 @@ import { AdminService } from './admin.service';
     ]),
     StorageModule
   ],
-  controllers: [AdminController],
+  controllers: [AdminController, ClientSelfController],
   providers: [
     AdminService,
     LojaRepository,

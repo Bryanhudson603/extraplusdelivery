@@ -268,6 +268,15 @@ export class AdminService {
     return p.clienteId || p.clienteTelefone || null;
   }
 
+  private getClienteKeysFromAuth(req: { auth?: { tipo?: string; sub?: string; telefone?: string } }): string[] {
+    const auth = req.auth;
+    if (!auth || auth.tipo !== 'cliente') {
+      return [];
+    }
+
+    return Array.from(new Set([auth.sub, auth.telefone].map(value => String(value || '').trim()).filter(Boolean)));
+  }
+
   private async assertClienteKeyBelongsToLoja(lojaId: string, clienteKey: string): Promise<void> {
     const key = String(clienteKey || '').trim();
     if (!key) {
@@ -643,8 +652,15 @@ export class AdminService {
     if (!lojaId) throw new ForbiddenException();
     await this.assertClienteKeyBelongsToLoja(lojaId, String(id));
 
+    return this.listarCuponsDoClientePorChave(lojaId, String(id));
+  }
+
+  private async listarCuponsDoClientePorChave(lojaId: string, id: string) {
+    const key = String(id || '').trim();
+    if (!key) return [];
+
     const [atribuicoes, cupons] = await Promise.all([
-      this.cupomClienteRepo.listByClienteKey(lojaId, id),
+      this.cupomClienteRepo.listByClienteKey(lojaId, key),
       this.cupomRepo.listByLoja(lojaId)
     ]);
     const cupomPorCodigo: Record<string, CupomEntity> = {};
@@ -681,6 +697,47 @@ export class AdminService {
         };
       })
       .sort((a, b) => (a.disponivel === b.disponivel ? 0 : a.disponivel ? -1 : 1));
+  }
+
+  async obterClienteAutenticado(req: {
+    headers?: Record<string, unknown>;
+    auth?: { tipo?: string; sub?: string; telefone?: string };
+  }): Promise<ClienteLoja | null> {
+    const keys = this.getClienteKeysFromAuth(req);
+    for (const key of keys) {
+      const cliente = await this.obterCliente(req, key);
+      if (cliente) return cliente;
+    }
+    throw new ForbiddenException();
+  }
+
+  async listarCuponsClienteAutenticado(req: {
+    headers?: Record<string, unknown>;
+    auth?: { tipo?: string; sub?: string; telefone?: string };
+  }) {
+    const lojaId = await resolveLojaId(req, this.lojaRepo);
+    if (!lojaId) throw new ForbiddenException();
+
+    const keys = this.getClienteKeysFromAuth(req);
+    if (keys.length === 0) {
+      throw new ForbiddenException();
+    }
+
+    const agregados = await Promise.all(keys.map(key => this.listarCuponsDoClientePorChave(lojaId, key)));
+    const porCodigo = new Map<string, (typeof agregados)[number][number]>();
+
+    for (const lista of agregados) {
+      for (const cupom of lista) {
+        const atual = porCodigo.get(cupom.codigo);
+        if (!atual || (!atual.disponivel && cupom.disponivel)) {
+          porCodigo.set(cupom.codigo, cupom);
+        }
+      }
+    }
+
+    return Array.from(porCodigo.values()).sort((a, b) =>
+      a.disponivel === b.disponivel ? a.codigo.localeCompare(b.codigo) : a.disponivel ? -1 : 1
+    );
   }
 
   async criarOuAtualizarProduto(req: { headers?: Record<string, unknown> }, body: any, file?: Express.Multer.File) {

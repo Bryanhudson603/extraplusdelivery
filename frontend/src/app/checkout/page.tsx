@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/components/CartProvider';
 import { BottomNav } from '@/components/BottomNav';
-import { api } from '@/lib/api';
+import { ApiError, api } from '@/lib/api';
 
 type TipoEntrega = 'delivery' | 'retirada';
 type FormaPagamento = 'pix' | 'cartao_entrega' | 'dinheiro' | 'carteira';
@@ -36,6 +36,7 @@ export default function CheckoutPage() {
   const [cupomCodigo, setCupomCodigo] = useState<string>('');
   const [cupomAplicadoCodigo, setCupomAplicadoCodigo] = useState<string>('');
   const [feedbackCupom, setFeedbackCupom] = useState<string | null>(null);
+  const [aplicandoCupom, setAplicandoCupom] = useState(false);
   const [cuponsDisponiveis, setCuponsDisponiveis] = useState<
     Array<{ codigo: string; descontoPercentual?: number; disponivel: boolean }>
   >([]);
@@ -63,60 +64,21 @@ export default function CheckoutPage() {
         setClienteNome(parsed.nome);
         setClienteTelefone(parsed.telefone);
         setClienteEndereco(parsed.endereco);
-        if (parsed.clienteId) {
-          (async () => {
-            try {
-              const cliente = await api.get<{ saldoCarteira: number }>(
-                `/admin/clientes/${parsed.clienteId}`
-              );
-              if (typeof cliente.saldoCarteira === 'number') {
-                setWalletBalance(cliente.saldoCarteira);
-              }
-            } catch {
-              setWalletBalance(0);
-            }
-          })();
-        }
-        const ids: string[] = [];
-        if (parsed.clienteId) ids.push(String(parsed.clienteId));
-        if (parsed.telefone) ids.push(String(parsed.telefone));
-        const unicos = Array.from(new Set(ids.filter(Boolean)));
-        if (unicos.length > 0) {
-          (async () => {
-            try {
-              const agregados: Array<{
-                codigo: string;
-                descontoPercentual?: number;
-                disponivel: boolean;
-              }> = [];
-              for (const id of unicos) {
-                try {
-                  const lista = await api.get<
-                    Array<{
-                      codigo: string;
-                      descontoPercentual?: number;
-                      disponivel: boolean;
-                    }>
-                  >(`/admin/clientes/${id}/cupons`);
-                  if (Array.isArray(lista)) {
-                    agregados.push(...lista);
-                  }
-                } catch {
-                }
-              }
-              const porCodigo: Record<string, { codigo: string; descontoPercentual?: number; disponivel: boolean }> =
-                {};
-              for (const c of agregados) {
-                porCodigo[c.codigo] = c;
-              }
-              setCuponsDisponiveis(Object.values(porCodigo));
-            } catch {
-              setCuponsDisponiveis([]);
-            }
-          })();
-        } else {
-          setCuponsDisponiveis([]);
-        }
+        (async () => {
+          try {
+            const [cliente, cupons] = await Promise.all([
+              api.get<{ saldoCarteira?: number }>('/clientes/me'),
+              api.get<Array<{ codigo: string; descontoPercentual?: number; disponivel: boolean }>>(
+                '/clientes/me/cupons'
+              )
+            ]);
+            setWalletBalance(typeof cliente.saldoCarteira === 'number' ? cliente.saldoCarteira : 0);
+            setCuponsDisponiveis(Array.isArray(cupons) ? cupons : []);
+          } catch {
+            setWalletBalance(0);
+            setCuponsDisponiveis([]);
+          }
+        })();
       }
     } catch {
     }
@@ -195,7 +157,7 @@ export default function CheckoutPage() {
     }
   }
 
-  function aplicarCupom() {
+  async function aplicarCupom() {
     const codigo = cupomCodigo.trim().toUpperCase();
     if (!codigo) {
       setCupomAplicadoCodigo('');
@@ -203,26 +165,60 @@ export default function CheckoutPage() {
       return;
     }
 
-    const encontrado = cuponsDisponiveis.find(x => x.codigo === codigo);
-    if (!encontrado) {
-      setCupomAplicadoCodigo('');
-      setFeedbackCupom('Cupom nao encontrado para seu perfil.');
-      return;
-    }
+    setAplicandoCupom(true);
+    try {
+      const validacao = await api.post<{
+        valido: boolean;
+        codigo: string;
+        mensagem: string;
+        descontoPercentual?: number;
+      }>('/pedidos/validar-cupom', {
+        codigo,
+        clienteId,
+        clienteTelefone
+      });
 
-    if (!encontrado.disponivel) {
-      setCupomAplicadoCodigo('');
-      setFeedbackCupom('Cupom encontrado, mas indisponivel no momento.');
-      return;
-    }
+      if (!validacao.valido) {
+        setCupomAplicadoCodigo('');
+        setFeedbackCupom(validacao.mensagem || 'Cupom indisponivel.');
+        return;
+      }
 
-    setCupomAplicadoCodigo(codigo);
-    setFeedbackCupom(
-      encontrado.descontoPercentual
-        ? `Cupom aplicado com sucesso: ${encontrado.descontoPercentual}% de desconto.`
-        : 'Cupom aplicado com sucesso.'
-    );
-    setErro(null);
+      setCupomAplicadoCodigo(validacao.codigo || codigo);
+      setFeedbackCupom(validacao.mensagem || 'Cupom aplicado com sucesso.');
+      setErro(null);
+      setCuponsDisponiveis(prev => {
+        const existe = prev.some(item => item.codigo === codigo);
+        if (existe) {
+          return prev.map(item =>
+            item.codigo === codigo
+              ? {
+                  ...item,
+                  disponivel: true,
+                  descontoPercentual: validacao.descontoPercentual ?? item.descontoPercentual
+                }
+              : item
+          );
+        }
+        return [
+          ...prev,
+          {
+            codigo,
+            disponivel: true,
+            descontoPercentual: validacao.descontoPercentual
+          }
+        ];
+      });
+    } catch (e) {
+      setCupomAplicadoCodigo('');
+      if (e instanceof ApiError && e.payload && typeof e.payload === 'object' && 'message' in e.payload) {
+        setFeedbackCupom(String((e.payload as { message?: unknown }).message || 'Falha ao validar cupom.'));
+      } else {
+        setFeedbackCupom('Falha ao validar cupom.');
+      }
+    } finally {
+      setAplicandoCupom(false);
+    }
   }
 
   const cupomAtivo = (() => {
@@ -419,9 +415,10 @@ export default function CheckoutPage() {
             <button
               type="button"
               onClick={aplicarCupom}
+              disabled={aplicandoCupom}
               className="h-10 px-3 rounded-lg bg-blue-600 text-xs font-semibold text-white whitespace-nowrap hover:bg-blue-700"
             >
-              Aplicar cupom
+              {aplicandoCupom ? 'Aplicando...' : 'Aplicar cupom'}
             </button>
             <button
               type="button"

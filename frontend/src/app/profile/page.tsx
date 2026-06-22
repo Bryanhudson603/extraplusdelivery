@@ -57,29 +57,8 @@ export default function ProfilePage() {
       if (!rawSession) return;
       const parsed = JSON.parse(rawSession);
       if (parsed?.tipo !== 'cliente') return;
-      const ids: string[] = [];
-      if (parsed.clienteId) ids.push(String(parsed.clienteId));
-      if (parsed.telefone) ids.push(String(parsed.telefone));
-      const unicos = Array.from(new Set(ids.filter(Boolean)));
-      if (unicos.length === 0) {
-        setCoupons([]);
-        return;
-      }
-      const agregados: CupomCliente[] = [];
-      for (const id of unicos) {
-        try {
-          const lista = await api.get<CupomCliente[]>(`/admin/clientes/${id}/cupons`);
-          if (Array.isArray(lista)) {
-            agregados.push(...lista);
-          }
-        } catch {
-        }
-      }
-      const porChave: Record<string, CupomCliente> = {};
-      for (const c of agregados) {
-        porChave[`${c.codigo}-${c.id}`] = c;
-      }
-      setCoupons(Object.values(porChave));
+      const lista = await api.get<CupomCliente[]>('/clientes/me/cupons');
+      setCoupons(Array.isArray(lista) ? lista : []);
     } catch {
       setCoupons([]);
     }
@@ -116,11 +95,10 @@ export default function ProfilePage() {
           carregarCuponsParaSessao();
           (async () => {
             try {
-              if (!parsed.clienteId) return;
               const cliente = await api.get<{
                 id: string;
                 saldoCarteira: number;
-              }>(`/admin/clientes/${parsed.clienteId}`);
+              }>('/clientes/me');
               if (cliente && typeof cliente.saldoCarteira === 'number') {
                 setWalletBalance(cliente.saldoCarteira);
               }

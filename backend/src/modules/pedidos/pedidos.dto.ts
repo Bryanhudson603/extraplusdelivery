@@ -94,6 +94,22 @@ export class CriarPedidoDto {
   entregadorId?: string;
 }
 
+export class ValidarCupomDto {
+  @IsString()
+  @Length(1, 50)
+  codigo!: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(1, 100)
+  clienteId?: string;
+
+  @IsOptional()
+  @IsString()
+  @Length(1, 30)
+  clienteTelefone?: string;
+}
+
 export class AtualizarEntregadorPedidoDto {
   @IsString()
   @Length(1, 50)
