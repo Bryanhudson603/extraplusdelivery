@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { BrandLogo } from '@/components/BrandLogo';
+import { DELIVERY_NEIGHBORHOODS, FIXED_CITY_NAME, formatClientAddress } from '@/lib/delivery';
 
 type Loja = {
   id: string;
@@ -28,7 +29,8 @@ export default function ClientLoginPage() {
   const [loadingLojas, setLoadingLojas] = useState(true);
   const [modo, setModo] = useState<'login' | 'register'>('login');
   const [nome, setNome] = useState('');
-  const [endereco, setEndereco] = useState('');
+  const [rua, setRua] = useState('');
+  const [bairro, setBairro] = useState(DELIVERY_NEIGHBORHOODS[0]?.nome || '');
   const [telefone, setTelefone] = useState('');
   const [senha, setSenha] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -87,12 +89,28 @@ export default function ClientLoginPage() {
           nome,
           telefone,
           senha,
-          endereco
+          rua,
+          bairro,
+          cidade: FIXED_CITY_NAME
         });
       }
 
       if (typeof window !== 'undefined') {
-        window.localStorage.setItem(SESSION_KEY, JSON.stringify(resposta));
+        const endereco = formatClientAddress(rua, bairro);
+        window.localStorage.setItem(
+          SESSION_KEY,
+          JSON.stringify(
+            modo === 'register'
+              ? {
+                  ...resposta,
+                  endereco,
+                  rua,
+                  bairro,
+                  cidade: FIXED_CITY_NAME
+                }
+              : resposta
+          )
+        );
       }
 
       router.replace('/stores');
@@ -204,13 +222,40 @@ export default function ClientLoginPage() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs text-gray-600 dark:text-zinc-400">Endereço</label>
+                <label className="text-xs text-gray-600 dark:text-zinc-400">Rua</label>
                 <input
                   type="text"
                   autoComplete="off"
-                  value={endereco}
-                  onChange={e => setEndereco(e.target.value)}
+                  value={rua}
+                  onChange={e => setRua(e.target.value)}
                   className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
+                  placeholder="Ex: Rua Sao Jose, 120"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs text-gray-600 dark:text-zinc-400">Bairro</label>
+                <select
+                  value={bairro}
+                  onChange={e => setBairro(e.target.value)}
+                  className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
+                >
+                  {DELIVERY_NEIGHBORHOODS.map(item => (
+                    <option key={item.nome} value={item.nome}>
+                      {item.nome}
+                      {item.taxaEntrega > 0 ? ` • taxa R$ ${item.taxaEntrega.toFixed(2)}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs text-gray-600 dark:text-zinc-400">Cidade</label>
+                <input
+                  type="text"
+                  value={FIXED_CITY_NAME}
+                  readOnly
+                  className="w-full h-10 rounded-lg bg-gray-100 border border-gray-300 px-3 text-sm text-gray-700 outline-none dark:bg-zinc-900 dark:border-zinc-700 dark:text-zinc-200"
                 />
               </div>
             </>

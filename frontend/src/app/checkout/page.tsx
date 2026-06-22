@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation';
 import { useCart } from '@/components/CartProvider';
 import { BottomNav } from '@/components/BottomNav';
 import { ApiError, api } from '@/lib/api';
+import { getDeliveryFeeFromAddress, parseClientAddress } from '@/lib/delivery';
 
 type TipoEntrega = 'delivery' | 'retirada';
-type FormaPagamento = 'pix' | 'cartao_entrega' | 'dinheiro' | 'carteira';
+type FormaPagamento = 'pix' | 'cartao_entrega' | 'dinheiro';
 
 type PedidoResponse = {
   id: string;
@@ -41,10 +42,8 @@ export default function CheckoutPage() {
     Array<{ codigo: string; descontoPercentual?: number; disponivel: boolean }>
   >([]);
   const [mostrarListaCupons, setMostrarListaCupons] = useState(false);
-  const [walletBalance, setWalletBalance] = useState(0);
-  const [usarCarteira, setUsarCarteira] = useState(false);
 
-  const total = useMemo(
+  const subtotal = useMemo(
     () =>
       items.reduce((sum, it) => {
         const price = it.product.promoPrice ?? it.product.price;
@@ -52,6 +51,8 @@ export default function CheckoutPage() {
       }, 0),
     [items]
   );
+  const parsedAddress = parseClientAddress(clienteEndereco);
+  const taxaEntregaPreview = getDeliveryFeeFromAddress(clienteEndereco, tipoEntrega);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -66,16 +67,11 @@ export default function CheckoutPage() {
         setClienteEndereco(parsed.endereco);
         (async () => {
           try {
-            const [cliente, cupons] = await Promise.all([
-              api.get<{ saldoCarteira?: number }>('/clientes/me'),
-              api.get<Array<{ codigo: string; descontoPercentual?: number; disponivel: boolean }>>(
-                '/clientes/me/cupons'
-              )
-            ]);
-            setWalletBalance(typeof cliente.saldoCarteira === 'number' ? cliente.saldoCarteira : 0);
+            const cupons = await api.get<Array<{ codigo: string; descontoPercentual?: number; disponivel: boolean }>>(
+              '/clientes/me/cupons'
+            );
             setCuponsDisponiveis(Array.isArray(cupons) ? cupons : []);
           } catch {
-            setWalletBalance(0);
             setCuponsDisponiveis([]);
           }
         })();
@@ -93,10 +89,8 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (formaPagamento === 'carteira' && walletBalance < totalComDesconto) {
-      setErro(
-        'Seu saldo de carteira é menor que o total. Use outra forma de pagamento ou combine com carteira.'
-      );
+    if (tipoEntrega === 'delivery' && !clienteEndereco?.trim()) {
+      setErro('Seu endereco nao foi encontrado. Atualize seu cadastro antes de finalizar.');
       return;
     }
 
@@ -138,7 +132,7 @@ export default function CheckoutPage() {
         clienteTelefone,
         clienteEndereco,
         cupomCodigo: cupomAplicadoCodigo || undefined,
-        usarCarteira: formaPagamento !== 'carteira' ? usarCarteira : undefined
+        taxaEntrega: taxaEntregaPreview
       };
 
       const resposta = await api.post<PedidoResponse>('/pedidos', body);
@@ -231,21 +225,11 @@ export default function CheckoutPage() {
 
   const descontoPreview =
     cupomAtivo && cupomAtivo.descontoPercentual
-      ? Number(((total * cupomAtivo.descontoPercentual) / 100).toFixed(2))
+      ? Number((((subtotal + taxaEntregaPreview) * cupomAtivo.descontoPercentual) / 100).toFixed(2))
       : 0;
 
-  const totalComDesconto = Math.max(
-    0,
-    Number((total - descontoPreview).toFixed(2))
-  );
-
-  const carteiraUsadaPreview = usarCarteira
-    ? Math.min(walletBalance, totalComDesconto)
-    : 0;
-
-  const restantePagar = Number(
-    (totalComDesconto - carteiraUsadaPreview).toFixed(2)
-  );
+  const totalComDesconto = Math.max(0, Number((subtotal + taxaEntregaPreview - descontoPreview).toFixed(2)));
+  const restantePagar = totalComDesconto;
 
   return (
     <main className="flex-1 bg-[var(--brand-soft-bg)] dark:bg-zinc-950 pb-16">
@@ -256,7 +240,7 @@ export default function CheckoutPage() {
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-slate-900 dark:text-white">Resumo</span>
             <span className="text-sm text-slate-500 dark:text-zinc-400">
-              {items.length} item(s) • R$ {total.toFixed(2)}
+              {items.length} item(s) • R$ {subtotal.toFixed(2)}
             </span>
           </div>
           <div className="space-y-1 max-h-32 overflow-y-auto text-xs text-slate-500 dark:text-zinc-400">
@@ -338,40 +322,7 @@ export default function CheckoutPage() {
             >
               Dinheiro
             </button>
-            <button
-              type="button"
-              onClick={() => setFormaPagamento('carteira')}
-              className={`h-11 rounded-xl text-sm font-semibold border ${
-                formaPagamento === 'carteira'
-                  ? 'bg-purple-500 text-black border-purple-400'
-                  : 'bg-blue-50 text-slate-700 border-blue-100 dark:bg-zinc-950 dark:text-zinc-300 dark:border-zinc-700'
-              }`}
-            >
-              Carteira digital
-            </button>
           </div>
-
-          {walletBalance > 0 && formaPagamento !== 'carteira' && (
-            <div className="mt-3 flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2 text-slate-700 dark:text-zinc-200">
-                <input
-                  type="checkbox"
-                  checked={usarCarteira}
-                  onChange={e => setUsarCarteira(e.target.checked)}
-                  className="h-4 w-4 rounded border-zinc-600 bg-zinc-900"
-                />
-                <span className="font-semibold">
-                  Usar saldo da carteira (R$ {walletBalance.toFixed(2)})
-                </span>
-              </label>
-              {usarCarteira && carteiraUsadaPreview > 0 && (
-                <span className="text-emerald-400 font-semibold">
-                  Carteira: R$ {carteiraUsadaPreview.toFixed(2)} • Restante: R${' '}
-                  {restantePagar.toFixed(2)}
-                </span>
-              )}
-            </div>
-          )}
 
           {formaPagamento === 'dinheiro' && (
             <div className="mt-3 space-y-1">
@@ -381,7 +332,7 @@ export default function CheckoutPage() {
               <input
                 type="text"
                 inputMode="decimal"
-                placeholder={`Ex: ${(total + 10).toFixed(2)}`}
+                placeholder={`Ex: ${(totalComDesconto + 10).toFixed(2)}`}
                 value={trocoPara}
                 onChange={e => setTrocoPara(e.target.value)}
                 className="w-full h-10 rounded-lg bg-white border border-blue-100 px-3 text-sm text-slate-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
@@ -394,6 +345,18 @@ export default function CheckoutPage() {
         </section>
 
         {erro && <div className="text-xs text-red-400">{erro}</div>}
+
+        <section className="bg-white border border-blue-100 dark:bg-zinc-900 dark:border-zinc-800 rounded-2xl p-4 space-y-2">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Entrega</h2>
+          <div className="text-xs text-slate-600 dark:text-zinc-400 space-y-1">
+            <div>Rua: {parsedAddress.rua || 'Nao informada'}</div>
+            <div>Bairro: {parsedAddress.bairro || 'Nao informado'}</div>
+            <div>Cidade: {parsedAddress.cidade || 'Rio Largo'}</div>
+            <div className="font-semibold text-blue-700 dark:text-blue-400">
+              Taxa de entrega: R$ {taxaEntregaPreview.toFixed(2)}
+            </div>
+          </div>
+        </section>
 
         <section className="bg-white border border-blue-100 dark:bg-zinc-900 dark:border-zinc-800 rounded-2xl p-4 space-y-2">
           <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Cupom de desconto</h2>
@@ -469,6 +432,30 @@ export default function CheckoutPage() {
               )}
             </div>
           )}
+        </section>
+
+        <section className="bg-white border border-blue-100 dark:bg-zinc-900 dark:border-zinc-800 rounded-2xl p-4 space-y-2">
+          <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Total do pedido</h2>
+          <div className="space-y-1 text-sm text-slate-600 dark:text-zinc-400">
+            <div className="flex items-center justify-between">
+              <span>Subtotal</span>
+              <span>R$ {subtotal.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span>Taxa de entrega</span>
+              <span>R$ {taxaEntregaPreview.toFixed(2)}</span>
+            </div>
+            {descontoPreview > 0 && (
+              <div className="flex items-center justify-between text-emerald-500">
+                <span>Desconto</span>
+                <span>- R$ {descontoPreview.toFixed(2)}</span>
+              </div>
+            )}
+            <div className="flex items-center justify-between text-base font-bold text-slate-900 dark:text-white pt-2">
+              <span>Total final</span>
+              <span>R$ {totalComDesconto.toFixed(2)}</span>
+            </div>
+          </div>
         </section>
 
         <button

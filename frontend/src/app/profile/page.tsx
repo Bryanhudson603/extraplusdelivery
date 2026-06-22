@@ -46,11 +46,9 @@ export default function ProfilePage() {
   const [ordersCount, setOrdersCount] = useState(0);
   const [ordersTotal, setOrdersTotal] = useState(0);
   const [favoritesOpen, setFavoritesOpen] = useState(false);
-  const [walletOpen, setWalletOpen] = useState(false);
   const [couponsOpen, setCouponsOpen] = useState(false);
   const [favorites, setFavorites] = useState<any[]>([]);
   const [coupons, setCoupons] = useState<CupomCliente[]>([]);
-  const [walletBalance, setWalletBalance] = useState(0);
   async function carregarCuponsParaSessao(): Promise<void> {
     try {
       const rawSession = localStorage.getItem('extraplus-session');
@@ -93,18 +91,6 @@ export default function ProfilePage() {
             endereco
           });
           carregarCuponsParaSessao();
-          (async () => {
-            try {
-              const cliente = await api.get<{
-                id: string;
-                saldoCarteira: number;
-              }>('/clientes/me');
-              if (cliente && typeof cliente.saldoCarteira === 'number') {
-                setWalletBalance(cliente.saldoCarteira);
-              }
-            } catch {
-            }
-          })();
           try {
             const rawAddresses = localStorage.getItem('extraplus-addresses');
             if (rawAddresses) {
@@ -153,8 +139,6 @@ export default function ProfilePage() {
     carregarPedidos();
   }, []);
 
-  const cashbackTotal = Number((ordersTotal * 0.01).toFixed(2));
-
   return (
     <main className="flex-1 bg-gray-50 dark:bg-zinc-950 pb-16">
       <div className="max-w-md mx-auto px-4 py-6">
@@ -175,12 +159,12 @@ export default function ProfilePage() {
             <p className="text-gray-600 dark:text-zinc-500 text-xs mt-1">Pedidos</p>
           </div>
           <div className="bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-xl p-4 text-center">
-            <p className="text-3xl font-bold text-green-400">R$ {cashbackTotal.toFixed(2)}</p>
-            <p className="text-gray-600 dark:text-zinc-500 text-xs mt-1">Cashback</p>
+            <p className="text-3xl font-bold text-emerald-500">R$ {ordersTotal.toFixed(2)}</p>
+            <p className="text-gray-600 dark:text-zinc-500 text-xs mt-1">Total em compras</p>
           </div>
           <div className="bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-xl p-4 text-center">
-            <p className="text-3xl font-bold text-purple-400">0</p>
-            <p className="text-gray-600 dark:text-zinc-500 text-xs mt-1">Pontos</p>
+            <p className="text-3xl font-bold text-violet-500">{coupons.length}</p>
+            <p className="text-gray-600 dark:text-zinc-500 text-xs mt-1">Cupons</p>
           </div>
         </div>
 
@@ -250,27 +234,6 @@ export default function ProfilePage() {
               type="button"
               className="text-xs font-semibold text-blue-600"
               onClick={() => setFavoritesOpen(true)}
-            >
-              Ver
-            </button>
-          </div>
-
-          <div className="bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-xl px-4 py-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-400 text-lg">
-                💳
-              </span>
-              <div>
-                <div className="font-semibold text-gray-900 dark:text-white">Carteira</div>
-                <div className="text-sm font-semibold text-green-400">
-                  R$ {walletBalance.toFixed(2)}
-                </div>
-              </div>
-            </div>
-            <button
-              type="button"
-              className="text-xs font-semibold text-blue-600"
-              onClick={() => setWalletOpen(true)}
             >
               Ver
             </button>
@@ -356,38 +319,6 @@ export default function ProfilePage() {
                   </div>
                 ))
               )}
-            </div>
-          </div>
-        </>
-      )}
-
-      {walletOpen && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/60 z-40"
-            onClick={() => setWalletOpen(false)}
-          />
-          <div className="fixed inset-x-0 bottom-0 max-w-md mx-auto bg-white border-t border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-t-2xl z-50">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-zinc-800">
-              <span className="text-sm font-semibold text-gray-900 dark:text-white">Carteira</span>
-              <button
-                type="button"
-                className="text-xs text-gray-600 dark:text-zinc-400"
-                onClick={() => setWalletOpen(false)}
-              >
-                Fechar
-              </button>
-            </div>
-            <div className="px-4 py-4 space-y-3">
-              <div>
-                <div className="text-xs text-gray-600 dark:text-zinc-500">Saldo disponível</div>
-                <div className="text-2xl font-bold text-green-400">
-                  R$ {walletBalance.toFixed(2)}
-                </div>
-              </div>
-              <p className="text-xs text-gray-600 dark:text-zinc-400">
-                Para adicionar seu saldo dirija-se até a loja e adicione seu saldo em dinheiro em espécie.
-              </p>
             </div>
           </div>
         </>

@@ -1,11 +1,10 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
+import { getNeighborhoodDeliveryFee } from '../../common/delivery';
 import { resolveLojaId } from '../../common/resolve-loja-id';
-import { ClienteCarteiraEntity } from '../../entities/clienteCarteira.entity';
 import { CupomClienteEntity } from '../../entities/cupomCliente.entity';
 import { PedidoEntity } from '../../entities/pedido.entity';
 import { PedidoItemEntity } from '../../entities/pedidoItem.entity';
-import { ClienteCarteiraRepository } from '../../repositories/cliente-carteira.repository';
 import { CupomClienteRepository } from '../../repositories/cupom-cliente.repository';
 import { CupomRepository } from '../../repositories/cupom.repository';
 import { EntregadorRepository } from '../../repositories/entregador.repository';
@@ -24,8 +23,7 @@ export class PedidosService {
     private readonly produtoRepo: ProdutoRepository,
     private readonly entregadorRepo: EntregadorRepository,
     private readonly cupomRepo: CupomRepository,
-    private readonly cupomClienteRepo: CupomClienteRepository,
-    private readonly carteiraRepo: ClienteCarteiraRepository
+    private readonly cupomClienteRepo: CupomClienteRepository
   ) {}
 
   private toResponse(p: PedidoEntity): PedidoResponse {
@@ -143,7 +141,11 @@ export class PedidosService {
       throw new BadRequestException('Nenhuma loja ativa disponível.');
     }
 
-    const totalBruto = (body.itens || []).reduce((sum, it) => sum + it.unitPrice * it.quantity, 0);
+    const subtotal = (body.itens || []).reduce((sum, it) => sum + it.unitPrice * it.quantity, 0);
+    const taxaEntregaCalculada = getNeighborhoodDeliveryFee(body.clienteEndereco, body.tipoEntrega);
+    const taxaEntregaInformada = typeof body.taxaEntrega === 'number' ? Number(body.taxaEntrega) : taxaEntregaCalculada;
+    const taxaEntrega = Math.max(taxaEntregaCalculada, taxaEntregaInformada);
+    const totalBruto = Number((subtotal + taxaEntrega).toFixed(2));
     let desconto = 0;
 
     if (body.cupomCodigo) {
@@ -169,31 +171,7 @@ export class PedidosService {
     }
 
     const total = Math.max(0, Number((totalBruto - desconto).toFixed(2)));
-    const chaveCarteira = body.clienteId || body.clienteTelefone;
-    let usadoCarteira = 0;
-
-    if (body.formaPagamento === 'carteira') {
-      if (!chaveCarteira) {
-        throw new BadRequestException('Cliente não identificado para pagamento com carteira.');
-      }
-      const carteira = await this.carteiraRepo.findByKey(lojaId, chaveCarteira);
-      if (!carteira || Number(carteira.saldo) < total) {
-        throw new BadRequestException('Saldo insuficiente na carteira.');
-      }
-      carteira.saldo = Number((Number(carteira.saldo) - total).toFixed(2)).toFixed(2);
-      await this.carteiraRepo.save(carteira);
-      usadoCarteira = total;
-    } else if (body.usarCarteira && chaveCarteira) {
-      const carteira = await this.carteiraRepo.findByKey(lojaId, chaveCarteira);
-      if (carteira && Number(carteira.saldo) > 0) {
-        const aplicavel = Math.min(Number(carteira.saldo), total);
-        carteira.saldo = Number((Number(carteira.saldo) - aplicavel).toFixed(2)).toFixed(2);
-        await this.carteiraRepo.save(carteira);
-        usadoCarteira = aplicavel;
-      }
-    }
-
-    const totalRestante = Math.max(0, Number((total - usadoCarteira).toFixed(2)));
+    const totalRestante = total;
     const trocoPara = typeof body.trocoPara === 'number' ? body.trocoPara : undefined;
     const troco =
       body.formaPagamento === 'dinheiro' && trocoPara && trocoPara > totalRestante
@@ -248,21 +226,6 @@ export class PedidosService {
       const novoEstoque = produto.estoqueAtual - item.quantity;
       produto.estoqueAtual = novoEstoque > 0 ? novoEstoque : 0;
       await this.produtoRepo.save(produto);
-    }
-
-    if (chaveCarteira) {
-      const cashbackValor = Number((total * 0.01).toFixed(2));
-      if (cashbackValor > 0) {
-        let carteira = await this.carteiraRepo.findByKey(lojaId, chaveCarteira);
-        if (!carteira) {
-          carteira = new ClienteCarteiraEntity();
-          carteira.lojaId = lojaId;
-          carteira.clienteKey = chaveCarteira;
-          carteira.saldo = '0.00';
-        }
-        carteira.saldo = Number((Number(carteira.saldo) + cashbackValor).toFixed(2)).toFixed(2);
-        await this.carteiraRepo.save(carteira);
-      }
     }
 
     const completo = await this.pedidoRepo.findById(salvo.id);

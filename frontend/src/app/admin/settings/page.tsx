@@ -21,7 +21,6 @@ export default function AdminSettingsPage() {
   const router = useRouter();
   const [lojaAberta, setLojaAberta] = useState(false);
   const [horariosAbertos, setHorariosAbertos] = useState(false);
-  const [fidelidadeAberta, setFidelidadeAberta] = useState(false);
   const [cuponsAbertos, setCuponsAbertos] = useState(false);
   const [nomeLoja, setNomeLoja] = useState('');
   const [telefoneLoja, setTelefoneLoja] = useState('');
@@ -43,11 +42,6 @@ export default function AdminSettingsPage() {
   ]);
   const [salvandoHorarios, setSalvandoHorarios] = useState(false);
   const [feedbackHorarios, setFeedbackHorarios] = useState<string | null>(null);
-  const [pontosPorReal, setPontosPorReal] = useState('1');
-  const [cashbackPercentual, setCashbackPercentual] = useState('0');
-  const [minimoCashback, setMinimoCashback] = useState('0');
-  const [salvandoFidelidade, setSalvandoFidelidade] = useState(false);
-  const [feedbackFidelidade, setFeedbackFidelidade] = useState<string | null>(null);
   const [nome, setNome] = useState('');
   const [codigo, setCodigo] = useState('');
   const [inicio, setInicio] = useState('');
@@ -84,23 +78,6 @@ export default function AdminSettingsPage() {
       }
     } catch {
       setNomeLoja('Dil Bebidas');
-    }
-
-    try {
-      const rawLoyalty = window.localStorage.getItem('extraplus-loyalty');
-      if (rawLoyalty) {
-        const loyalty = JSON.parse(rawLoyalty);
-        if (loyalty.pontosPorReal != null) {
-          setPontosPorReal(String(loyalty.pontosPorReal));
-        }
-        if (loyalty.cashbackPercentual != null) {
-          setCashbackPercentual(String(loyalty.cashbackPercentual));
-        }
-        if (loyalty.minimoCashback != null) {
-          setMinimoCashback(String(loyalty.minimoCashback));
-        }
-      }
-    } catch {
     }
 
     try {
@@ -208,28 +185,6 @@ export default function AdminSettingsPage() {
       console.error(e);
     } finally {
       setSalvandoHorarios(false);
-    }
-  }
-
-  async function salvarFidelidade() {
-    if (salvandoFidelidade) return;
-    setSalvandoFidelidade(true);
-    setFeedbackFidelidade(null);
-    try {
-      const payload = {
-        pontosPorReal: Number(pontosPorReal || '0'),
-        cashbackPercentual: Number(cashbackPercentual || '0'),
-        minimoCashback: Number(minimoCashback || '0')
-      };
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem('extraplus-loyalty', JSON.stringify(payload));
-      }
-      setFeedbackFidelidade('Configurações de fidelidade salvas.');
-    } catch (e) {
-      setFeedbackFidelidade('Falha ao salvar fidelidade.');
-      console.error(e);
-    } finally {
-      setSalvandoFidelidade(false);
     }
   }
 
@@ -369,16 +324,12 @@ export default function AdminSettingsPage() {
             </p>
           </button>
 
-          <button
-            type="button"
-            onClick={() => setFidelidadeAberta(true)}
-            className="w-full rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 p-4 text-left"
-          >
-            <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Fidelidade</h2>
+          <div className="w-full rounded-xl border border-gray-200 bg-white dark:border-zinc-800 dark:bg-zinc-900 p-4 text-left">
+            <h2 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Saldo digital e cashback</h2>
             <p className="text-xs text-gray-600 dark:text-zinc-500">
-              Definir pontos, cashback e valor mínimo para premiações.
+              Esses recursos estao desativados no app e nao aparecem mais para clientes e administradores.
             </p>
-          </button>
+          </div>
 
           <button
             type="button"
@@ -562,95 +513,6 @@ export default function AdminSettingsPage() {
                 </button>
                 {feedbackHorarios && (
                   <span className="text-xs text-gray-600 dark:text-zinc-400">{feedbackHorarios}</span>
-                )}
-              </div>
-            </div>
-          </div>
-        </>
-      )}
-
-      {fidelidadeAberta && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/60 z-40"
-            onClick={() => setFidelidadeAberta(false)}
-          />
-          <div className="fixed inset-x-0 bottom-0 max-w-5xl mx-auto bg-white border-t border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-t-2xl z-50">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-zinc-800">
-              <div>
-                <div className="text-sm font-semibold text-gray-900 dark:text-white">Programa de fidelidade</div>
-                <p className="text-[11px] text-gray-600 dark:text-zinc-500">
-                  Configure pontos por real gasto e cashback.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="text-xs text-gray-600 dark:text-zinc-400"
-                onClick={() => setFidelidadeAberta(false)}
-              >
-                Fechar
-              </button>
-            </div>
-            <div className="px-4 py-3 space-y-3 max-h-96 overflow-y-auto">
-              <div className="grid sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-gray-600 dark:text-zinc-400 mb-1">
-                    Pontos por R$ gasto
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.1"
-                    value={pontosPorReal}
-                    onChange={e => setPontosPorReal(e.target.value)}
-                    className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
-                    placeholder="1"
-                  />
-                  <p className="text-[11px] text-zinc-500 mt-1">
-                    Ex: 1 ponto a cada R$ 1 gasto.
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-600 dark:text-zinc-400 mb-1">% de cashback</label>
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.1"
-                    value={cashbackPercentual}
-                    onChange={e => setCashbackPercentual(e.target.value)}
-                    className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
-                    placeholder="3"
-                  />
-                  <p className="text-[11px] text-zinc-500 mt-1">
-                    Ex: 3% de cashback sobre o valor da compra.
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-600 dark:text-zinc-400 mb-1">
-                    Compra mínima para cashback (R$)
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={minimoCashback}
-                    onChange={e => setMinimoCashback(e.target.value)}
-                    className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
-                    placeholder="50"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-3 pt-1 pb-2">
-                <button
-                  type="button"
-                  onClick={salvarFidelidade}
-                  disabled={salvandoFidelidade}
-                  className="h-10 px-4 rounded-lg bg-amber-500 hover:bg-amber-600 text-black text-sm font-semibold disabled:opacity-60"
-                >
-                  {salvandoFidelidade ? 'Salvando...' : 'Salvar programa'}
-                </button>
-                {feedbackFidelidade && (
-                  <span className="text-xs text-zinc-400">{feedbackFidelidade}</span>
                 )}
               </div>
             </div>

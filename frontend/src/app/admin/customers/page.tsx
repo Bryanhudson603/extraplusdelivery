@@ -12,7 +12,6 @@ type Cliente = {
   ultimoPedidoEm: string;
   totalPedidos: number;
   valorTotal: number;
-  saldoCarteira: number;
 };
 
 type ClientePedido = {
@@ -56,11 +55,6 @@ export default function AdminCustomersPage() {
   const [enderecoEdicao, setEnderecoEdicao] = useState('');
   const [salvandoCliente, setSalvandoCliente] = useState(false);
   const [feedbackEdicao, setFeedbackEdicao] = useState<string | null>(null);
-  const [carteiraAberta, setCarteiraAberta] = useState(false);
-  const [clienteCarteira, setClienteCarteira] = useState<Cliente | null>(null);
-  const [valorCarteira, setValorCarteira] = useState('');
-  const [processandoCarteira, setProcessandoCarteira] = useState(false);
-  const [feedbackCarteira, setFeedbackCarteira] = useState<string | null>(null);
 
   useEffect(() => {
     async function carregar() {
@@ -145,45 +139,6 @@ export default function AdminCustomersPage() {
       setFeedbackEdicao('Falha ao salvar alterações. Tente novamente.');
     } finally {
       setSalvandoCliente(false);
-    }
-  }
-
-  function abrirCarteira(cliente: Cliente) {
-    setClienteCarteira(cliente);
-    setValorCarteira('');
-    setFeedbackCarteira(null);
-    setCarteiraAberta(true);
-  }
-
-  async function adicionarSaldoCarteira() {
-    if (!clienteCarteira || processandoCarteira) return;
-    const valor = Number(valorCarteira.replace(',', '.'));
-    if (!valorCarteira || Number.isNaN(valor) || valor <= 0) {
-      setFeedbackCarteira('Informe um valor válido para adicionar.');
-      return;
-    }
-    setProcessandoCarteira(true);
-    setFeedbackCarteira(null);
-    try {
-      const resposta = await api.post<{ id: string; saldoCarteira: number }>(
-        `/admin/clientes/${clienteCarteira.id}/carteira`,
-        { valor }
-      );
-      setClientes(prev =>
-        prev.map(c =>
-          c.id === resposta.id ? { ...c, saldoCarteira: resposta.saldoCarteira } : c
-        )
-      );
-      setClienteCarteira(prev =>
-        prev ? { ...prev, saldoCarteira: resposta.saldoCarteira } : prev
-      );
-      setFeedbackCarteira('Saldo adicionado com sucesso.');
-      setCarteiraAberta(false);
-    } catch (e) {
-      console.error(e);
-      setFeedbackCarteira('Falha ao adicionar saldo. Tente novamente.');
-    } finally {
-      setProcessandoCarteira(false);
     }
   }
 
@@ -368,9 +323,6 @@ export default function AdminCustomersPage() {
                           <span>
                             R$ {cliente.valorTotal.toFixed(2)} <span className="text-gray-600 dark:text-zinc-600">total</span>
                           </span>
-                          <span className="text-emerald-400">
-                            Carteira: R$ {(cliente.saldoCarteira ?? 0).toFixed(2)}
-                          </span>
                         </div>
                       </div>
                     </div>
@@ -408,13 +360,6 @@ export default function AdminCustomersPage() {
                         className="mt-1 px-2 h-6 rounded-full border border-gray-300 text-gray-700 dark:border-zinc-700 dark:text-zinc-300 text-[10px] font-semibold"
                       >
                         Editar
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => abrirCarteira(cliente)}
-                        className="mt-1 px-2 h-6 rounded-full border border-emerald-500/60 text-emerald-400 text-[10px] font-semibold"
-                      >
-                        Adicionar saldo
                       </button>
                     </div>
                   </div>
@@ -569,63 +514,6 @@ export default function AdminCustomersPage() {
         </>
       )}
 
-      {carteiraAberta && clienteCarteira && (
-        <>
-          <div
-            className="fixed inset-0 bg-black/60 z-40"
-            onClick={() => setCarteiraAberta(false)}
-          />
-          <div className="fixed inset-x-0 bottom-0 max-w-5xl mx-auto bg-white border-t border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-t-2xl z-50">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-zinc-800">
-              <div>
-                <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                  Adicionar saldo na carteira
-                </div>
-                <div className="text-[11px] text-gray-600 dark:text-zinc-500">
-                  {clienteCarteira.nome} • Saldo atual: R${' '}
-                  {(clienteCarteira.saldoCarteira ?? 0).toFixed(2)}
-                </div>
-              </div>
-              <button
-                type="button"
-                className="text-xs text-gray-600 dark:text-zinc-400"
-                onClick={() => setCarteiraAberta(false)}
-              >
-                Fechar
-              </button>
-            </div>
-            <div className="px-4 py-3 space-y-3 max-h-96 overflow-y-auto">
-              <div className="space-y-1">
-                <label className="text-[11px] text-gray-600 dark:text-zinc-400">
-                  Valor para adicionar (R$)
-                </label>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  pattern="[0-9]*[.,]?[0-9]*"
-                  value={valorCarteira}
-                  onChange={e => setValorCarteira(e.target.value)}
-                  placeholder="Ex: 20,00"
-                  className="w-full h-9 rounded-lg bg-white border border-gray-300 px-3 text-xs text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
-                />
-              </div>
-              {feedbackCarteira && (
-                <div className="text-[11px] text-gray-600 dark:text-zinc-400">{feedbackCarteira}</div>
-              )}
-            </div>
-            <div className="px-4 py-3 border-t border-gray-200 dark:border-zinc-800 flex justify-end">
-              <button
-                type="button"
-                disabled={processandoCarteira}
-                onClick={adicionarSaldoCarteira}
-                className="h-9 px-4 rounded-full bg-emerald-500 text-black text-xs font-semibold disabled:opacity-60"
-              >
-                {processandoCarteira ? 'Adicionando...' : 'Adicionar saldo'}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
     </main>
   );
 }

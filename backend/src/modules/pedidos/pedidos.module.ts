@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CategoriaEntity } from '../../entities/categoria.entity';
-import { ClienteCarteiraEntity } from '../../entities/clienteCarteira.entity';
 import { CupomClienteEntity } from '../../entities/cupomCliente.entity';
 import { CupomEntity } from '../../entities/cupom.entity';
 import { EntregadorEntity } from '../../entities/entregador.entity';
@@ -9,7 +8,6 @@ import { LojaEntity } from '../../entities/loja.entity';
 import { PedidoItemEntity } from '../../entities/pedidoItem.entity';
 import { PedidoEntity } from '../../entities/pedido.entity';
 import { ProdutoEntity } from '../../entities/produto.entity';
-import { ClienteCarteiraRepository } from '../../repositories/cliente-carteira.repository';
 import { CupomClienteRepository } from '../../repositories/cupom-cliente.repository';
 import { CupomRepository } from '../../repositories/cupom.repository';
 import { EntregadorRepository } from '../../repositories/entregador.repository';
@@ -30,8 +28,7 @@ import { PedidosService } from './pedidos.service';
       ProdutoEntity,
       EntregadorEntity,
       CupomEntity,
-      CupomClienteEntity,
-      ClienteCarteiraEntity
+      CupomClienteEntity
     ])
   ],
   controllers: [PedidosController],
@@ -43,8 +40,7 @@ import { PedidosService } from './pedidos.service';
     ProdutoRepository,
     EntregadorRepository,
     CupomRepository,
-    CupomClienteRepository,
-    ClienteCarteiraRepository
+    CupomClienteRepository
   ]
 })
 export class PedidosModule {}

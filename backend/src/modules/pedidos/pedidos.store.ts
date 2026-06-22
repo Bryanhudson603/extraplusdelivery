@@ -1,4 +1,4 @@
-export type FormaPagamento = 'pix' | 'cartao_entrega' | 'dinheiro' | 'carteira';
+export type FormaPagamento = 'pix' | 'cartao_entrega' | 'dinheiro';
 export type TipoEntrega = 'delivery' | 'retirada';
 export type PedidoStatus =
   | 'aguardando_pagamento'

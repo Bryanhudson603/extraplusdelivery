@@ -18,6 +18,7 @@ import {
   type LojaDto,
   type PlatformLoginResponse
 } from './auth.dto';
+import { FIXED_CITY_NAME, formatClientAddress } from '../../common/delivery';
 
 function toLojaDto(loja: LojaEntity): LojaDto {
   return {
@@ -128,10 +129,17 @@ export class AuthService {
     const nome = String(body?.nome || '').trim();
     const telefone = String(body?.telefone || '').trim();
     const senha = String(body?.senha || '').trim();
-    const endereco = String(body?.endereco || '').trim();
+    const rua = String(body?.rua || '').trim();
+    const bairro = String(body?.bairro || '').trim();
+    const cidade = String(body?.cidade || '').trim() || FIXED_CITY_NAME;
+    const endereco = formatClientAddress(rua, bairro);
 
-    if (!nome || !telefone || !senha || !endereco) {
+    if (!nome || !telefone || !senha || !rua || !bairro || !cidade) {
       throw new BadRequestException('Dados inválidos');
+    }
+
+    if (cidade !== FIXED_CITY_NAME) {
+      throw new BadRequestException(`Cidade invalida. Use ${FIXED_CITY_NAME}.`);
     }
 
     const lojaPadrao = await this.lojaRepo.obterPrimeiraAtiva();

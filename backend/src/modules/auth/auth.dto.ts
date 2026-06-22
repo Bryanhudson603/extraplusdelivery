@@ -35,7 +35,15 @@ export class RegistrarClienteDto {
 
   @IsString()
   @Length(1, 255)
-  endereco!: string;
+  rua!: string;
+
+  @IsString()
+  @Length(1, 120)
+  bairro!: string;
+
+  @IsString()
+  @Length(1, 120)
+  cidade!: string;
 }
 
 export class PlatformLoginDto {

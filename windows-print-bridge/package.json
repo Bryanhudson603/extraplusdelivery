@@ -1,0 +1,10 @@
+{
+  "name": "dil-bebidas-windows-print-bridge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bridge local do Windows para impressao automatica da Dil Bebidas",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

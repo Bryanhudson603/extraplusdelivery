@@ -1,7 +1,6 @@
 import { Type } from 'class-transformer';
 import {
   IsArray,
-  IsBoolean,
   IsIn,
   IsNumber,
   IsOptional,
@@ -11,7 +10,7 @@ import {
   ValidateNested
 } from 'class-validator';
 
-export type FormaPagamento = 'pix' | 'cartao_entrega' | 'dinheiro' | 'carteira';
+export type FormaPagamento = 'pix' | 'cartao_entrega' | 'dinheiro';
 export type TipoEntrega = 'delivery' | 'retirada';
 
 export class PedidoItemDto {
@@ -40,7 +39,7 @@ export class CriarPedidoDto {
   tipoEntrega!: TipoEntrega;
 
   @IsString()
-  @IsIn(['pix', 'cartao_entrega', 'dinheiro', 'carteira'])
+  @IsIn(['pix', 'cartao_entrega', 'dinheiro'])
   formaPagamento!: FormaPagamento;
 
   @IsArray()
@@ -80,13 +79,15 @@ export class CriarPedidoDto {
   clienteEndereco?: string;
 
   @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  taxaEntrega?: number;
+
+  @IsOptional()
   @IsString()
   @Length(1, 50)
   cupomCodigo?: string;
-
-  @IsOptional()
-  @IsBoolean()
-  usarCarteira?: boolean;
 
   @IsOptional()
   @IsString()

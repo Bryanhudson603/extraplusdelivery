@@ -9,6 +9,14 @@ import {
   isFinishedOrderStatus,
   isIncomingOrderStatus
 } from '@/lib/orders';
+import {
+  type BridgePrinter,
+  getBridgeHealth,
+  getBridgeSettings,
+  listBridgePrinters,
+  printViaBridge,
+  updateBridgeSettings
+} from '@/lib/print-bridge';
 
 type BackendOrderItem = { name: string; quantity: number };
 
@@ -164,6 +172,34 @@ function buildPrintMarkup(order: Order): string {
   `;
 }
 
+function buildBridgeReceiptText(order: Order): string {
+  const lines = [
+    'DIL BEBIDAS',
+    `Pedido ${formatOrderShortId(order.id)}`,
+    order.createdAtLabel,
+    '',
+    `Cliente: ${order.clienteNome || 'Cliente'}`,
+    `Telefone: ${order.clienteTelefone || 'Nao informado'}`,
+    `Endereco: ${order.clienteEndereco || 'Nao informado'}`,
+    `Pagamento: ${order.formaPagamento || 'Nao informado'}`,
+    `Entrega: ${order.tipoEntrega || 'Nao informado'}`,
+    order.entregadorNome ? `Entregador: ${order.entregadorNome}` : '',
+    '',
+    'ITENS'
+  ].filter(Boolean);
+
+  for (const item of order.items) {
+    lines.push(`- ${item.quantity}x ${item.name}`);
+  }
+
+  if (order.motivoRecusa) {
+    lines.push('', `Motivo da recusa: ${order.motivoRecusa}`);
+  }
+
+  lines.push('', `TOTAL: R$ ${order.total.toFixed(2)}`, '', '------------------------------', '');
+  return lines.join('\r\n');
+}
+
 export default function AdminOrdersPage() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const knownOrderIdsRef = useRef<Set<string>>(new Set());
@@ -178,6 +214,11 @@ export default function AdminOrdersPage() {
   const [entregadores, setEntregadores] = useState<
     Array<{ id: string; nome: string; telefone?: string; ativo: boolean }>
   >([]);
+  const [bridgeOnline, setBridgeOnline] = useState(false);
+  const [bridgePrinters, setBridgePrinters] = useState<BridgePrinter[]>([]);
+  const [selectedPrinterName, setSelectedPrinterName] = useState('');
+  const [bridgeStatusMessage, setBridgeStatusMessage] = useState('Bridge local nao conectado.');
+  const [syncingBridge, setSyncingBridge] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -228,7 +269,49 @@ export default function AdminOrdersPage() {
     };
   }, []);
 
-  const printOrder = useCallback((order: Order) => {
+  const syncBridge = useCallback(async () => {
+    setSyncingBridge(true);
+    try {
+      const [health, printers, settings] = await Promise.all([
+        getBridgeHealth(),
+        listBridgePrinters(),
+        getBridgeSettings()
+      ]);
+
+      setBridgeOnline(Boolean(health.ok));
+      setBridgePrinters(printers);
+      setSelectedPrinterName(settings.selectedPrinterName || printers.find(item => item.isDefault)?.name || '');
+      setBridgeStatusMessage(
+        health.ok
+          ? printers.length > 0
+            ? `Bridge conectado com ${printers.length} impressora(s) encontrada(s).`
+            : 'Bridge conectado, mas nenhuma impressora foi encontrada no Windows.'
+          : 'Bridge local nao conectado.'
+      );
+    } catch (error) {
+      setBridgeOnline(false);
+      setBridgePrinters([]);
+      setBridgeStatusMessage('Bridge local offline. O painel vai usar o navegador como fallback.');
+      console.error('Erro ao sincronizar bridge de impressao', error);
+    } finally {
+      setSyncingBridge(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void syncBridge();
+  }, [syncBridge]);
+
+  const printOrder = useCallback(async (order: Order) => {
+    if (bridgeOnline && selectedPrinterName) {
+      try {
+        await printViaBridge(buildBridgeReceiptText(order), selectedPrinterName);
+        return;
+      } catch (error) {
+        console.error('Erro ao imprimir via bridge local', error);
+      }
+    }
+
     if (typeof window === 'undefined') return;
 
     const iframe = document.createElement('iframe');
@@ -268,13 +351,13 @@ export default function AdminOrdersPage() {
         cleanup();
       }
     };
-  }, []);
+  }, [bridgeOnline, selectedPrinterName]);
 
   const queuePrintOrders = useCallback(
     (incomingOrders: Order[]) => {
       incomingOrders.forEach((order, index) => {
         const timeoutId = window.setTimeout(() => {
-          printOrder(order);
+          void printOrder(order);
         }, index * 1200);
         printTimeoutsRef.current.push(timeoutId);
       });
@@ -427,6 +510,23 @@ export default function AdminOrdersPage() {
     }
   }
 
+  async function handlePrinterSelection(nextPrinterName: string) {
+    setSelectedPrinterName(nextPrinterName);
+    try {
+      await updateBridgeSettings({
+        selectedPrinterName: nextPrinterName
+      });
+      setBridgeStatusMessage(
+        nextPrinterName
+          ? `Impressora selecionada: ${nextPrinterName}.`
+          : 'Nenhuma impressora selecionada no bridge.'
+      );
+    } catch (error) {
+      console.error('Erro ao salvar impressora no bridge', error);
+      setBridgeStatusMessage('Nao foi possivel salvar a impressora no bridge local.');
+    }
+  }
+
   const pendingOrders = useMemo(
     () => orders.filter(order => !isFinishedOrderStatus(order.status)),
     [orders]
@@ -489,6 +589,13 @@ export default function AdminOrdersPage() {
               </button>
               <button
                 type="button"
+                onClick={() => void syncBridge()}
+                className="h-10 rounded-full border border-blue-200 px-4 text-sm font-semibold text-blue-700 hover:bg-blue-50"
+              >
+                {syncingBridge ? 'Sincronizando bridge...' : 'Sincronizar bridge'}
+              </button>
+              <button
+                type="button"
                 onClick={carregarPedidos}
                 className="h-10 rounded-full border border-blue-200 px-4 text-sm font-semibold text-blue-700 hover:bg-blue-50"
               >
@@ -508,8 +615,40 @@ export default function AdminOrdersPage() {
             {isPaused
               ? 'Chegada de pedidos pausada. Novos pedidos continuam sendo listados, mas nao disparam impressao automatica.'
               : autoPrintEnabled
-                ? 'Novos pedidos recebidos abrem a impressao usando o fluxo do navegador para a impressora padrao configurada no Windows.'
+                ? 'Novos pedidos recebidos disparam a impressao automaticamente na impressora padrao do Windows. Para imprimir sem dialogo, abra o navegador em modo kiosk-printing.'
                 : 'Novos pedidos continuam aparecendo na tela, mas a impressao automatica esta desligada.'}
+          </div>
+          <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_280px]">
+            <div className="rounded-2xl border border-blue-100 bg-white px-4 py-3 text-sm text-slate-700 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300">
+              <div className="font-semibold text-slate-900 dark:text-white">
+                {bridgeOnline ? 'Bridge local conectado' : 'Bridge local offline'}
+              </div>
+              <div className="mt-1 text-xs text-slate-500 dark:text-zinc-400">{bridgeStatusMessage}</div>
+              <div className="mt-2 text-xs text-slate-500 dark:text-zinc-400">
+                Quando o bridge estiver ativo, o sistema envia o cupom em texto direto para a impressora escolhida.
+              </div>
+            </div>
+            <div className="rounded-2xl border border-blue-100 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">
+              <label className="block text-xs font-semibold text-slate-600 dark:text-zinc-400">
+                Impressora do bridge
+              </label>
+              <select
+                value={selectedPrinterName}
+                disabled={!bridgeOnline || bridgePrinters.length === 0}
+                onChange={event => {
+                  void handlePrinterSelection(event.target.value);
+                }}
+                className="mt-2 h-10 w-full rounded-xl border border-blue-200 bg-white px-3 text-sm text-slate-900 outline-none disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+              >
+                <option value="">Selecione a impressora</option>
+                {bridgePrinters.map(printer => (
+                  <option key={printer.name} value={printer.name}>
+                    {printer.name}
+                    {printer.isDefault ? ' (padrao)' : ''}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </section>
 
@@ -604,7 +743,7 @@ export default function AdminOrdersPage() {
                               </p>
                             </div>
 
-                            {order.status === 'confirmado' && (
+                            {(order.status === 'confirmado' || order.status === 'em_separacao') && (
                               <div className="mt-3">
                                 {entregadores.length === 0 ? (
                                   <p className="text-[11px] text-slate-500 dark:text-zinc-500">
@@ -634,7 +773,7 @@ export default function AdminOrdersPage() {
                             <div className="mt-3 flex flex-wrap gap-2">
                               <button
                                 type="button"
-                                onClick={() => printOrder(order)}
+                                onClick={() => void printOrder(order)}
                                 className="h-10 rounded-full border border-blue-200 px-4 text-sm font-semibold text-blue-700 hover:bg-blue-50"
                               >
                                 Imprimir pedido
@@ -644,7 +783,7 @@ export default function AdminOrdersPage() {
                                 <>
                                   <button
                                     type="button"
-                                    onClick={() => atualizarStatus(order.id, 'em_separacao')}
+                                    onClick={() => atualizarStatus(order.id, 'confirmado')}
                                     className="h-10 rounded-full bg-emerald-500 px-4 text-sm font-semibold text-white hover:bg-emerald-600"
                                   >
                                     Aceitar
@@ -659,17 +798,7 @@ export default function AdminOrdersPage() {
                                 </>
                               )}
 
-                              {order.status === 'em_separacao' && (
-                                <button
-                                  type="button"
-                                  onClick={() => atualizarStatus(order.id, 'confirmado')}
-                                  className="h-10 rounded-full bg-blue-600 px-4 text-sm font-semibold text-white hover:bg-blue-700"
-                                >
-                                  Confirmar separacao
-                                </button>
-                              )}
-
-                              {order.status === 'confirmado' && (
+                              {(order.status === 'confirmado' || order.status === 'em_separacao') && (
                                 <button
                                   type="button"
                                   onClick={() => atualizarStatus(order.id, 'saiu_para_entrega')}
@@ -739,7 +868,7 @@ export default function AdminOrdersPage() {
                           </p>
                           <button
                             type="button"
-                            onClick={() => printOrder(order)}
+                            onClick={() => void printOrder(order)}
                             className="mt-2 h-9 rounded-full border border-blue-200 px-4 text-sm font-semibold text-blue-700 hover:bg-blue-50"
                           >
                             Imprimir

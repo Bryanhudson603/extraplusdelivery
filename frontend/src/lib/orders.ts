@@ -8,9 +8,9 @@ const INCOMING_ORDER_STATUSES = new Set(['recebido', 'aguardando_pagamento']);
 
 const ORDER_STATUS_LABELS: Record<string, string> = {
   aguardando_pagamento: 'Aguardando pagamento',
-  recebido: 'Recebido',
-  em_separacao: 'Em separacao',
-  confirmado: 'Pronto para entrega',
+  recebido: 'Novo pedido',
+  em_separacao: 'Aceito',
+  confirmado: 'Aceito',
   saiu_para_entrega: 'Saiu para entrega',
   finalizado: 'Finalizado',
   cancelado: 'Cancelado'
