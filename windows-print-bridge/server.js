@@ -9,6 +9,13 @@ const PORT = 39876;
 const APP_DIR = path.join(os.homedir(), 'AppData', 'Local', 'DilBebidasPrintBridge');
 const SETTINGS_FILE = path.join(APP_DIR, 'settings.json');
 const JOBS_DIR = path.join(APP_DIR, 'jobs');
+const ALLOWED_ORIGINS = new Set([
+  'https://www.dilbebidas.com.br',
+  'https://dilbebidas.com.br',
+  'https://extraplusdelivery.vercel.app',
+  'http://localhost:3000',
+  'http://127.0.0.1:3000'
+]);
 
 function ensureFolders() {
   fs.mkdirSync(APP_DIR, { recursive: true });
@@ -39,12 +46,29 @@ function readJsonBody(req) {
   });
 }
 
-function sendJson(res, statusCode, payload) {
-  res.writeHead(statusCode, {
+function resolveAllowedOrigin(req) {
+  const origin = String(req.headers.origin || '').trim();
+  if (!origin) return '*';
+  if (ALLOWED_ORIGINS.has(origin)) return origin;
+  return 'null';
+}
+
+function buildCorsHeaders(req) {
+  return {
     'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': 'Content-Type',
-    'Access-Control-Allow-Methods': 'GET,POST,PUT,OPTIONS'
+    'Access-Control-Allow-Origin': resolveAllowedOrigin(req),
+    'Access-Control-Allow-Headers':
+      'Content-Type, Access-Control-Request-Private-Network, X-Requested-With',
+    'Access-Control-Allow-Methods': 'GET,POST,PUT,OPTIONS',
+    'Access-Control-Allow-Private-Network': 'true',
+    'Access-Control-Max-Age': '600',
+    Vary: 'Origin'
+  };
+}
+
+function sendJson(req, res, statusCode, payload) {
+  res.writeHead(statusCode, {
+    ...buildCorsHeaders(req)
   });
   res.end(JSON.stringify(payload));
 }
@@ -126,12 +150,12 @@ async function printText({ content, printerName }) {
 
 const server = http.createServer(async (req, res) => {
   if (!req.url) {
-    sendJson(res, 404, { message: 'Rota nao encontrada.' });
+    sendJson(req, res, 404, { message: 'Rota nao encontrada.' });
     return;
   }
 
   if (req.method === 'OPTIONS') {
-    sendJson(res, 200, { ok: true });
+    sendJson(req, res, 200, { ok: true });
     return;
   }
 
@@ -139,7 +163,7 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'GET' && req.url === '/health') {
       const settings = loadSettings();
       const printers = await listPrinters();
-      sendJson(res, 200, {
+      sendJson(req, res, 200, {
         ok: true,
         service: 'dil-bebidas-windows-print-bridge',
         version: '1.0.0',
@@ -151,12 +175,12 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === 'GET' && req.url === '/printers') {
       const printers = await listPrinters();
-      sendJson(res, 200, { printers });
+      sendJson(req, res, 200, { printers });
       return;
     }
 
     if (req.method === 'GET' && req.url === '/settings') {
-      sendJson(res, 200, loadSettings());
+      sendJson(req, res, 200, loadSettings());
       return;
     }
 
@@ -168,7 +192,7 @@ const server = http.createServer(async (req, res) => {
         fallbackToBrowser: body.fallbackToBrowser !== false,
         printingMode: body.printingMode === 'browser-default' ? 'browser-default' : 'text-out-printer'
       });
-      sendJson(res, 200, settings);
+      sendJson(req, res, 200, settings);
       return;
     }
 
@@ -182,23 +206,23 @@ const server = http.createServer(async (req, res) => {
       const content = typeof body.content === 'string' ? body.content : '';
 
       if (!selectedPrinterName) {
-        sendJson(res, 400, { message: 'Nenhuma impressora selecionada no bridge.' });
+        sendJson(req, res, 400, { message: 'Nenhuma impressora selecionada no bridge.' });
         return;
       }
       if (!content.trim()) {
-        sendJson(res, 400, { message: 'Conteudo vazio para impressao.' });
+        sendJson(req, res, 400, { message: 'Conteudo vazio para impressao.' });
         return;
       }
 
       const printers = await listPrinters();
       const printerExists = printers.some(printer => printer.name === selectedPrinterName);
       if (!printerExists) {
-        sendJson(res, 400, { message: 'A impressora selecionada nao foi encontrada no Windows.' });
+        sendJson(req, res, 400, { message: 'A impressora selecionada nao foi encontrada no Windows.' });
         return;
       }
 
       const filePath = await printText({ content, printerName: selectedPrinterName });
-      sendJson(res, 200, {
+      sendJson(req, res, 200, {
         ok: true,
         printerName: selectedPrinterName,
         mode: 'text-out-printer',
@@ -207,9 +231,9 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    sendJson(res, 404, { message: 'Rota nao encontrada.' });
+    sendJson(req, res, 404, { message: 'Rota nao encontrada.' });
   } catch (error) {
-    sendJson(res, 500, {
+    sendJson(req, res, 500, {
       message: error instanceof Error ? error.message : 'Erro interno no bridge local.'
     });
   }

@@ -14,14 +14,19 @@ export type BridgeSettings = {
 const BRIDGE_BASE_URL = 'http://127.0.0.1:39876';
 
 async function bridgeRequest<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${BRIDGE_BASE_URL}${path}`, {
+  const requestInit: RequestInit & { targetAddressSpace?: 'local' } = {
     ...options,
     headers: {
       'Content-Type': 'application/json',
       ...(options?.headers || {})
     },
-    cache: 'no-store'
-  });
+    cache: 'no-store',
+    mode: 'cors',
+    credentials: 'omit',
+    targetAddressSpace: 'local'
+  };
+
+  const response = await fetch(`${BRIDGE_BASE_URL}${path}`, requestInit);
 
   const raw = await response.text();
   const payload = raw.trim() ? JSON.parse(raw) : {};

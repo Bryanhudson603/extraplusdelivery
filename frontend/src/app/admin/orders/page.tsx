@@ -217,7 +217,9 @@ export default function AdminOrdersPage() {
   const [bridgeOnline, setBridgeOnline] = useState(false);
   const [bridgePrinters, setBridgePrinters] = useState<BridgePrinter[]>([]);
   const [selectedPrinterName, setSelectedPrinterName] = useState('');
-  const [bridgeStatusMessage, setBridgeStatusMessage] = useState('Bridge local nao conectado.');
+  const [bridgeStatusMessage, setBridgeStatusMessage] = useState(
+    'Clique em sincronizar bridge para conectar a impressora local e permitir o acesso no navegador.'
+  );
   const [syncingBridge, setSyncingBridge] = useState(false);
 
   useEffect(() => {
@@ -291,24 +293,21 @@ export default function AdminOrdersPage() {
     } catch (error) {
       setBridgeOnline(false);
       setBridgePrinters([]);
-      setBridgeStatusMessage('Bridge local offline. O painel vai usar o navegador como fallback.');
-      console.error('Erro ao sincronizar bridge de impressao', error);
+      setBridgeStatusMessage(
+        'O navegador bloqueou ou nao encontrou o bridge local. Clique em sincronizar e permita o acesso local quando o Chrome pedir.'
+      );
     } finally {
       setSyncingBridge(false);
     }
   }, []);
-
-  useEffect(() => {
-    void syncBridge();
-  }, [syncBridge]);
 
   const printOrder = useCallback(async (order: Order) => {
     if (bridgeOnline && selectedPrinterName) {
       try {
         await printViaBridge(buildBridgeReceiptText(order), selectedPrinterName);
         return;
-      } catch (error) {
-        console.error('Erro ao imprimir via bridge local', error);
+      } catch {
+        setBridgeStatusMessage('Nao foi possivel imprimir pelo bridge. O sistema voltou para o modo navegador.');
       }
     }
 
@@ -626,6 +625,7 @@ export default function AdminOrdersPage() {
               <div className="mt-1 text-xs text-slate-500 dark:text-zinc-400">{bridgeStatusMessage}</div>
               <div className="mt-2 text-xs text-slate-500 dark:text-zinc-400">
                 Quando o bridge estiver ativo, o sistema envia o cupom em texto direto para a impressora escolhida.
+                Se o navegador pedir permissao para acessar o computador local, clique em permitir.
               </div>
             </div>
             <div className="rounded-2xl border border-blue-100 bg-white px-4 py-3 dark:border-zinc-800 dark:bg-zinc-900">

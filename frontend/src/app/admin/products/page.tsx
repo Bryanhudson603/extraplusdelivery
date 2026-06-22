@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useState, ChangeEvent } from 'react';
 import { useEffect } from 'react';
-import { api } from '@/lib/api';
+import { ApiError, api } from '@/lib/api';
 
 type Product = {
   id: string;
@@ -34,6 +34,7 @@ export default function AdminProductsPage() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   useEffect(() => {
     async function carregar() {
@@ -104,6 +105,7 @@ export default function AdminProductsPage() {
 
   function openNewProduct() {
     setEditing(null);
+    setSaveError(null);
     setForm({
       id: '',
       name: '',
@@ -128,6 +130,7 @@ export default function AdminProductsPage() {
 
   function openEditProduct(p: Product) {
     setEditing(p);
+    setSaveError(null);
     setForm({
       id: p.id,
       name: p.name,
@@ -153,6 +156,12 @@ export default function AdminProductsPage() {
   function handleImageChange(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0];
     if (!file) return;
+    setSaveError(null);
+    if (file.size > 5 * 1024 * 1024) {
+      setSelectedImageFile(null);
+      setSaveError('A imagem deve ter no maximo 5MB.');
+      return;
+    }
     setSelectedImageFile(file);
     setPreviewImage(URL.createObjectURL(file));
   }
@@ -166,6 +175,7 @@ export default function AdminProductsPage() {
 
   async function saveProduct() {
     setIsSaving(true);
+    setSaveError(null);
     try {
       let imageUrl = form.imageUrl || undefined;
       let imagePath = form.imagePath || undefined;
@@ -241,6 +251,17 @@ export default function AdminProductsPage() {
       setPreviewImage(null);
     } catch (e) {
       console.error('Erro ao salvar produto', e);
+      if (e instanceof ApiError) {
+        if (e.payload && typeof e.payload === 'object' && 'message' in e.payload) {
+          setSaveError(String((e.payload as { message?: unknown }).message || 'Falha ao salvar produto.'));
+        } else if (typeof e.payload === 'string' && e.payload.trim()) {
+          setSaveError(e.payload);
+        } else {
+          setSaveError(`Falha ao salvar produto (${e.status}).`);
+        }
+      } else {
+        setSaveError('Falha ao salvar produto.');
+      }
     } finally {
       setIsSaving(false);
     }
@@ -470,14 +491,15 @@ export default function AdminProductsPage() {
                       <span>Selecionar imagem</span>
                       <input
                         type="file"
-                        accept="image/*"
+                        accept="image/png,image/jpeg,image/jpg,image/webp,image/avif,image/svg+xml"
                         className="hidden"
                         onChange={handleImageChange}
                       />
                     </label>
                     <p className="text-[11px] text-gray-600 dark:text-zinc-500">
-                      Envie uma imagem horizontal, por exemplo 800×450px, para manter o tamanho igual.
+                      Envie JPG, PNG, WEBP, AVIF ou SVG com ate 5MB. Exemplo recomendado: 800x450.
                     </p>
+                    {saveError && <p className="text-[11px] text-red-500">{saveError}</p>}
                   </div>
                 </div>
               </div>

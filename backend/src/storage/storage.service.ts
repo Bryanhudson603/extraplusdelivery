@@ -10,7 +10,14 @@ import { randomUUID } from 'crypto';
 
 const BUCKET_NAME = 'produtos';
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'] as const;
+const ALLOWED_IMAGE_TYPES = [
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/webp',
+  'image/avif',
+  'image/svg+xml'
+] as const;
 const ALLOWED_UPLOAD_TYPES = ['produtos', 'categorias', 'banners', 'logos', 'entregadores'] as const;
 
 export type StorageUploadType = (typeof ALLOWED_UPLOAD_TYPES)[number];
@@ -43,7 +50,7 @@ export class StorageService {
     }
 
     if (!(ALLOWED_IMAGE_TYPES as readonly string[]).includes(file.mimetype)) {
-      throw new BadRequestException('Formato inválido. Use JPEG, PNG ou WEBP.');
+      throw new BadRequestException('Formato inválido. Use JPG, JPEG, PNG, WEBP, AVIF ou SVG.');
     }
 
     if (!file.size || file.size > MAX_FILE_SIZE) {
