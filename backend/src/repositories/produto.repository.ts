@@ -23,6 +23,15 @@ export class ProdutoRepository {
     return produto || null;
   }
 
+  async findByNomeELoja(lojaId: string, nome: string): Promise<ProdutoEntity | null> {
+    const produto = await this.repo
+      .createQueryBuilder('produto')
+      .where('produto.loja_id = :lojaId', { lojaId })
+      .andWhere('LOWER(produto.nome) = LOWER(:nome)', { nome })
+      .getOne();
+    return produto || null;
+  }
+
   save(produto: ProdutoEntity): Promise<ProdutoEntity> {
     return this.repo.save(produto);
   }

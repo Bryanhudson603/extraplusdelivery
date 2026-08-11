@@ -779,6 +779,138 @@ export class AdminService {
     return this.produtoToAdminDto(salvo);
   }
 
+  async importarProdutosCsv(req: { headers?: Record<string, unknown> }, file?: Express.Multer.File) {
+    const lojaId = await resolveLojaId(req, this.lojaRepo);
+    if (!lojaId) {
+      throw new BadRequestException('Nenhuma loja ativa disponível.');
+    }
+    if (!file || !file.buffer || !file.buffer.length) {
+      throw new BadRequestException('Envie um arquivo CSV.');
+    }
+
+    const conteudo = file.buffer.toString('utf-8').replace(/^\uFEFF/, '');
+    const linhas = conteudo.split(/\r\n|\r|\n/).filter(l => l.trim().length > 0);
+    if (linhas.length < 2) {
+      throw new BadRequestException('CSV vazio ou sem produtos.');
+    }
+
+    const delimitador = this.detectarDelimitadorCsv(linhas[0]);
+    const cabecalho = this.dividirLinhaCsv(linhas[0], delimitador).map(c => this.normalizarCabecalho(c));
+
+    const idxNome = cabecalho.findIndex(c => c === 'produto' || c === 'nome');
+    const idxCategoria = cabecalho.findIndex(c => c === 'categoria');
+    const idxValor = cabecalho.findIndex(c => c === 'valor' || c === 'preco');
+
+    if (idxNome === -1 || idxCategoria === -1 || idxValor === -1) {
+      throw new BadRequestException('CSV deve conter as colunas Produto, CATEGORIA e VALOR.');
+    }
+
+    let criados = 0;
+    let atualizados = 0;
+    const erros: { linha: number; motivo: string }[] = [];
+
+    for (let i = 1; i < linhas.length; i++) {
+      const colunas = this.dividirLinhaCsv(linhas[i], delimitador);
+      const nome = (colunas[idxNome] || '').trim();
+      const categoria = (colunas[idxCategoria] || '').trim();
+      const valorTexto = (colunas[idxValor] || '').trim();
+
+      if (!nome) {
+        erros.push({ linha: i + 1, motivo: 'Nome do produto vazio.' });
+        continue;
+      }
+
+      const preco = this.parsePrecoBr(valorTexto);
+      if (preco == null) {
+        erros.push({ linha: i + 1, motivo: `Valor inválido: "${valorTexto}".` });
+        continue;
+      }
+
+      const existente = await this.produtoRepo.findByNomeELoja(lojaId, nome);
+      const produto = existente || new ProdutoEntity();
+      if (!existente) {
+        produto.id = `p-${Date.now()}-${i}`;
+        produto.ativo = true;
+        produto.tags = [];
+        produto.estoqueAtual = 0;
+      }
+      produto.lojaId = lojaId;
+      produto.nome = nome;
+      produto.categoriaNome = categoria || null;
+      produto.preco = preco.toFixed(2);
+
+      await this.produtoRepo.save(produto);
+      if (existente) atualizados += 1;
+      else criados += 1;
+    }
+
+    return { total: linhas.length - 1, criados, atualizados, erros };
+  }
+
+  private detectarDelimitadorCsv(linhaCabecalho: string): string {
+    const candidatos = [';', ',', '\t'];
+    let melhor = ';';
+    let maiorContagem = -1;
+    for (const c of candidatos) {
+      const contagem = linhaCabecalho.split(c).length;
+      if (contagem > maiorContagem) {
+        maiorContagem = contagem;
+        melhor = c;
+      }
+    }
+    return melhor;
+  }
+
+  private dividirLinhaCsv(linha: string, delimitador: string): string[] {
+    const resultado: string[] = [];
+    let atual = '';
+    let dentroAspas = false;
+    for (let i = 0; i < linha.length; i++) {
+      const char = linha[i];
+      if (char === '"') {
+        if (dentroAspas && linha[i + 1] === '"') {
+          atual += '"';
+          i++;
+        } else {
+          dentroAspas = !dentroAspas;
+        }
+      } else if (char === delimitador && !dentroAspas) {
+        resultado.push(atual);
+        atual = '';
+      } else {
+        atual += char;
+      }
+    }
+    resultado.push(atual);
+    return resultado.map(v => v.trim());
+  }
+
+  private normalizarCabecalho(valor: string): string {
+    return valor
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  private parsePrecoBr(valor: string): number | null {
+    if (!valor) return null;
+    let limpo = valor.replace(/[^\d.,-]/g, '');
+    if (!limpo) return null;
+
+    const temVirgula = limpo.includes(',');
+    const temPonto = limpo.includes('.');
+
+    if (temVirgula && temPonto) {
+      limpo = limpo.replace(/\./g, '').replace(',', '.');
+    } else if (temVirgula) {
+      limpo = limpo.replace(',', '.');
+    }
+
+    const numero = Number(limpo);
+    return Number.isFinite(numero) && numero >= 0 ? numero : null;
+  }
+
   async removerProduto(req: { headers?: Record<string, unknown> }, id: string) {
     const lojaId = await resolveLojaId(req, this.lojaRepo);
     if (!lojaId) {

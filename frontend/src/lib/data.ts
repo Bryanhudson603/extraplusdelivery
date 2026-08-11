@@ -34,10 +34,12 @@ export type StoreSettings = {
 export const categories: Category[] = [
   { id: 'c1', name: 'Cervejas', icon: '🍺', order: 1 },
   { id: 'c2', name: 'Refrigerantes', icon: '🥤', order: 2 },
-  { id: 'c3', name: 'Energéticos', icon: '⚡', order: 3 },
-  { id: 'c4', name: 'Destilados', icon: '🥃', order: 4 },
-  { id: 'c5', name: 'Combos', icon: '🎁', order: 5 },
-  { id: 'c6', name: 'Outros', icon: '🍹', order: 6 }
+  { id: 'c3', name: 'Gelos', icon: '🧊', order: 3 },
+  { id: 'c4', name: 'Energéticos', icon: '⚡', order: 4 },
+  { id: 'c5', name: 'Vinhos', icon: '🍷', order: 5 },
+  { id: 'c6', name: 'Destilados', icon: '🥃', order: 6 },
+  { id: 'c7', name: 'Combos', icon: '🎁', order: 7 },
+  { id: 'c8', name: 'Outros', icon: '🍹', order: 8 }
 ];
 
 export const products: Product[] = [];

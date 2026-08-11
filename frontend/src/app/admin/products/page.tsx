@@ -23,7 +23,26 @@ type Product = {
 
 const initialProducts: Product[] = [];
 
-const categories = ['Todas categorias', 'Cervejas', 'Refrigerantes', 'Energéticos', 'Destilados', 'Combos', 'Outros'];
+const categories = [
+  'Todas categorias',
+  'Cervejas',
+  'Refrigerantes',
+  'Gelos',
+  'Energéticos',
+  'Vinhos',
+  'Destilados',
+  'Combos',
+  'Outros'
+];
+
+type ImportResult = {
+  total: number;
+  criados: number;
+  atualizados: number;
+  erros: { linha: number; motivo: string }[];
+};
+
+const CSV_TEMPLATE = 'Produto;CATEGORIA;VALOR\nSkol Lata 350ml;Cervejas;4,50\nCoca-Cola 2L;Refrigerantes;9,90\n';
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>(initialProducts);
@@ -35,34 +54,38 @@ export default function AdminProductsPage() {
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
+
+  async function carregarProdutos() {
+    try {
+      const resp = await api.get<any[]>('/admin/produtos');
+      const mapped: Product[] = resp.map((p) => ({
+        id: p.id,
+        name: p.name,
+        description: '',
+        imageUrl: p.imageUrl,
+        imagePath: p.imagePath,
+        category: p.category || 'Outros',
+        volume: p.volume || '350ml',
+        unitPrice: Number(p.price ?? 0),
+        promoPrice: p.promoPrice != null ? Number(p.promoPrice) : undefined,
+        packQuantity: p.packQuantity != null ? Number(p.packQuantity) : undefined,
+        packPrice: p.packPrice != null ? Number(p.packPrice) : undefined,
+        stock: Number(p.stock ?? 0),
+        minStockAlert: 10,
+        tags: Array.isArray(p.tags) ? p.tags : [],
+        active: typeof p.active === 'boolean' ? p.active : true
+      }));
+      setProducts(mapped);
+    } catch (e) {
+      console.error('Erro ao carregar produtos do admin', e);
+    }
+  }
 
   useEffect(() => {
-    async function carregar() {
-      try {
-        const resp = await api.get<any[]>('/admin/produtos');
-        const mapped: Product[] = resp.map((p) => ({
-          id: p.id,
-          name: p.name,
-          description: '',
-          imageUrl: p.imageUrl,
-          imagePath: p.imagePath,
-          category: p.category || 'Outros',
-          volume: p.volume || '350ml',
-          unitPrice: Number(p.price ?? 0),
-          promoPrice: p.promoPrice != null ? Number(p.promoPrice) : undefined,
-          packQuantity: p.packQuantity != null ? Number(p.packQuantity) : undefined,
-          packPrice: p.packPrice != null ? Number(p.packPrice) : undefined,
-          stock: Number(p.stock ?? 0),
-          minStockAlert: 10,
-          tags: Array.isArray(p.tags) ? p.tags : [],
-          active: typeof p.active === 'boolean' ? p.active : true
-        }));
-        setProducts(mapped);
-      } catch (e) {
-        console.error('Erro ao carregar produtos do admin', e);
-      }
-    }
-    carregar();
+    carregarProdutos();
   }, []);
 
   useEffect(
@@ -307,6 +330,46 @@ export default function AdminProductsPage() {
       .catch((e) => console.error('Erro ao atualizar produto', e));
   }
 
+  async function handleImportCsv(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    setIsImporting(true);
+    setImportError(null);
+    setImportResult(null);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      const resultado = await api.post<ImportResult>('/admin/produtos/importar-csv', formData);
+      setImportResult(resultado);
+      await carregarProdutos();
+    } catch (e) {
+      console.error('Erro ao importar CSV de produtos', e);
+      if (e instanceof ApiError) {
+        if (e.payload && typeof e.payload === 'object' && 'message' in e.payload) {
+          setImportError(String((e.payload as { message?: unknown }).message || 'Falha ao importar CSV.'));
+        } else {
+          setImportError(`Falha ao importar CSV (${e.status}).`);
+        }
+      } else {
+        setImportError('Falha ao importar CSV.');
+      }
+    } finally {
+      setIsImporting(false);
+    }
+  }
+
+  function downloadCsvTemplate() {
+    const blob = new Blob([CSV_TEMPLATE], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'modelo-produtos.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   function deleteProduct(p: Product) {
     api
       .delete(`/admin/produtos/${p.id}` as any)
@@ -324,14 +387,65 @@ export default function AdminProductsPage() {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Produtos</h1>
             <p className="text-gray-600 dark:text-zinc-400">{products.length} produtos cadastrados</p>
           </div>
-          <button
-            onClick={openNewProduct}
-            className="h-11 px-4 rounded-lg bg-amber-500 hover:bg-amber-600 text-black text-sm font-semibold flex items-center justify-center gap-2"
-          >
-            <span className="text-lg">+</span>
-            Novo Produto
-          </button>
+          <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
+            <button
+              type="button"
+              onClick={downloadCsvTemplate}
+              className="h-11 px-4 rounded-lg border border-gray-300 text-gray-700 text-sm font-semibold dark:border-zinc-700 dark:text-zinc-300"
+            >
+              Baixar modelo CSV
+            </button>
+            <label className="h-11 px-4 rounded-lg border border-amber-500 text-amber-600 dark:text-amber-400 text-sm font-semibold flex items-center justify-center gap-2 cursor-pointer">
+              {isImporting ? 'Importando...' : 'Importar CSV'}
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                className="hidden"
+                disabled={isImporting}
+                onChange={handleImportCsv}
+              />
+            </label>
+            <button
+              onClick={openNewProduct}
+              className="h-11 px-4 rounded-lg bg-amber-500 hover:bg-amber-600 text-black text-sm font-semibold flex items-center justify-center gap-2"
+            >
+              <span className="text-lg">+</span>
+              Novo Produto
+            </button>
+          </div>
         </div>
+
+        {(importResult || importError) && (
+          <div
+            className={`mb-6 rounded-lg border p-4 text-sm ${
+              importError
+                ? 'border-red-300 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300'
+                : 'border-green-300 bg-green-50 text-green-700 dark:border-green-900 dark:bg-green-950/40 dark:text-green-300'
+            }`}
+          >
+            {importError ? (
+              <p>{importError}</p>
+            ) : (
+              importResult && (
+                <div>
+                  <p className="font-semibold">
+                    Importação concluída: {importResult.criados} criado(s), {importResult.atualizados} atualizado(s)
+                    {importResult.erros.length > 0 && `, ${importResult.erros.length} com erro`}.
+                  </p>
+                  {importResult.erros.length > 0 && (
+                    <ul className="mt-2 list-disc list-inside space-y-0.5">
+                      {importResult.erros.map((erro, idx) => (
+                        <li key={idx}>
+                          Linha {erro.linha}: {erro.motivo}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )
+            )}
+          </div>
+        )}
 
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
           <div className="relative flex-1">

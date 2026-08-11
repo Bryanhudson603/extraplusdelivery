@@ -124,4 +124,15 @@ export class AdminController {
   removerProduto(@Req() req: any, @Param('id') id: string) {
     return this.adminService.removerProduto(req, id);
   }
+
+  @Post('produtos/importar-csv')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: multer.memoryStorage(),
+      limits: { fileSize: 5 * 1024 * 1024 }
+    })
+  )
+  importarProdutosCsv(@Req() req: any, @UploadedFile() file?: Express.Multer.File) {
+    return this.adminService.importarProdutosCsv(req, file);
+  }
 }

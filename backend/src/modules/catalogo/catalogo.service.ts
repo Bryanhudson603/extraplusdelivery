@@ -24,10 +24,12 @@ type ProdutoCliente = {
 const categoriasFallback: Categoria[] = [
   { id: '1', nome: 'Cervejas', slug: 'cervejas' },
   { id: '2', nome: 'Refrigerantes', slug: 'refrigerantes' },
-  { id: '3', nome: 'Energéticos', slug: 'energeticos' },
-  { id: '4', nome: 'Destilados', slug: 'destilados' },
-  { id: '5', nome: 'Combos', slug: 'combos' },
-  { id: '6', nome: 'Outros', slug: 'outros' }
+  { id: '3', nome: 'Gelos', slug: 'gelos' },
+  { id: '4', nome: 'Energéticos', slug: 'energeticos' },
+  { id: '5', nome: 'Vinhos', slug: 'vinhos' },
+  { id: '6', nome: 'Destilados', slug: 'destilados' },
+  { id: '7', nome: 'Combos', slug: 'combos' },
+  { id: '8', nome: 'Outros', slug: 'outros' }
 ];
 
 @Injectable()
