@@ -296,6 +296,39 @@ export class PlatformService {
     };
   }
 
+  async listarPedidos(): Promise<
+    Array<{
+      id: string;
+      lojaId: string;
+      lojaNome: string;
+      clienteNome: string;
+      clienteTelefone: string;
+      total: number;
+      status: string;
+      criadoEm: string;
+    }>
+  > {
+    const [pedidos, lojas] = await Promise.all([this.pedidoRepo.listarTodos(), this.lojaRepo.listarTodas()]);
+    const lojaNomeMap: Record<string, string> = {};
+    for (const l of lojas) lojaNomeMap[l.id] = l.nome;
+
+    return pedidos.map(p => ({
+      id: p.id,
+      lojaId: p.lojaId,
+      lojaNome: lojaNomeMap[p.lojaId] || p.lojaId,
+      clienteNome: p.clienteNome || 'Cliente',
+      clienteTelefone: p.clienteTelefone || '',
+      total: Number(p.total ?? 0),
+      status: p.status,
+      criadoEm: p.criadoEm.toISOString()
+    }));
+  }
+
+  async apagarPedidos(ids: string[]): Promise<{ removidos: number }> {
+    const removidos = await this.pedidoRepo.removerPorIds(ids);
+    return { removidos };
+  }
+
   async apagarHistoricoPedidosCliente(id: string): Promise<{ removidos: number }> {
     const cliente = await this.clienteRepo.findById(id);
     if (!cliente) {

@@ -1,4 +1,4 @@
-import { IsBoolean, IsOptional, IsString, Length } from 'class-validator';
+import { ArrayMinSize, IsArray, IsBoolean, IsOptional, IsString, Length } from 'class-validator';
 
 export class CriarLojaDto {
   @IsString()
@@ -77,6 +77,13 @@ export class AtualizarAdminDto {
   @IsOptional()
   @IsBoolean()
   ativo?: boolean;
+}
+
+export class ApagarPedidosDto {
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsString({ each: true })
+  ids!: string[];
 }
 
 export class AtualizarClienteDto {

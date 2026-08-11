@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nes
 import { PlatformService } from './platform.service';
 import { RequireAuth } from '../../auth/require-auth.guard';
 import {
+  ApagarPedidosDto,
   AtualizarAdminDto,
   AtualizarClienteDto,
   AtualizarLojaDto,
@@ -58,5 +59,15 @@ export class PlatformController {
   @Delete('usuarios/cliente/:id/pedidos')
   apagarHistoricoPedidosCliente(@Param('id') id: string) {
     return this.platformService.apagarHistoricoPedidosCliente(id);
+  }
+
+  @Get('pedidos')
+  listarPedidos() {
+    return this.platformService.listarPedidos();
+  }
+
+  @Post('pedidos/apagar')
+  apagarPedidos(@Body() body: ApagarPedidosDto) {
+    return this.platformService.apagarPedidos(body.ids);
   }
 }

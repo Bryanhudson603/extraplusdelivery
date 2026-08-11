@@ -32,6 +32,17 @@ type UsuariosResp = {
   clientes: ClienteUser[];
 };
 
+type PedidoResumo = {
+  id: string;
+  lojaId: string;
+  lojaNome: string;
+  clienteNome: string;
+  clienteTelefone: string;
+  total: number;
+  status: string;
+  criadoEm: string;
+};
+
 export default function PlatformHomePage() {
   const router = useRouter();
   const [lojas, setLojas] = useState<Loja[]>([]);
@@ -65,6 +76,13 @@ export default function PlatformHomePage() {
   const [zerandoPedidosId, setZerandoPedidosId] = useState<string | null>(null);
   const [feedbackZerarPorCliente, setFeedbackZerarPorCliente] = useState<Record<string, string>>({});
 
+  const [pedidos, setPedidos] = useState<PedidoResumo[]>([]);
+  const [loadingPedidos, setLoadingPedidos] = useState(true);
+  const [pedidosSelecionados, setPedidosSelecionados] = useState<Record<string, boolean>>({});
+  const [confirmandoApagarPedidos, setConfirmandoApagarPedidos] = useState(false);
+  const [apagandoPedidos, setApagandoPedidos] = useState(false);
+  const [feedbackPedidos, setFeedbackPedidos] = useState<string | null>(null);
+
   const lojasAtivas = useMemo(() => lojas.filter(l => l.ativo), [lojas]);
 
   const carregar = useCallback(async () => {
@@ -93,9 +111,64 @@ export default function PlatformHomePage() {
     }
   }, [novoAdminLoja, novoClienteLoja, router]);
 
+  const carregarPedidos = useCallback(async () => {
+    setLoadingPedidos(true);
+    try {
+      const resp = await api.get<PedidoResumo[]>('/platform/pedidos');
+      setPedidos(resp);
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        window.localStorage.removeItem('extraplus-platform-session');
+        router.replace('/platform/login');
+        return;
+      }
+      setPedidos([]);
+    } finally {
+      setLoadingPedidos(false);
+    }
+  }, [router]);
+
   useEffect(() => {
     carregar();
-  }, [carregar]);
+    carregarPedidos();
+  }, [carregar, carregarPedidos]);
+
+  function togglePedidoSelecionado(id: string) {
+    setPedidosSelecionados(prev => ({ ...prev, [id]: !prev[id] }));
+  }
+
+  function toggleSelecionarTodosPedidos() {
+    setPedidosSelecionados(prev => {
+      const todosMarcados = pedidos.length > 0 && pedidos.every(p => prev[p.id]);
+      if (todosMarcados) return {};
+      const next: Record<string, boolean> = {};
+      for (const p of pedidos) next[p.id] = true;
+      return next;
+    });
+  }
+
+  async function apagarPedidosSelecionados() {
+    const ids = Object.entries(pedidosSelecionados)
+      .filter(([, v]) => v)
+      .map(([id]) => id);
+    if (ids.length === 0) return;
+
+    setApagandoPedidos(true);
+    setFeedbackPedidos(null);
+    try {
+      const resposta = await api.post<{ removidos: number }>('/platform/pedidos/apagar', { ids });
+      setFeedbackPedidos(`${resposta.removidos} pedido(s) apagado(s) com sucesso.`);
+      setPedidosSelecionados({});
+      await carregarPedidos();
+    } catch (e) {
+      setFeedbackPedidos('Falha ao apagar pedidos selecionados.');
+    } finally {
+      setApagandoPedidos(false);
+      setConfirmandoApagarPedidos(false);
+    }
+  }
+
+  const totalSelecionadosPedidos = Object.values(pedidosSelecionados).filter(Boolean).length;
 
   async function criarLoja() {
     if (criandoLoja) return;
@@ -292,6 +365,125 @@ export default function PlatformHomePage() {
             <div className="py-4 text-xs text-gray-600 dark:text-zinc-400">
               Nenhuma loja encontrada.
             </div>
+          )}
+        </div>
+      </section>
+
+      <section className="bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-2xl p-5">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div>
+            <div className="text-lg font-bold">Pedidos ({pedidos.length})</div>
+            <div className="text-xs text-gray-600 dark:text-zinc-400">
+              Todos os pedidos de todas as lojas. Selecione e apague os que forem de teste.
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => void carregarPedidos()}
+            className="h-9 px-3 rounded-lg text-xs font-semibold border border-gray-300 dark:border-zinc-700"
+          >
+            {loadingPedidos ? 'Atualizando...' : 'Atualizar lista'}
+          </button>
+        </div>
+
+        {pedidos.length > 0 && (
+          <div className="mt-4 flex items-center justify-between gap-3 flex-wrap rounded-xl bg-amber-50 dark:bg-amber-950/30 px-3 py-2">
+            <label className="inline-flex items-center gap-2 text-xs">
+              <input
+                type="checkbox"
+                checked={pedidos.length > 0 && pedidos.every(p => pedidosSelecionados[p.id])}
+                onChange={toggleSelecionarTodosPedidos}
+                className="w-4 h-4"
+              />
+              Selecionar todos ({totalSelecionadosPedidos} selecionado(s))
+            </label>
+            <button
+              type="button"
+              disabled={totalSelecionadosPedidos === 0}
+              onClick={() => setConfirmandoApagarPedidos(true)}
+              className="h-9 px-3 rounded-lg text-xs font-semibold bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
+            >
+              Apagar selecionados
+            </button>
+          </div>
+        )}
+
+        {confirmandoApagarPedidos && (
+          <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-red-50 dark:bg-red-950/30 px-3 py-2">
+            <span className="text-xs text-red-800 dark:text-red-200">
+              Apagar {totalSelecionadosPedidos} pedido(s) selecionado(s)? Essa ação não pode ser desfeita.
+            </span>
+            <div className="flex gap-2 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setConfirmandoApagarPedidos(false)}
+                className="text-xs text-gray-600 dark:text-zinc-400"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={apagandoPedidos}
+                onClick={apagarPedidosSelecionados}
+                className="text-xs font-semibold text-red-600 dark:text-red-400 disabled:opacity-60"
+              >
+                {apagandoPedidos ? 'Apagando...' : 'Confirmar'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {feedbackPedidos && (
+          <div className="mt-3 text-xs text-emerald-700 dark:text-emerald-400 font-semibold">
+            {feedbackPedidos}
+          </div>
+        )}
+
+        <div className="mt-4 max-h-[420px] overflow-y-auto divide-y divide-gray-200 dark:divide-zinc-800">
+          {loadingPedidos ? (
+            <div className="py-4 text-xs text-gray-600 dark:text-zinc-400">Carregando pedidos...</div>
+          ) : pedidos.length === 0 ? (
+            <div className="py-4 text-xs text-gray-600 dark:text-zinc-400">
+              Nenhum pedido encontrado em nenhuma loja.
+            </div>
+          ) : (
+            pedidos.map(p => (
+              <label
+                key={p.id}
+                className="py-2.5 flex items-center gap-3 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={!!pedidosSelecionados[p.id]}
+                  onChange={() => togglePedidoSelecionado(p.id)}
+                  className="w-4 h-4 flex-shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-semibold">
+                      #{p.id.slice(0, 8).toUpperCase()}
+                    </span>
+                    <span className="text-[11px] text-gray-600 dark:text-zinc-400">{p.lojaNome}</span>
+                    <span className="text-[11px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-zinc-300">
+                      {p.status}
+                    </span>
+                  </div>
+                  <div className="text-[11px] text-gray-600 dark:text-zinc-500">
+                    {p.clienteNome}
+                    {p.clienteTelefone ? ` • ${p.clienteTelefone}` : ''} •{' '}
+                    {new Date(p.criadoEm).toLocaleString('pt-BR', {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: false
+                    })}
+                  </div>
+                </div>
+                <div className="text-sm font-semibold flex-shrink-0">R$ {p.total.toFixed(2)}</div>
+              </label>
+            ))
           )}
         </div>
       </section>

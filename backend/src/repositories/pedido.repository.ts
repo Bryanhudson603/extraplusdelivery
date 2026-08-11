@@ -57,6 +57,16 @@ export class PedidoRepository {
     return this.repo.save(pedido);
   }
 
+  listarTodos(): Promise<PedidoEntity[]> {
+    return this.repo.find({ order: { criadoEm: 'DESC' } });
+  }
+
+  async removerPorIds(ids: string[]): Promise<number> {
+    if (!ids || ids.length === 0) return 0;
+    const result = await this.repo.createQueryBuilder().delete().from(PedidoEntity).whereInIds(ids).execute();
+    return result.affected || 0;
+  }
+
   async removerHistoricoDoCliente(lojaId: string, clienteId: string, telefone?: string): Promise<number> {
     let qb = this.repo.createQueryBuilder().delete().from(PedidoEntity).where('loja_id = :lojaId', { lojaId });
 
