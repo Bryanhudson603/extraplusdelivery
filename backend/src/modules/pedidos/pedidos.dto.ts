@@ -70,12 +70,12 @@ export class CriarPedidoDto {
 
   @IsOptional()
   @IsString()
-  @Length(1, 30)
+  @Length(0, 30)
   clienteTelefone?: string;
 
   @IsOptional()
   @IsString()
-  @Length(1, 255)
+  @Length(0, 255)
   clienteEndereco?: string;
 
   @IsOptional()
@@ -102,12 +102,12 @@ export class ValidarCupomDto {
 
   @IsOptional()
   @IsString()
-  @Length(1, 100)
+  @Length(0, 100)
   clienteId?: string;
 
   @IsOptional()
   @IsString()
-  @Length(1, 30)
+  @Length(0, 30)
   clienteTelefone?: string;
 }
 

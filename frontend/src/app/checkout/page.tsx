@@ -131,8 +131,8 @@ export default function CheckoutPage() {
             : undefined,
         clienteId,
         clienteNome,
-        clienteTelefone,
-        clienteEndereco,
+        clienteTelefone: clienteTelefone?.trim() || undefined,
+        clienteEndereco: clienteEndereco?.trim() || undefined,
         cupomCodigo: cupomAplicadoCodigo || undefined,
         taxaEntrega: taxaEntregaPreview
       };
@@ -171,7 +171,7 @@ export default function CheckoutPage() {
       }>('/pedidos/validar-cupom', {
         codigo,
         clienteId,
-        clienteTelefone
+        clienteTelefone: clienteTelefone?.trim() || undefined
       });
 
       if (!validacao.valido) {
