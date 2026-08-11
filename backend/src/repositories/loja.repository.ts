@@ -44,5 +44,12 @@ export class LojaRepository {
   salvar(loja: LojaEntity): Promise<LojaEntity> {
     return this.repo.save(loja);
   }
+
+  async definirPedidosPausados(id: string, pausado: boolean): Promise<LojaEntity | null> {
+    const loja = await this.obterPorId(id);
+    if (!loja) return null;
+    loja.pedidosPausados = pausado;
+    return this.repo.save(loja);
+  }
 }
 

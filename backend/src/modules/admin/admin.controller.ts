@@ -21,6 +21,7 @@ import {
   AtualizarProdutoDto,
   CriarCupomDto,
   CriarOuAtualizarProdutoDto,
+  DefinirPedidosPausadosDto,
   EnviarCupomDto
 } from './admin.dto';
 
@@ -62,6 +63,16 @@ export class AdminController {
   @Get('clientes/:id/pedidos')
   listarPedidosCliente(@Req() req: any, @Param('id') id: string) {
     return this.adminService.listarPedidosCliente(req, id);
+  }
+
+  @Get('loja/pedidos-pausados')
+  obterPedidosPausados(@Req() req: any) {
+    return this.adminService.obterPedidosPausados(req);
+  }
+
+  @Put('loja/pedidos-pausados')
+  definirPedidosPausados(@Req() req: any, @Body() body: DefinirPedidosPausadosDto) {
+    return this.adminService.definirPedidosPausados(req, body.pausado);
   }
 
   @Get('produtos')

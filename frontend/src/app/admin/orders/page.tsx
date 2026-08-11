@@ -55,6 +55,7 @@ type Order = {
 
 const POLL_INTERVAL_MS = 5000;
 const PREFS_KEY = 'extraplus-admin-orders-preferences';
+const PAUSE_POLL_INTERVAL_MS = 15000;
 
 function formatOrderDate(value: string): string {
   return new Date(value).toLocaleString('pt-BR', {
@@ -208,6 +209,7 @@ export default function AdminOrdersPage() {
   const [loading, setLoading] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
+  const [togglingPause, setTogglingPause] = useState(false);
   const [autoPrintEnabled, setAutoPrintEnabled] = useState(true);
   const [lastUpdatedAt, setLastUpdatedAt] = useState('');
   const [highlightedOrderIds, setHighlightedOrderIds] = useState<string[]>([]);
@@ -229,12 +231,8 @@ export default function AdminOrdersPage() {
       const raw = window.localStorage.getItem(PREFS_KEY);
       if (!raw) return;
       const parsed = JSON.parse(raw) as {
-        isPaused?: boolean;
         autoPrintEnabled?: boolean;
       };
-      if (typeof parsed.isPaused === 'boolean') {
-        setIsPaused(parsed.isPaused);
-      }
       if (typeof parsed.autoPrintEnabled === 'boolean') {
         setAutoPrintEnabled(parsed.autoPrintEnabled);
       }
@@ -244,14 +242,39 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    window.localStorage.setItem(
-      PREFS_KEY,
-      JSON.stringify({
-        isPaused,
-        autoPrintEnabled
-      })
-    );
-  }, [autoPrintEnabled, isPaused]);
+    window.localStorage.setItem(PREFS_KEY, JSON.stringify({ autoPrintEnabled }));
+  }, [autoPrintEnabled]);
+
+  const carregarPedidosPausados = useCallback(async () => {
+    try {
+      const resposta = await api.get<{ pausado: boolean }>('/admin/loja/pedidos-pausados');
+      setIsPaused(Boolean(resposta.pausado));
+    } catch (error) {
+      console.error('Erro ao carregar status de pedidos pausados', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    carregarPedidosPausados();
+    const intervalId = window.setInterval(carregarPedidosPausados, PAUSE_POLL_INTERVAL_MS);
+    return () => window.clearInterval(intervalId);
+  }, [carregarPedidosPausados]);
+
+  async function togglePausarPedidos() {
+    if (togglingPause) return;
+    setTogglingPause(true);
+    const proximoValor = !isPaused;
+    try {
+      const resposta = await api.put<{ pausado: boolean }>('/admin/loja/pedidos-pausados', {
+        pausado: proximoValor
+      });
+      setIsPaused(Boolean(resposta.pausado));
+    } catch (error) {
+      console.error('Erro ao atualizar status de pedidos pausados', error);
+    } finally {
+      setTogglingPause(false);
+    }
+  }
 
   useEffect(() => {
     function syncFullscreenState() {
@@ -566,14 +589,15 @@ export default function AdminOrdersPage() {
             <div className="flex flex-wrap gap-2 lg:justify-end">
               <button
                 type="button"
-                onClick={() => setIsPaused(prev => !prev)}
-                className={`h-10 rounded-full px-4 text-sm font-semibold ${
+                onClick={() => void togglePausarPedidos()}
+                disabled={togglingPause}
+                className={`h-10 rounded-full px-4 text-sm font-semibold disabled:opacity-60 ${
                   isPaused
                     ? 'bg-amber-100 text-amber-800'
                     : 'bg-emerald-100 text-emerald-800'
                 }`}
               >
-                {isPaused ? 'Retomar chegada de pedidos' : 'Pausar chegada de pedidos'}
+                {togglingPause ? 'Atualizando...' : isPaused ? 'Retomar chegada de pedidos' : 'Pausar chegada de pedidos'}
               </button>
               <button
                 type="button"
@@ -612,7 +636,7 @@ export default function AdminOrdersPage() {
 
           <div className="mt-4 rounded-2xl border border-blue-100 bg-blue-50/70 px-4 py-3 text-sm text-blue-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-zinc-300">
             {isPaused
-              ? 'Chegada de pedidos pausada. Novos pedidos continuam sendo listados, mas nao disparam impressao automatica.'
+              ? 'Chegada de pedidos pausada. Os clientes nao conseguem finalizar novos pedidos ate voce retomar.'
               : autoPrintEnabled
                 ? 'Novos pedidos recebidos disparam a impressao automaticamente na impressora padrao do Windows. Para imprimir sem dialogo, abra o navegador em modo kiosk-printing.'
                 : 'Novos pedidos continuam aparecendo na tela, mas a impressao automatica esta desligada.'}

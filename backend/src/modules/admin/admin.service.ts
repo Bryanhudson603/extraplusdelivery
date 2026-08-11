@@ -535,6 +535,30 @@ export class AdminService {
       }));
   }
 
+  async obterPedidosPausados(req: { headers?: Record<string, unknown> }): Promise<{ pausado: boolean }> {
+    const lojaId = await resolveLojaId(req, this.lojaRepo);
+    if (!lojaId) {
+      throw new BadRequestException('Nenhuma loja ativa disponível.');
+    }
+    const loja = await this.lojaRepo.obterPorId(lojaId);
+    return { pausado: Boolean(loja?.pedidosPausados) };
+  }
+
+  async definirPedidosPausados(
+    req: { headers?: Record<string, unknown> },
+    pausado: boolean
+  ): Promise<{ pausado: boolean }> {
+    const lojaId = await resolveLojaId(req, this.lojaRepo);
+    if (!lojaId) {
+      throw new BadRequestException('Nenhuma loja ativa disponível.');
+    }
+    const loja = await this.lojaRepo.definirPedidosPausados(lojaId, pausado);
+    if (!loja) {
+      throw new BadRequestException('Loja não encontrada.');
+    }
+    return { pausado: loja.pedidosPausados };
+  }
+
   async listarProdutos(req: { headers?: Record<string, unknown> }) {
     const lojaId = await resolveLojaId(req, this.lojaRepo);
     if (!lojaId) return [];

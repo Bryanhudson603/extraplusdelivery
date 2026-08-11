@@ -141,7 +141,16 @@ export default function CheckoutPage() {
       clear();
       setPedidoConcluido(resposta);
     } catch (e) {
-      setErro('Ocorreu um erro ao registrar seu pedido. Tente novamente.');
+      if (
+        e instanceof ApiError &&
+        e.payload &&
+        typeof e.payload === 'object' &&
+        (e.payload as { code?: unknown }).code === 'PEDIDOS_PAUSADOS'
+      ) {
+        setErro('Estamos com o recebimento de pedidos pausado no momento. Voltamos em breve!');
+      } else {
+        setErro('Ocorreu um erro ao registrar seu pedido. Tente novamente.');
+      }
       console.error(e);
     } finally {
       setSubmitting(false);

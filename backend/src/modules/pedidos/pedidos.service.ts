@@ -141,6 +141,14 @@ export class PedidosService {
       throw new BadRequestException('Nenhuma loja ativa disponível.');
     }
 
+    const loja = await this.lojaRepo.obterPorId(lojaId);
+    if (loja?.pedidosPausados) {
+      throw new BadRequestException({
+        code: 'PEDIDOS_PAUSADOS',
+        message: 'Estamos com o recebimento de pedidos pausado no momento. Voltamos em breve!'
+      });
+    }
+
     const subtotal = (body.itens || []).reduce((sum, it) => sum + it.unitPrice * it.quantity, 0);
     const taxaEntregaCalculada = getNeighborhoodDeliveryFee(body.clienteEndereco, body.tipoEntrega);
     const taxaEntregaInformada = typeof body.taxaEntrega === 'number' ? Number(body.taxaEntrega) : taxaEntregaCalculada;

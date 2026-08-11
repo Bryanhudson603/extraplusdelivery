@@ -10,6 +10,11 @@ import {
   Min
 } from 'class-validator';
 
+export class DefinirPedidosPausadosDto {
+  @IsBoolean()
+  pausado!: boolean;
+}
+
 export class AtualizarClienteAdminDto {
   @IsOptional()
   @IsString()

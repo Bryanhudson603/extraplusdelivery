@@ -14,6 +14,9 @@ export class LojaEntity {
   @Column({ type: 'boolean', default: true })
   ativo!: boolean;
 
+  @Column({ type: 'boolean', default: false, name: 'pedidos_pausados' })
+  pedidosPausados!: boolean;
+
   @CreateDateColumn({ type: 'timestamptz', name: 'criado_em' })
   criadoEm!: Date;
 
