@@ -3,9 +3,18 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { BottomNav } from '@/components/BottomNav';
+import { AddressModal } from '@/components/AddressModal';
 import { useCart } from '@/components/CartProvider';
 import { api } from '@/lib/api';
 import { matchesClientOrder } from '@/lib/orders';
+import {
+  type AddressRecord,
+  formatAddressSummary,
+  fromLegacyString,
+  loadAddresses,
+  saveAddresses,
+  syncSessionEndereco
+} from '@/lib/addresses';
 
 type User = {
   name: string;
@@ -41,7 +50,11 @@ export default function ProfilePage() {
     telefone: '',
     endereco: ''
   });
-  const [addresses, setAddresses] = useState<string[]>([]);
+  const [addresses, setAddresses] = useState<AddressRecord[]>([]);
+  const [addressModalOpen, setAddressModalOpen] = useState(false);
+  const [editingAddress, setEditingAddress] = useState<AddressRecord | null>(null);
+  const [addressToDelete, setAddressToDelete] = useState<string | null>(null);
+  const [addressesOpen, setAddressesOpen] = useState(false);
   const [favoritesCount, setFavoritesCount] = useState(0);
   const [ordersCount, setOrdersCount] = useState(0);
   const [ordersTotal, setOrdersTotal] = useState(0);
@@ -91,22 +104,13 @@ export default function ProfilePage() {
             endereco
           });
           carregarCuponsParaSessao();
-          try {
-            const rawAddresses = localStorage.getItem('extraplus-addresses');
-            if (rawAddresses) {
-              const parsedAddresses = JSON.parse(rawAddresses);
-              if (Array.isArray(parsedAddresses) && parsedAddresses.length > 0) {
-                setAddresses(parsedAddresses.map(String));
-              } else if (endereco) {
-                setAddresses([endereco]);
-              }
-            } else if (endereco) {
-              setAddresses([endereco]);
-            }
-          } catch {
-            if (endereco) {
-              setAddresses([endereco]);
-            }
+          const enderecosSalvos = loadAddresses();
+          if (enderecosSalvos.length === 0 && endereco) {
+            const migrado = [fromLegacyString(endereco)];
+            saveAddresses(migrado);
+            setAddresses(migrado);
+          } else {
+            setAddresses(enderecosSalvos);
           }
         }
       }
@@ -138,6 +142,32 @@ export default function ProfilePage() {
     }
     carregarPedidos();
   }, []);
+
+  function handleSalvarEndereco(endereco: AddressRecord) {
+    setAddresses(prev => {
+      const existe = prev.some(a => a.id === endereco.id);
+      const next = existe ? prev.map(a => (a.id === endereco.id ? endereco : a)) : [endereco, ...prev];
+      saveAddresses(next);
+      return next;
+    });
+    syncSessionEndereco(endereco);
+    setUser(prev => ({ ...prev, endereco: formatAddressSummary(endereco) }));
+    setAddressModalOpen(false);
+    setEditingAddress(null);
+  }
+
+  function handleExcluirEndereco(id: string) {
+    setAddresses(prev => {
+      const next = prev.filter(a => a.id !== id);
+      saveAddresses(next);
+      if (next.length > 0) {
+        syncSessionEndereco(next[0]);
+        setUser(prevUser => ({ ...prevUser, endereco: formatAddressSummary(next[0]) }));
+      }
+      return next;
+    });
+    setAddressToDelete(null);
+  }
 
   return (
     <main className="flex-1 bg-gray-50 dark:bg-zinc-950 pb-16">
@@ -171,7 +201,11 @@ export default function ProfilePage() {
         <div className="space-y-3 text-sm">
           <div className="bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-xl overflow-hidden">
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-zinc-800">
-              <div className="flex items-center gap-3">
+              <button
+                type="button"
+                className="flex items-center gap-3 flex-1 text-left"
+                onClick={() => setAddressesOpen(true)}
+              >
                 <span className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500 text-lg">
                   📍
                 </span>
@@ -181,41 +215,21 @@ export default function ProfilePage() {
                     <div className="text-xs text-gray-600 dark:text-zinc-500">Nenhum endereço cadastrado</div>
                   ) : (
                     <div className="text-xs text-gray-600 dark:text-zinc-400">
-                      {addresses[0]}
+                      {formatAddressSummary(addresses[0])}
+                      {addresses.length > 1 ? ` +${addresses.length - 1}` : ''}
                     </div>
                   )}
                 </div>
-              </div>
+              </button>
               <button
-                className="text-xs font-semibold text-blue-600"
+                type="button"
+                className="text-xs font-semibold text-blue-600 flex-shrink-0"
                 onClick={() => {
-                  const novo = window.prompt('Informe o endereço de entrega:');
-                  if (!novo) return;
-                  const texto = novo.trim();
-                  if (!texto) return;
-                  setAddresses(prev => {
-                    const next = [texto, ...prev.filter(a => a !== texto)];
-                    try {
-                      localStorage.setItem('extraplus-addresses', JSON.stringify(next));
-                      const rawSession = localStorage.getItem('extraplus-session');
-                      if (rawSession) {
-                        const parsed = JSON.parse(rawSession);
-                        if (parsed?.tipo === 'cliente') {
-                          const atualizado = { ...parsed, endereco: texto };
-                          localStorage.setItem('extraplus-session', JSON.stringify(atualizado));
-                        }
-                      }
-                    } catch {
-                    }
-                    setUser(prevUser => ({
-                      ...prevUser,
-                      endereco: texto
-                    }));
-                    return next;
-                  });
+                  setEditingAddress(null);
+                  setAddressModalOpen(true);
                 }}
               >
-                {addresses.length === 0 ? 'Adicionar' : 'Editar'}
+                Adicionar
               </button>
             </div>
           </div>
@@ -279,6 +293,127 @@ export default function ProfilePage() {
         </div>
       </div>
       <BottomNav />
+
+      {addressesOpen && (
+        <>
+          <div
+            className="fixed inset-0 bg-black/60 z-40"
+            onClick={() => {
+              setAddressesOpen(false);
+              setAddressToDelete(null);
+            }}
+          />
+          <div className="fixed inset-x-0 bottom-0 max-w-md mx-auto bg-white border-t border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-t-2xl z-50 max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-zinc-800 flex-shrink-0">
+              <span className="text-sm font-semibold text-gray-900 dark:text-white">Meus endereços</span>
+              <button
+                type="button"
+                className="text-xs text-gray-600 dark:text-zinc-400"
+                onClick={() => {
+                  setAddressesOpen(false);
+                  setAddressToDelete(null);
+                }}
+              >
+                Fechar
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+              {addresses.length === 0 ? (
+                <div className="text-xs text-gray-600 dark:text-zinc-500 py-6 text-center">
+                  Nenhum endereço cadastrado
+                </div>
+              ) : (
+                addresses.map(endereco => (
+                  <div
+                    key={endereco.id}
+                    className="rounded-lg border border-gray-200 dark:border-zinc-800 px-3 py-2.5 space-y-2"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold text-gray-900 dark:text-white truncate">
+                          {endereco.nome}
+                        </div>
+                        <div className="text-xs text-gray-600 dark:text-zinc-400">
+                          {formatAddressSummary(endereco)}
+                        </div>
+                        {endereco.referencia && (
+                          <div className="text-[11px] text-gray-500 dark:text-zinc-500">
+                            Referência: {endereco.referencia}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {addressToDelete === endereco.id ? (
+                      <div className="flex items-center justify-between gap-2 bg-red-50 dark:bg-red-950/30 rounded-lg px-2 py-1.5">
+                        <span className="text-[11px] text-red-600 dark:text-red-300">Excluir este endereço?</span>
+                        <div className="flex gap-2 flex-shrink-0">
+                          <button
+                            type="button"
+                            className="text-[11px] text-gray-600 dark:text-zinc-400"
+                            onClick={() => setAddressToDelete(null)}
+                          >
+                            Cancelar
+                          </button>
+                          <button
+                            type="button"
+                            className="text-[11px] font-semibold text-red-600 dark:text-red-400"
+                            onClick={() => handleExcluirEndereco(endereco.id)}
+                          >
+                            Confirmar
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex gap-3 text-xs">
+                        <button
+                          type="button"
+                          className="font-semibold text-blue-600"
+                          onClick={() => {
+                            setEditingAddress(endereco);
+                            setAddressModalOpen(true);
+                          }}
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          className="font-semibold text-red-600 dark:text-red-400"
+                          onClick={() => setAddressToDelete(endereco.id)}
+                        >
+                          Excluir
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+            <div className="p-4 border-t border-gray-200 dark:border-zinc-800 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingAddress(null);
+                  setAddressModalOpen(true);
+                }}
+                className="w-full h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold"
+              >
+                + Adicionar novo endereço
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
+      <AddressModal
+        open={addressModalOpen}
+        initialAddress={editingAddress}
+        onClose={() => {
+          setAddressModalOpen(false);
+          setEditingAddress(null);
+        }}
+        onSave={handleSalvarEndereco}
+      />
 
       {favoritesOpen && (
         <>

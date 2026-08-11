@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/components/CartProvider';
 import { BottomNav } from '@/components/BottomNav';
+import { OrderSuccessModal } from '@/components/OrderSuccessModal';
 import { ApiError, api } from '@/lib/api';
 import { getDeliveryFeeFromAddress, parseClientAddress } from '@/lib/delivery';
 
@@ -29,6 +30,7 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [pixPayload, setPixPayload] = useState<string | null>(null);
+  const [pedidoConcluido, setPedidoConcluido] = useState<PedidoResponse | null>(null);
   const [trocoPara, setTrocoPara] = useState<string>('');
   const [clienteId, setClienteId] = useState<string | undefined>(undefined);
   const [clienteNome, setClienteNome] = useState<string | undefined>(undefined);
@@ -142,7 +144,7 @@ export default function CheckoutPage() {
       }
 
       clear();
-      router.push('/orders');
+      setPedidoConcluido(resposta);
     } catch (e) {
       setErro('Ocorreu um erro ao registrar seu pedido. Tente novamente.');
       console.error(e);
@@ -467,16 +469,16 @@ export default function CheckoutPage() {
           {submitting ? 'Enviando...' : 'Confirmar pedido'}
         </button>
 
-        {pixPayload && formaPagamento === 'pix' && (
-          <div className="mt-2 text-xs text-slate-500 dark:text-zinc-400">
-            Código PIX gerado:
-            <div className="mt-1 break-all rounded-md bg-white border border-blue-100 p-2 dark:bg-zinc-950 dark:border-zinc-800">
-              {pixPayload}
-            </div>
-          </div>
-        )}
       </div>
       <BottomNav />
+
+      <OrderSuccessModal
+        open={pedidoConcluido !== null}
+        pedidoId={pedidoConcluido?.id}
+        total={pedidoConcluido?.total}
+        pixPayload={formaPagamento === 'pix' ? pixPayload : null}
+        onDismiss={() => router.push('/orders')}
+      />
     </main>
   );
 }
