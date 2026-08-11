@@ -26,7 +26,7 @@ export default function ClientHomePage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [currentStore, setCurrentStore] = useState<StoreSettings>(defaultStore);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const { items, totalQuantity, addProduct } = useCart();
+  const { items, totalQuantity, addProduct, removeProduct, updateQuantity } = useCart();
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -175,6 +175,8 @@ export default function ClientHomePage() {
         open={drawerOpen}
         items={items}
         onClose={() => setDrawerOpen(false)}
+        onRemove={removeProduct}
+        onUpdateQuantity={updateQuantity}
         onCheckout={() => {
           setDrawerOpen(false);
           router.push('/checkout');

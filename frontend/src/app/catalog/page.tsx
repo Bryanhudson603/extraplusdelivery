@@ -17,7 +17,7 @@ export default function CatalogPage() {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const { items, totalQuantity, addProduct } = useCart();
+  const { items, totalQuantity, addProduct, removeProduct, updateQuantity } = useCart();
   const [produtos, setProdutos] = useState<Product[]>([]);
 
   useEffect(() => {
@@ -106,6 +106,8 @@ export default function CatalogPage() {
           open={drawerOpen}
           items={items}
           onClose={() => setDrawerOpen(false)}
+          onRemove={removeProduct}
+          onUpdateQuantity={updateQuantity}
           onCheckout={() => {
             setDrawerOpen(false);
             router.push('/checkout');

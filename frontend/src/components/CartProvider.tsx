@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useContext, useEffect, useMemo, useState, ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useRef, useState, ReactNode } from 'react';
 import type { Product } from '@/lib/data';
 
 export type CartItem = {
@@ -12,6 +12,8 @@ type CartContextType = {
   items: CartItem[];
   totalQuantity: number;
   addProduct: (product: Product, quantity?: number) => void;
+  removeProduct: (productId: string) => void;
+  updateQuantity: (productId: string, quantity: number) => void;
   clear: () => void;
 };
 
@@ -19,6 +21,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
+  const isFirstWrite = useRef(true);
 
   useEffect(() => {
     try {
@@ -34,6 +37,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // Pula a primeira execução (montagem) para não sobrescrever o carrinho
+    // salvo com o estado inicial vazio antes do efeito de carregamento rodar.
+    if (isFirstWrite.current) {
+      isFirstWrite.current = false;
+      return;
+    }
     try {
       if (typeof window === 'undefined') return;
       window.localStorage.setItem('cart', JSON.stringify(items));
@@ -55,6 +64,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   };
 
+  const removeProduct = (productId: string) => {
+    setItems(prev => prev.filter(it => it.product.id !== productId));
+  };
+
+  const updateQuantity = (productId: string, quantity: number) => {
+    const qty = Math.floor(quantity);
+    if (qty <= 0) {
+      removeProduct(productId);
+      return;
+    }
+    setItems(prev => prev.map(it => (it.product.id === productId ? { ...it, qty } : it)));
+  };
+
   const clear = () => setItems([]);
 
   const totalQuantity = useMemo(
@@ -66,6 +88,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     items,
     totalQuantity,
     addProduct,
+    removeProduct,
+    updateQuantity,
     clear
   };
 
