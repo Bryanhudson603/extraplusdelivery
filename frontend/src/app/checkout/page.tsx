@@ -6,6 +6,7 @@ import { useCart } from '@/components/CartProvider';
 import { BottomNav } from '@/components/BottomNav';
 import { OrderSuccessModal } from '@/components/OrderSuccessModal';
 import { ApiError, api } from '@/lib/api';
+import { PIX_KEY_DISPLAY } from '@/lib/contact';
 import { getDeliveryFeeFromAddress, parseClientAddress } from '@/lib/delivery';
 
 type TipoEntrega = 'delivery' | 'retirada';
@@ -29,7 +30,6 @@ export default function CheckoutPage() {
   const [formaPagamento, setFormaPagamento] = useState<FormaPagamento>('pix');
   const [submitting, setSubmitting] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  const [pixPayload, setPixPayload] = useState<string | null>(null);
   const [pedidoConcluido, setPedidoConcluido] = useState<PedidoResponse | null>(null);
   const [trocoPara, setTrocoPara] = useState<string>('');
   const [clienteId, setClienteId] = useState<string | undefined>(undefined);
@@ -113,7 +113,6 @@ export default function CheckoutPage() {
 
     setSubmitting(true);
     setErro(null);
-    setPixPayload(null);
 
     try {
       const body = {
@@ -138,10 +137,6 @@ export default function CheckoutPage() {
       };
 
       const resposta = await api.post<PedidoResponse>('/pedidos', body);
-
-      if (resposta.pix?.qrCodePayload && formaPagamento === 'pix') {
-        setPixPayload(resposta.pix.qrCodePayload);
-      }
 
       clear();
       setPedidoConcluido(resposta);
@@ -326,6 +321,17 @@ export default function CheckoutPage() {
             </button>
           </div>
 
+          {formaPagamento === 'pix' && (
+            <div className="mt-3 rounded-xl bg-emerald-50 dark:bg-zinc-950 border border-emerald-200 dark:border-zinc-800 p-3 space-y-1">
+              <p className="text-xs text-slate-700 dark:text-zinc-300">
+                Chave PIX (celular): <span className="font-mono font-semibold">{PIX_KEY_DISPLAY}</span>
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-zinc-500">
+                Após realizar o pagamento, envie o comprovante pelo WhatsApp da loja para confirmarmos seu pedido.
+              </p>
+            </div>
+          )}
+
           {formaPagamento === 'dinheiro' && (
             <div className="mt-3 space-y-1">
               <label className="text-xs text-slate-500 dark:text-zinc-400">
@@ -476,7 +482,7 @@ export default function CheckoutPage() {
         open={pedidoConcluido !== null}
         pedidoId={pedidoConcluido?.id}
         total={pedidoConcluido?.total}
-        pixPayload={formaPagamento === 'pix' ? pixPayload : null}
+        isPix={pedidoConcluido?.formaPagamento === 'pix'}
         onDismiss={() => router.push('/orders')}
       />
     </main>

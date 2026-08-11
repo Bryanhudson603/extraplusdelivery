@@ -1,9 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { PIX_KEY, PIX_KEY_DISPLAY, abrirWhatsApp } from '@/lib/contact';
 
-const WHATSAPP_NUMBER = '558288430373';
-const MENSAGEM_PADRAO = 'Aqui está minha localização exata para entrega do pedido.';
+const MENSAGEM_LOCALIZACAO = 'Aqui está minha localização exata para entrega do pedido.';
 
 type GeoStatus = 'idle' | 'buscando' | 'negado' | 'indisponivel' | 'enviado';
 
@@ -11,19 +11,34 @@ type Props = {
   open: boolean;
   pedidoId?: string;
   total?: number;
-  pixPayload?: string | null;
+  isPix?: boolean;
   onDismiss: () => void;
 };
 
-function abrirWhatsApp(mensagem: string) {
-  const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(mensagem)}`;
-  window.open(url, '_blank', 'noopener,noreferrer');
-}
-
-export function OrderSuccessModal({ open, pedidoId, total, pixPayload, onDismiss }: Props) {
+export function OrderSuccessModal({ open, pedidoId, total, isPix, onDismiss }: Props) {
   const [geoStatus, setGeoStatus] = useState<GeoStatus>('idle');
+  const [pixCopiado, setPixCopiado] = useState(false);
 
   if (!open) return null;
+
+  function copiarChavePix() {
+    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+      navigator.clipboard.writeText(PIX_KEY).then(
+        () => {
+          setPixCopiado(true);
+          setTimeout(() => setPixCopiado(false), 2000);
+        },
+        () => {}
+      );
+    }
+  }
+
+  function enviarComprovante() {
+    const idCurto = pedidoId ? pedidoId.slice(0, 8).toUpperCase() : '';
+    abrirWhatsApp(
+      `Olá! Aqui está o comprovante do pagamento PIX do meu pedido${idCurto ? ` #${idCurto}` : ''}.`
+    );
+  }
 
   function solicitarLocalizacao() {
     if (typeof navigator === 'undefined' || !('geolocation' in navigator)) {
@@ -36,7 +51,7 @@ export function OrderSuccessModal({ open, pedidoId, total, pixPayload, onDismiss
       position => {
         const { latitude, longitude } = position.coords;
         const link = `https://www.google.com/maps?q=${latitude},${longitude}`;
-        abrirWhatsApp(`${MENSAGEM_PADRAO}\n${link}`);
+        abrirWhatsApp(`${MENSAGEM_LOCALIZACAO}\n${link}`);
         setGeoStatus('enviado');
       },
       () => {
@@ -47,7 +62,7 @@ export function OrderSuccessModal({ open, pedidoId, total, pixPayload, onDismiss
   }
 
   function abrirSemLocalizacao() {
-    abrirWhatsApp(MENSAGEM_PADRAO);
+    abrirWhatsApp(MENSAGEM_LOCALIZACAO);
     setGeoStatus('enviado');
   }
 
@@ -67,12 +82,29 @@ export function OrderSuccessModal({ open, pedidoId, total, pixPayload, onDismiss
           )}
         </div>
 
-        {pixPayload && (
-          <div className="text-left">
-            <p className="text-xs text-gray-600 dark:text-zinc-400 mb-1">Código PIX gerado:</p>
-            <div className="break-all rounded-lg bg-gray-50 border border-gray-200 dark:bg-zinc-950 dark:border-zinc-800 p-2 text-[11px] text-gray-700 dark:text-zinc-300">
-              {pixPayload}
+        {isPix && (
+          <div className="text-left bg-emerald-50 dark:bg-zinc-950 border border-emerald-200 dark:border-zinc-800 rounded-xl p-4 space-y-2">
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">Pague com PIX (celular)</p>
+            <div className="flex items-center justify-between gap-2 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-lg px-3 py-2">
+              <span className="text-sm font-mono text-gray-900 dark:text-white">{PIX_KEY_DISPLAY}</span>
+              <button
+                type="button"
+                onClick={copiarChavePix}
+                className="text-xs font-semibold text-blue-600 dark:text-blue-400 flex-shrink-0"
+              >
+                {pixCopiado ? 'Copiado!' : 'Copiar chave'}
+              </button>
             </div>
+            <p className="text-xs text-gray-600 dark:text-zinc-400">
+              Após realizar o pagamento, envie o comprovante pelo WhatsApp para confirmarmos seu pedido.
+            </p>
+            <button
+              type="button"
+              onClick={enviarComprovante}
+              className="w-full h-10 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold"
+            >
+              📎 Enviar comprovante pelo WhatsApp
+            </button>
           </div>
         )}
 
