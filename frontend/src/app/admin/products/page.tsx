@@ -42,7 +42,10 @@ type ImportResult = {
   erros: { linha: number; motivo: string }[];
 };
 
-const CSV_TEMPLATE = 'Produto;CATEGORIA;VALOR\nSkol Lata 350ml;Cervejas;4,50\nCoca-Cola 2L;Refrigerantes;9,90\n';
+const CSV_TEMPLATE =
+  'Produto;CATEGORIA;VALOR;VOLUME;PREÇO DO FARDO;ESTOQUE\n' +
+  'Skol Lata 350ml;Cervejas;4,50;350ml;54,00;100\n' +
+  'Coca-Cola 2L;Refrigerantes;9,90;2L;;50\n';
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>(initialProducts);
@@ -57,6 +60,10 @@ export default function AdminProductsPage() {
   const [isImporting, setIsImporting] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isBulkDeleting, setIsBulkDeleting] = useState(false);
 
   async function carregarProdutos() {
     try {
@@ -371,12 +378,61 @@ export default function AdminProductsPage() {
   }
 
   function deleteProduct(p: Product) {
+    if (!window.confirm(`Excluir "${p.name}"? Essa ação não pode ser desfeita.`)) return;
     api
       .delete(`/admin/produtos/${p.id}` as any)
       .then(() => {
         setProducts((prev) => prev.filter((item) => item.id !== p.id));
+        setSelectedIds((prev) => {
+          if (!prev.has(p.id)) return prev;
+          const next = new Set(prev);
+          next.delete(p.id);
+          return next;
+        });
       })
       .catch((e) => console.error('Erro ao excluir produto', e));
+  }
+
+  function toggleSelectionMode() {
+    setSelectionMode((prev) => !prev);
+    setSelectedIds(new Set());
+  }
+
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds((prev) => {
+      if (prev.size === filtered.length) return new Set();
+      return new Set(filtered.map((p) => p.id));
+    });
+  }
+
+  async function handleBulkDelete() {
+    if (selectedIds.size === 0) return;
+    if (!window.confirm(`Excluir ${selectedIds.size} produto(s) selecionado(s)? Essa ação não pode ser desfeita.`)) {
+      return;
+    }
+    setIsBulkDeleting(true);
+    const ids = Array.from(selectedIds);
+    try {
+      const results = await Promise.allSettled(ids.map((id) => api.delete(`/admin/produtos/${id}` as any)));
+      const removedIds = ids.filter((_, idx) => results[idx].status === 'fulfilled');
+      setProducts((prev) => prev.filter((item) => !removedIds.includes(item.id)));
+      setSelectedIds(new Set());
+      const failed = results.filter((r) => r.status === 'rejected').length;
+      if (failed > 0) {
+        console.error(`Falha ao excluir ${failed} produto(s).`);
+      }
+    } finally {
+      setIsBulkDeleting(false);
+    }
   }
 
   return (
@@ -414,6 +470,11 @@ export default function AdminProductsPage() {
             </button>
           </div>
         </div>
+
+        <p className="text-xs text-gray-500 dark:text-zinc-500 -mt-3 mb-6">
+          Colunas do CSV: <strong>Produto</strong>, <strong>CATEGORIA</strong> e <strong>VALOR</strong> (obrigatórias) — VOLUME,
+          PREÇO DO FARDO e ESTOQUE são opcionais.
+        </p>
 
         {(importResult || importError) && (
           <div
@@ -466,18 +527,80 @@ export default function AdminProductsPage() {
           </div>
         </div>
 
+        <div className="flex items-center justify-between mb-4 gap-3">
+          <div className="flex items-center rounded-lg border border-gray-300 dark:border-zinc-800 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => setViewMode('grid')}
+              className={`h-9 px-3 text-sm font-semibold flex items-center gap-1.5 ${
+                viewMode === 'grid'
+                  ? 'bg-amber-500 text-black'
+                  : 'bg-white text-gray-700 dark:bg-zinc-900 dark:text-zinc-300'
+              }`}
+            >
+              <span>▦</span> Grade
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode('list')}
+              className={`h-9 px-3 text-sm font-semibold flex items-center gap-1.5 ${
+                viewMode === 'list'
+                  ? 'bg-amber-500 text-black'
+                  : 'bg-white text-gray-700 dark:bg-zinc-900 dark:text-zinc-300'
+              }`}
+            >
+              <span>☰</span> Lista
+            </button>
+          </div>
+          <button
+            type="button"
+            onClick={toggleSelectionMode}
+            className={`h-9 px-4 rounded-lg text-sm font-semibold border ${
+              selectionMode
+                ? 'bg-gray-900 text-white border-gray-900 dark:bg-white dark:text-black dark:border-white'
+                : 'border-gray-300 text-gray-700 dark:border-zinc-700 dark:text-zinc-300'
+            }`}
+          >
+            {selectionMode ? 'Cancelar seleção' : 'Selecionar'}
+          </button>
+        </div>
+
+        {selectionMode && (
+          <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-950/30 border border-amber-300 dark:border-amber-900 rounded-lg px-4 py-2.5 mb-4 text-sm">
+            <label className="flex items-center gap-2 text-gray-800 dark:text-zinc-200 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={filtered.length > 0 && selectedIds.size === filtered.length}
+                onChange={toggleSelectAll}
+                className="w-4 h-4"
+              />
+              {selectedIds.size} selecionado(s)
+            </label>
+            <button
+              type="button"
+              onClick={handleBulkDelete}
+              disabled={selectedIds.size === 0 || isBulkDeleting}
+              className="h-9 px-4 rounded-lg bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white text-sm font-semibold"
+            >
+              {isBulkDeleting ? 'Excluindo...' : 'Excluir selecionados'}
+            </button>
+          </div>
+        )}
+
         {filtered.length === 0 ? (
           <div className="text-center py-16 text-gray-600 dark:text-zinc-500">Nenhum produto encontrado</div>
-        ) : (
+        ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {filtered.map((product) => (
               <div
                 key={product.id}
-                className={`bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 rounded-2xl overflow-hidden ${
-                  !product.active ? 'opacity-60' : ''
-                }`}
+                className={`bg-white border rounded-2xl ${
+                  selectedIds.has(product.id)
+                    ? 'border-amber-500 ring-2 ring-amber-500'
+                    : 'border-gray-200 dark:border-zinc-800'
+                } dark:bg-zinc-900 ${!product.active ? 'opacity-60' : ''}`}
               >
-                <div className="relative h-40 bg-gray-100 dark:bg-zinc-800">
+                <div className="relative h-40 bg-gray-100 dark:bg-zinc-800 rounded-t-2xl overflow-hidden">
                   {product.imageUrl ? (
                     <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
                   ) : (
@@ -485,8 +608,18 @@ export default function AdminProductsPage() {
                       <span className="text-zinc-600 text-3xl">🍺</span>
                     </div>
                   )}
+                  {selectionMode && (
+                    <label className="absolute top-2 left-2 w-6 h-6 rounded bg-white/90 dark:bg-zinc-900/90 flex items-center justify-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(product.id)}
+                        onChange={() => toggleSelected(product.id)}
+                        className="w-4 h-4"
+                      />
+                    </label>
+                  )}
                   <span
-                    className={`absolute top-2 left-2 px-2 py-0.5 rounded-full text-xs font-semibold ${
+                    className={`absolute top-2 ${selectionMode ? 'left-9' : 'left-2'} px-2 py-0.5 rounded-full text-xs font-semibold ${
                       product.active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
                     }`}
                   >
@@ -524,7 +657,7 @@ export default function AdminProductsPage() {
                             ⋮
                           </div>
                         </summary>
-                        <div className="absolute right-0 mt-1 w-36 rounded-lg bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 py-1 text-sm shadow-lg">
+                        <div className="absolute right-0 z-20 mt-1 w-36 rounded-lg bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 py-1 text-sm shadow-lg">
                           <button
                             onClick={() => openEditProduct(product)}
                             className="block w-full text-left px-3 py-1.5 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-zinc-800"
@@ -547,6 +680,100 @@ export default function AdminProductsPage() {
                       </details>
                     </div>
                   </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col divide-y divide-gray-200 dark:divide-zinc-800 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl">
+            {filtered.map((product) => (
+              <div
+                key={product.id}
+                className={`flex items-center gap-3 p-3 sm:p-4 ${
+                  selectedIds.has(product.id) ? 'bg-amber-50 dark:bg-amber-950/20' : ''
+                } ${!product.active ? 'opacity-60' : ''}`}
+              >
+                {selectionMode && (
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(product.id)}
+                    onChange={() => toggleSelected(product.id)}
+                    className="w-4 h-4 flex-shrink-0"
+                  />
+                )}
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-gray-100 dark:bg-zinc-800 flex-shrink-0 overflow-hidden flex items-center justify-center">
+                  {product.imageUrl ? (
+                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-zinc-600 text-xl">🍺</span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-gray-600 dark:text-zinc-500 text-xs">
+                    {product.category} · {product.volume}
+                  </p>
+                  <h3 className="text-gray-900 dark:text-white font-semibold truncate">{product.name}</h3>
+                  <p className="sm:hidden text-gray-900 dark:text-white text-sm font-bold mt-0.5">
+                    R$ {(product.promoPrice ?? product.unitPrice).toFixed(2)}
+                  </p>
+                </div>
+                <div className="hidden sm:block text-right w-24 flex-shrink-0">
+                  {product.promoPrice ? (
+                    <>
+                      <div className="text-amber-500 font-bold text-sm">R$ {product.promoPrice.toFixed(2)}</div>
+                      <div className="text-gray-500 dark:text-zinc-500 line-through text-xs">
+                        R$ {product.unitPrice.toFixed(2)}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-gray-900 dark:text-white font-bold text-sm">
+                      R$ {product.unitPrice.toFixed(2)}
+                    </div>
+                  )}
+                </div>
+                <div className="hidden sm:flex flex-col items-end w-28 flex-shrink-0 text-xs text-gray-600 dark:text-zinc-500">
+                  <span>Estoque: {product.stock}</span>
+                  {product.stock <= product.minStockAlert && (
+                    <span className="text-red-500 font-semibold">Estoque baixo</span>
+                  )}
+                </div>
+                <span
+                  className={`hidden md:inline-flex px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${
+                    product.active
+                      ? 'bg-green-500/20 text-green-600 dark:text-green-400'
+                      : 'bg-red-500/20 text-red-600 dark:text-red-400'
+                  }`}
+                >
+                  {product.active ? 'Ativo' : 'Inativo'}
+                </span>
+                <div className="relative flex-shrink-0">
+                  <details className="group">
+                    <summary className="list-none cursor-pointer">
+                      <div className="w-8 h-8 rounded-full hover:bg-gray-100 dark:hover:bg-zinc-800 flex items-center justify-center text-gray-600 dark:text-zinc-400">
+                        ⋮
+                      </div>
+                    </summary>
+                    <div className="absolute right-0 z-20 mt-1 w-36 rounded-lg bg-white border border-gray-200 dark:bg-zinc-900 dark:border-zinc-800 py-1 text-sm shadow-lg">
+                      <button
+                        onClick={() => openEditProduct(product)}
+                        className="block w-full text-left px-3 py-1.5 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-zinc-800"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => toggleActive(product)}
+                        className="block w-full text-left px-3 py-1.5 text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-zinc-800"
+                      >
+                        {product.active ? 'Desativar' : 'Ativar'}
+                      </button>
+                      <button
+                        onClick={() => deleteProduct(product)}
+                        className="block w-full text-left px-3 py-1.5 text-red-600 hover:bg-gray-100 dark:text-red-400 dark:hover:bg-zinc-800"
+                      >
+                        Excluir
+                      </button>
+                    </div>
+                  </details>
                 </div>
               </div>
             ))}

@@ -799,7 +799,12 @@ export class AdminService {
 
     const idxNome = cabecalho.findIndex(c => c === 'produto' || c === 'nome');
     const idxCategoria = cabecalho.findIndex(c => c === 'categoria');
-    const idxValor = cabecalho.findIndex(c => c === 'valor' || c === 'preco');
+    const idxValor = cabecalho.findIndex(c => c === 'valor' || c === 'preco' || c === 'preco unitario');
+    const idxVolume = cabecalho.findIndex(c => c === 'volume');
+    const idxEstoque = cabecalho.findIndex(c => c === 'estoque' || c === 'stock');
+    const idxPrecoFardo = cabecalho.findIndex(
+      c => c === 'preco do fardo' || c === 'preco fardo' || c === 'fardo'
+    );
 
     if (idxNome === -1 || idxCategoria === -1 || idxValor === -1) {
       throw new BadRequestException('CSV deve conter as colunas Produto, CATEGORIA e VALOR.');
@@ -826,6 +831,32 @@ export class AdminService {
         continue;
       }
 
+      const volumeTexto = idxVolume !== -1 ? (colunas[idxVolume] || '').trim() : '';
+
+      let estoque: number | null = null;
+      if (idxEstoque !== -1) {
+        const estoqueTexto = (colunas[idxEstoque] || '').trim();
+        if (estoqueTexto) {
+          estoque = this.parseInteiroCsv(estoqueTexto);
+          if (estoque == null) {
+            erros.push({ linha: i + 1, motivo: `Estoque inválido: "${estoqueTexto}".` });
+            continue;
+          }
+        }
+      }
+
+      let precoFardo: number | null = null;
+      if (idxPrecoFardo !== -1) {
+        const fardoTexto = (colunas[idxPrecoFardo] || '').trim();
+        if (fardoTexto) {
+          precoFardo = this.parsePrecoBr(fardoTexto);
+          if (precoFardo == null) {
+            erros.push({ linha: i + 1, motivo: `Preço do fardo inválido: "${fardoTexto}".` });
+            continue;
+          }
+        }
+      }
+
       const existente = await this.produtoRepo.findByNomeELoja(lojaId, nome);
       const produto = existente || new ProdutoEntity();
       if (!existente) {
@@ -838,6 +869,9 @@ export class AdminService {
       produto.nome = nome;
       produto.categoriaNome = categoria || null;
       produto.preco = preco.toFixed(2);
+      if (volumeTexto) produto.volume = volumeTexto;
+      if (estoque != null) produto.estoqueAtual = estoque;
+      if (precoFardo != null) produto.packPrice = precoFardo.toFixed(2);
 
       await this.produtoRepo.save(produto);
       if (existente) atualizados += 1;
@@ -891,6 +925,13 @@ export class AdminService {
       .toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '');
+  }
+
+  private parseInteiroCsv(valor: string): number | null {
+    const limpo = valor.replace(/[^\d-]/g, '');
+    if (!limpo) return null;
+    const numero = Number(limpo);
+    return Number.isFinite(numero) && numero >= 0 ? Math.trunc(numero) : null;
   }
 
   private parsePrecoBr(valor: string): number | null {
