@@ -6,6 +6,7 @@ import { LojaEntity } from '../../entities/loja.entity';
 import { UsuarioEntity } from '../../entities/usuario.entity';
 import { ClienteRepository } from '../../repositories/cliente.repository';
 import { LojaRepository } from '../../repositories/loja.repository';
+import { PedidoRepository } from '../../repositories/pedido.repository';
 import { UsuarioRepository } from '../../repositories/usuario.repository';
 
 function slugify(input: string): string {
@@ -33,7 +34,8 @@ export class PlatformService {
   constructor(
     private readonly lojaRepo: LojaRepository,
     private readonly usuarioRepo: UsuarioRepository,
-    private readonly clienteRepo: ClienteRepository
+    private readonly clienteRepo: ClienteRepository,
+    private readonly pedidoRepo: PedidoRepository
   ) {}
 
   async listarLojas() {
@@ -202,10 +204,24 @@ export class PlatformService {
     };
   }
 
-  async atualizarAdmin(id: string, body: { senha?: string; lojaId?: string; ativo?: boolean }) {
+  async atualizarAdmin(id: string, body: { username?: string; senha?: string; lojaId?: string; ativo?: boolean }) {
     const admin = await this.usuarioRepo.findById(id);
     if (!admin) {
       throw new BadRequestException('Admin não encontrado.');
+    }
+
+    if (body?.username !== undefined) {
+      const username = String(body.username || '').trim();
+      if (!username) {
+        throw new BadRequestException('Username inválido.');
+      }
+      if (username !== admin.username) {
+        const existe = await this.usuarioRepo.existsAtivoByUsernameExcluindo(username, admin.id);
+        if (existe) {
+          throw new BadRequestException('Já existe um admin com este username.');
+        }
+      }
+      admin.username = username;
     }
 
     if (body?.senha !== undefined) {
@@ -278,5 +294,20 @@ export class PlatformService {
       lojaId: salvo.lojaId,
       ativo: salvo.ativo
     };
+  }
+
+  async apagarHistoricoPedidosCliente(id: string): Promise<{ removidos: number }> {
+    const cliente = await this.clienteRepo.findById(id);
+    if (!cliente) {
+      throw new BadRequestException('Cliente não encontrado.');
+    }
+
+    const removidos = await this.pedidoRepo.removerHistoricoDoCliente(
+      cliente.lojaId,
+      cliente.id,
+      cliente.telefone || undefined
+    );
+
+    return { removidos };
   }
 }

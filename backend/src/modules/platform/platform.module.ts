@@ -2,16 +2,18 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ClienteEntity } from '../../entities/cliente.entity';
 import { LojaEntity } from '../../entities/loja.entity';
+import { PedidoEntity } from '../../entities/pedido.entity';
 import { UsuarioEntity } from '../../entities/usuario.entity';
 import { ClienteRepository } from '../../repositories/cliente.repository';
 import { LojaRepository } from '../../repositories/loja.repository';
+import { PedidoRepository } from '../../repositories/pedido.repository';
 import { UsuarioRepository } from '../../repositories/usuario.repository';
 import { PlatformController } from './platform.controller';
 import { PlatformService } from './platform.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([LojaEntity, UsuarioEntity, ClienteEntity])],
+  imports: [TypeOrmModule.forFeature([LojaEntity, UsuarioEntity, ClienteEntity, PedidoEntity])],
   controllers: [PlatformController],
-  providers: [PlatformService, LojaRepository, UsuarioRepository, ClienteRepository]
+  providers: [PlatformService, LojaRepository, UsuarioRepository, ClienteRepository, PedidoRepository]
 })
 export class PlatformModule {}

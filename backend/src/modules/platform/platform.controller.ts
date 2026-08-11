@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { PlatformService } from './platform.service';
 import { RequireAuth } from '../../auth/require-auth.guard';
 import {
@@ -53,5 +53,10 @@ export class PlatformController {
   @Put('usuarios/cliente/:id')
   atualizarCliente(@Param('id') id: string, @Body() body: AtualizarClienteDto) {
     return this.platformService.atualizarCliente(id, body);
+  }
+
+  @Delete('usuarios/cliente/:id/pedidos')
+  apagarHistoricoPedidosCliente(@Param('id') id: string) {
+    return this.platformService.apagarHistoricoPedidosCliente(id);
   }
 }

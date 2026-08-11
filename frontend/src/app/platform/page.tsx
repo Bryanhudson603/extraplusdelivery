@@ -55,6 +55,16 @@ export default function PlatformHomePage() {
   const [novoClienteLoja, setNovoClienteLoja] = useState('');
   const [criandoCliente, setCriandoCliente] = useState(false);
 
+  const [editandoAdmin, setEditandoAdmin] = useState<AdminUser | null>(null);
+  const [editAdminUsername, setEditAdminUsername] = useState('');
+  const [editAdminSenha, setEditAdminSenha] = useState('');
+  const [salvandoAdmin, setSalvandoAdmin] = useState(false);
+  const [feedbackEdicaoAdmin, setFeedbackEdicaoAdmin] = useState<string | null>(null);
+
+  const [clienteParaZerar, setClienteParaZerar] = useState<string | null>(null);
+  const [zerandoPedidosId, setZerandoPedidosId] = useState<string | null>(null);
+  const [feedbackZerarPorCliente, setFeedbackZerarPorCliente] = useState<Record<string, string>>({});
+
   const lojasAtivas = useMemo(() => lojas.filter(l => l.ativo), [lojas]);
 
   const carregar = useCallback(async () => {
@@ -125,6 +135,60 @@ export default function PlatformHomePage() {
   async function toggleAdmin(id: string, ativo: boolean) {
     await api.put(`/platform/usuarios/admin/${id}`, { ativo: !ativo });
     await carregar();
+  }
+
+  function abrirEdicaoAdmin(admin: AdminUser) {
+    setEditandoAdmin(admin);
+    setEditAdminUsername(admin.username);
+    setEditAdminSenha('');
+    setFeedbackEdicaoAdmin(null);
+  }
+
+  async function salvarEdicaoAdmin() {
+    if (!editandoAdmin || salvandoAdmin) return;
+    setSalvandoAdmin(true);
+    setFeedbackEdicaoAdmin(null);
+    try {
+      const payload: { username?: string; senha?: string } = {};
+      const novoUsername = editAdminUsername.trim();
+      if (novoUsername && novoUsername !== editandoAdmin.username) {
+        payload.username = novoUsername;
+      }
+      if (editAdminSenha.trim()) {
+        payload.senha = editAdminSenha.trim();
+      }
+      if (!payload.username && !payload.senha) {
+        setFeedbackEdicaoAdmin('Altere o usuário ou informe uma nova senha para salvar.');
+        return;
+      }
+      await api.put(`/platform/usuarios/admin/${editandoAdmin.id}`, payload);
+      setEditandoAdmin(null);
+      await carregar();
+    } catch (e) {
+      if (e instanceof ApiError && e.payload && typeof e.payload === 'object' && 'message' in e.payload) {
+        setFeedbackEdicaoAdmin(String((e.payload as { message?: unknown }).message || 'Falha ao salvar.'));
+      } else {
+        setFeedbackEdicaoAdmin('Falha ao salvar alterações.');
+      }
+    } finally {
+      setSalvandoAdmin(false);
+    }
+  }
+
+  async function zerarPedidosCliente(id: string) {
+    setZerandoPedidosId(id);
+    try {
+      const resposta = await api.delete<{ removidos: number }>(`/platform/usuarios/cliente/${id}/pedidos` as any);
+      setFeedbackZerarPorCliente(prev => ({
+        ...prev,
+        [id]: `${resposta.removidos} pedido(s) apagado(s).`
+      }));
+    } catch (e) {
+      setFeedbackZerarPorCliente(prev => ({ ...prev, [id]: 'Falha ao apagar pedidos.' }));
+    } finally {
+      setZerandoPedidosId(null);
+      setClienteParaZerar(null);
+    }
   }
 
   async function criarCliente() {
@@ -286,17 +350,26 @@ export default function PlatformHomePage() {
                       lojaId: {a.lojaId} • {a.ativo ? 'ativo' : 'inativo'}
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => toggleAdmin(a.id, a.ativo)}
-                    className={`h-9 px-3 rounded-lg text-xs font-semibold border ${
-                      a.ativo
-                        ? 'border-red-500/40 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10'
-                        : 'border-green-500/40 text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-500/10'
-                    }`}
-                  >
-                    {a.ativo ? 'Desativar' : 'Ativar'}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => abrirEdicaoAdmin(a)}
+                      className="h-9 px-3 rounded-lg text-xs font-semibold border border-blue-500/40 text-blue-600 hover:bg-blue-50 dark:text-blue-400 dark:hover:bg-blue-500/10"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleAdmin(a.id, a.ativo)}
+                      className={`h-9 px-3 rounded-lg text-xs font-semibold border ${
+                        a.ativo
+                          ? 'border-red-500/40 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10'
+                          : 'border-green-500/40 text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-500/10'
+                      }`}
+                    >
+                      {a.ativo ? 'Desativar' : 'Ativar'}
+                    </button>
+                  </div>
                 </div>
               ))}
               {usuarios.admins.length === 0 && (
@@ -357,24 +430,66 @@ export default function PlatformHomePage() {
 
             <div className="mt-4 divide-y divide-gray-200 dark:divide-zinc-800">
               {usuarios.clientes.map(c => (
-                <div key={c.id} className="py-3 flex items-center justify-between">
-                  <div>
-                    <div className="font-semibold">{c.nome}</div>
-                    <div className="text-xs text-gray-600 dark:text-zinc-400">
-                      {c.telefone} • lojaId: {c.lojaId} • {c.ativo ? 'ativo' : 'inativo'}
+                <div key={c.id} className="py-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="font-semibold">{c.nome}</div>
+                      <div className="text-xs text-gray-600 dark:text-zinc-400">
+                        {c.telefone} • lojaId: {c.lojaId} • {c.ativo ? 'ativo' : 'inativo'}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setClienteParaZerar(c.id)}
+                        className="h-9 px-3 rounded-lg text-xs font-semibold border border-amber-500/40 text-amber-700 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-500/10"
+                      >
+                        Zerar pedidos
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleCliente(c.id, c.ativo)}
+                        className={`h-9 px-3 rounded-lg text-xs font-semibold border ${
+                          c.ativo
+                            ? 'border-red-500/40 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10'
+                            : 'border-green-500/40 text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-500/10'
+                        }`}
+                      >
+                        {c.ativo ? 'Desativar' : 'Ativar'}
+                      </button>
                     </div>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => toggleCliente(c.id, c.ativo)}
-                    className={`h-9 px-3 rounded-lg text-xs font-semibold border ${
-                      c.ativo
-                        ? 'border-red-500/40 text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10'
-                        : 'border-green-500/40 text-green-700 hover:bg-green-50 dark:text-green-400 dark:hover:bg-green-500/10'
-                    }`}
-                  >
-                    {c.ativo ? 'Desativar' : 'Ativar'}
-                  </button>
+
+                  {clienteParaZerar === c.id && (
+                    <div className="flex items-center justify-between gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 px-3 py-2">
+                      <span className="text-xs text-amber-800 dark:text-amber-200">
+                        Apagar todo o histórico de pedidos de {c.nome}? Essa ação não pode ser desfeita.
+                      </span>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setClienteParaZerar(null)}
+                          className="text-xs text-gray-600 dark:text-zinc-400"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          disabled={zerandoPedidosId === c.id}
+                          onClick={() => zerarPedidosCliente(c.id)}
+                          className="text-xs font-semibold text-red-600 dark:text-red-400 disabled:opacity-60"
+                        >
+                          {zerandoPedidosId === c.id ? 'Apagando...' : 'Confirmar'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {feedbackZerarPorCliente[c.id] && (
+                    <div className="text-[11px] text-gray-600 dark:text-zinc-400">
+                      {feedbackZerarPorCliente[c.id]}
+                    </div>
+                  )}
                 </div>
               ))}
               {usuarios.clientes.length === 0 && (
@@ -386,6 +501,61 @@ export default function PlatformHomePage() {
           </div>
         </div>
       </section>
+
+      {editandoAdmin && (
+        <>
+          <div className="fixed inset-0 bg-black/60 z-40" onClick={() => setEditandoAdmin(null)} />
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+            <div className="w-full max-w-sm bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-5 space-y-4">
+              <div>
+                <div className="text-lg font-bold">Editar admin (lojista)</div>
+                <div className="text-xs text-gray-600 dark:text-zinc-400">lojaId: {editandoAdmin.lojaId}</div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs text-gray-600 dark:text-zinc-400">Usuário</label>
+                <input
+                  value={editAdminUsername}
+                  onChange={e => setEditAdminUsername(e.target.value)}
+                  className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm outline-none dark:bg-zinc-950 dark:border-zinc-700"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs text-gray-600 dark:text-zinc-400">Nova senha (deixe em branco para não alterar)</label>
+                <input
+                  value={editAdminSenha}
+                  onChange={e => setEditAdminSenha(e.target.value)}
+                  placeholder="Nova senha"
+                  className="w-full h-10 rounded-lg bg-white border border-gray-300 px-3 text-sm outline-none dark:bg-zinc-950 dark:border-zinc-700"
+                />
+              </div>
+
+              {feedbackEdicaoAdmin && (
+                <div className="text-xs text-red-600 dark:text-red-400">{feedbackEdicaoAdmin}</div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setEditandoAdmin(null)}
+                  className="flex-1 h-10 rounded-lg border border-gray-300 dark:border-zinc-700 text-sm font-semibold"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  disabled={salvandoAdmin}
+                  onClick={salvarEdicaoAdmin}
+                  className="flex-1 h-10 rounded-lg bg-amber-500 hover:bg-amber-600 text-black text-sm font-semibold disabled:opacity-60"
+                >
+                  {salvandoAdmin ? 'Salvando...' : 'Salvar'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

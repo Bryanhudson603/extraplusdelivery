@@ -61,6 +61,11 @@ export class CriarClienteDto {
 export class AtualizarAdminDto {
   @IsOptional()
   @IsString()
+  @Length(1, 100)
+  username?: string;
+
+  @IsOptional()
+  @IsString()
   @Length(4, 200)
   senha?: string;
 

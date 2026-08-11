@@ -56,4 +56,15 @@ export class PedidoRepository {
   save(pedido: PedidoEntity): Promise<PedidoEntity> {
     return this.repo.save(pedido);
   }
+
+  async removerHistoricoDoCliente(lojaId: string, clienteId: string, telefone?: string): Promise<number> {
+    let qb = this.repo.createQueryBuilder().delete().from(PedidoEntity).where('loja_id = :lojaId', { lojaId });
+
+    qb = telefone
+      ? qb.andWhere('(cliente_id = :clienteId OR cliente_telefone = :telefone)', { clienteId, telefone })
+      : qb.andWhere('cliente_id = :clienteId', { clienteId });
+
+    const result = await qb.execute();
+    return result.affected || 0;
+  }
 }
