@@ -120,7 +120,7 @@ export class PlatformService {
           id: c.id,
           tipo: 'cliente',
           nome: c.nome,
-          telefone: c.telefone,
+          telefone: c.telefone || '',
           lojaId: c.lojaId,
           ativo: c.ativo
         });

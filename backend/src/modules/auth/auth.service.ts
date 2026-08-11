@@ -20,7 +20,7 @@ import {
 } from './auth.dto';
 import { FIXED_CITY_NAME, formatClientAddress } from '../../common/delivery';
 
-function toLojaDto(loja: LojaEntity): LojaDto {
+export function toLojaDto(loja: LojaEntity): LojaDto {
   return {
     id: loja.id,
     nome: loja.nome,
@@ -106,7 +106,7 @@ export class AuthService {
     const response: ClienteLoginResponse = {
       tipo: 'cliente',
       clienteId: cliente.id,
-      telefone: cliente.telefone,
+      telefone: cliente.telefone || '',
       nome: cliente.nome,
       endereco: cliente.endereco,
       loja: toLojaDto(loja)
@@ -116,7 +116,7 @@ export class AuthService {
       sub: cliente.id,
       tipo: 'cliente',
       lojaId: cliente.lojaId,
-      telefone: cliente.telefone
+      telefone: cliente.telefone || undefined
     };
     const token = signAuthToken(payload, '7d');
 
@@ -167,7 +167,7 @@ export class AuthService {
     const response: ClienteLoginResponse = {
       tipo: 'cliente',
       clienteId: salvo.id,
-      telefone: salvo.telefone,
+      telefone: salvo.telefone || '',
       nome: salvo.nome,
       endereco: salvo.endereco,
       loja: toLojaDto(lojaPadrao)
@@ -177,7 +177,7 @@ export class AuthService {
       sub: salvo.id,
       tipo: 'cliente',
       lojaId: salvo.lojaId,
-      telefone: salvo.telefone
+      telefone: salvo.telefone || undefined
     };
     const token = signAuthToken(payload, '7d');
 

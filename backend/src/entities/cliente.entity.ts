@@ -17,8 +17,11 @@ export class ClienteEntity {
   @Column({ type: 'varchar', length: 255 })
   nome!: string;
 
-  @Column({ type: 'varchar', length: 30 })
-  telefone!: string;
+  @Column({ type: 'varchar', length: 30, nullable: true })
+  telefone: string | null = null;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  email: string | null = null;
 
   @Column({ type: 'varchar', length: 255, name: 'senha_hash' })
   senhaHash!: string;

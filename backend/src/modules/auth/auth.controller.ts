@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Post, Res } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
+import { getAuthCookieOptions } from '../../auth/auth-token';
 import { AuthService } from './auth.service';
 import {
   AdminLoginDto,
@@ -16,14 +17,7 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   private cookieOptions() {
-    const isProd = process.env.NODE_ENV === 'production';
-    return {
-      httpOnly: true,
-      secure: isProd,
-      sameSite: isProd ? 'none' : 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: '/'
-    } as const;
+    return getAuthCookieOptions();
   }
 
   @Get('lojas')

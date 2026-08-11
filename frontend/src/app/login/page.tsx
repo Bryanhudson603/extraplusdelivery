@@ -4,7 +4,14 @@ import { FormEvent, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api, ApiError } from '@/lib/api';
 import { BrandLogo } from '@/components/BrandLogo';
+import { GoogleLoginButton } from '@/components/GoogleLoginButton';
 import { DELIVERY_NEIGHBORHOODS, FIXED_CITY_NAME, formatClientAddress } from '@/lib/delivery';
+
+const GOOGLE_ERROR_MESSAGES: Record<string, string> = {
+  google_not_configured: 'Login com Google indisponível no momento.',
+  google_auth_denied: 'Login com Google cancelado.',
+  google_auth_failed: 'Não foi possível concluir o login com Google. Tente novamente.'
+};
 
 type Loja = {
   id: string;
@@ -47,6 +54,16 @@ export default function ClientLoginPage() {
         router.replace('/stores');
       }
     } catch {
+    }
+  }, [router]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const errorCode = params.get('error');
+    if (errorCode) {
+      setErro(GOOGLE_ERROR_MESSAGES[errorCode] || 'Não foi possível entrar com o Google.');
+      window.history.replaceState(null, '', '/login');
     }
   }, [router]);
 
@@ -293,6 +310,14 @@ export default function ClientLoginPage() {
             {submitting ? (modo === 'login' ? 'Entrando...' : 'Cadastrando...') : modo === 'login' ? 'Entrar' : 'Cadastrar'}
           </button>
         </form>
+
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-gray-200 dark:bg-zinc-800" />
+          <span className="text-[11px] text-gray-500 dark:text-zinc-500">ou</span>
+          <div className="h-px flex-1 bg-gray-200 dark:bg-zinc-800" />
+        </div>
+
+        <GoogleLoginButton disabled={bloqueadoSemLojas} />
       </div>
     </main>
   );

@@ -25,6 +25,16 @@ export class ClienteRepository {
     return cliente || null;
   }
 
+  async findAtivoByEmailAnyLoja(email: string): Promise<ClienteEntity | null> {
+    const cliente = await this.repo
+      .createQueryBuilder('cliente')
+      .where('cliente.ativo = true')
+      .andWhere('LOWER(cliente.email) = LOWER(:email)', { email })
+      .orderBy('cliente.criado_em', 'DESC')
+      .getOne();
+    return cliente || null;
+  }
+
   async existsAtivoByTelefone(lojaId: string, telefone: string): Promise<boolean> {
     const count = await this.repo.count({ where: { lojaId, telefone, ativo: true } });
     return count > 0;

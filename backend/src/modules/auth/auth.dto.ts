@@ -46,6 +46,12 @@ export class RegistrarClienteDto {
   cidade!: string;
 }
 
+export class ExchangeGoogleTicketDto {
+  @IsString()
+  @Length(1, 200)
+  ticket!: string;
+}
+
 export class PlatformLoginDto {
   @IsString()
   @Length(1, 100)

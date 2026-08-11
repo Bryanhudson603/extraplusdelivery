@@ -10,6 +10,7 @@ import { LojaEntity } from './entities/loja.entity';
 import { PedidoItemEntity } from './entities/pedidoItem.entity';
 import { PedidoEntity } from './entities/pedido.entity';
 import { ProdutoEntity } from './entities/produto.entity';
+import { SocialAccountEntity } from './entities/socialAccount.entity';
 import { UsuarioEntity } from './entities/usuario.entity';
 import { createDatabaseOptions } from './config/database.config';
 
@@ -28,7 +29,8 @@ export const AppDataSource = new DataSource({
     EntregadorEntity,
     CupomEntity,
     CupomClienteEntity,
-    ClienteCarteiraEntity
+    ClienteCarteiraEntity,
+    SocialAccountEntity
   ],
   synchronize: false
 });

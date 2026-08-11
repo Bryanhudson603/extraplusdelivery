@@ -45,6 +45,23 @@ export function readAuthTokenFromRequest(req: { headers?: Record<string, unknown
   return cookies.extraplus_token || null;
 }
 
+export function readRawCookie(req: { headers?: Record<string, unknown> }, name: string): string | null {
+  const cookieHeader = (req.headers?.cookie as string | undefined) || null;
+  const cookies = parseCookieHeader(cookieHeader);
+  return cookies[name] || null;
+}
+
+export function getAuthCookieOptions() {
+  const isProd = process.env.NODE_ENV === 'production';
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: '/'
+  } as const;
+}
+
 export function verifyAuthToken(token: string): AuthTokenPayload | null {
   try {
     return jwt.verify(token, getJwtSecret()) as AuthTokenPayload;
