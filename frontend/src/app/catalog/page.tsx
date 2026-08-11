@@ -64,6 +64,7 @@ export default function CatalogPage() {
 
         <CategoryList
           categories={allCategories}
+          selectedId={selectedCategory}
           onSelect={id => setSelectedCategory(current => (current === id ? null : id))}
         />
 

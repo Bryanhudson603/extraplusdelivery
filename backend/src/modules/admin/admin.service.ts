@@ -805,6 +805,9 @@ export class AdminService {
     const idxPrecoFardo = cabecalho.findIndex(
       c => c === 'preco do fardo' || c === 'preco fardo' || c === 'fardo'
     );
+    const idxQtdFardo = cabecalho.findIndex(
+      c => c === 'qtd no fardo' || c === 'quantidade no fardo' || c === 'qtd fardo' || c === 'quantidade fardo'
+    );
 
     if (idxNome === -1 || idxCategoria === -1 || idxValor === -1) {
       throw new BadRequestException('CSV deve conter as colunas Produto, CATEGORIA e VALOR.');
@@ -857,6 +860,18 @@ export class AdminService {
         }
       }
 
+      let qtdFardo: number | null = null;
+      if (idxQtdFardo !== -1) {
+        const qtdFardoTexto = (colunas[idxQtdFardo] || '').trim();
+        if (qtdFardoTexto) {
+          qtdFardo = this.parseInteiroCsv(qtdFardoTexto);
+          if (qtdFardo == null) {
+            erros.push({ linha: i + 1, motivo: `Qtd. no fardo inválida: "${qtdFardoTexto}".` });
+            continue;
+          }
+        }
+      }
+
       const existente = await this.produtoRepo.findByNomeELoja(lojaId, nome);
       const produto = existente || new ProdutoEntity();
       if (!existente) {
@@ -872,6 +887,7 @@ export class AdminService {
       if (volumeTexto) produto.volume = volumeTexto;
       if (estoque != null) produto.estoqueAtual = estoque;
       if (precoFardo != null) produto.packPrice = precoFardo.toFixed(2);
+      if (qtdFardo != null) produto.packQuantity = qtdFardo;
 
       await this.produtoRepo.save(produto);
       if (existente) atualizados += 1;
@@ -924,7 +940,10 @@ export class AdminService {
       .trim()
       .toLowerCase()
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '');
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[.]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
   }
 
   private parseInteiroCsv(valor: string): number | null {

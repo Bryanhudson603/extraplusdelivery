@@ -43,9 +43,9 @@ type ImportResult = {
 };
 
 const CSV_TEMPLATE =
-  'Produto;CATEGORIA;VALOR;VOLUME;PREÇO DO FARDO;ESTOQUE\n' +
-  'Skol Lata 350ml;Cervejas;4,50;350ml;54,00;100\n' +
-  'Coca-Cola 2L;Refrigerantes;9,90;2L;;50\n';
+  'Produto;CATEGORIA;VOLUME;Qtd. no Fardo;VALOR;PREÇO DO FARDO;ESTOQUE\n' +
+  'Skol Lata 350ml;Cervejas;350ml;12;4,50;54,00;100\n' +
+  'Coca-Cola 2L;Refrigerantes;2L;;9,90;;50\n';
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>(initialProducts);
@@ -473,7 +473,7 @@ export default function AdminProductsPage() {
 
         <p className="text-xs text-gray-500 dark:text-zinc-500 -mt-3 mb-6">
           Colunas do CSV: <strong>Produto</strong>, <strong>CATEGORIA</strong> e <strong>VALOR</strong> (obrigatórias) — VOLUME,
-          PREÇO DO FARDO e ESTOQUE são opcionais.
+          Qtd. no Fardo, PREÇO DO FARDO e ESTOQUE são opcionais.
         </p>
 
         {(importResult || importError) && (

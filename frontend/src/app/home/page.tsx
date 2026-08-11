@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '../../lib/api';
 import {
@@ -25,6 +25,7 @@ export default function ClientHomePage() {
   const [todosProdutos, setTodosProdutos] = useState<Product[]>([]);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [currentStore, setCurrentStore] = useState<StoreSettings>(defaultStore);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const { items, totalQuantity, addProduct } = useCart();
 
   useEffect(() => {
@@ -83,6 +84,12 @@ export default function ClientHomePage() {
     carregar();
   }, []);
 
+  const produtosFiltrados = useMemo(
+    () => (selectedCategory ? todosProdutos.filter(p => p.categoryId === selectedCategory) : todosProdutos),
+    [todosProdutos, selectedCategory]
+  );
+  const categoriaSelecionada = catsMock.find(c => c.id === selectedCategory);
+
   return (
     <main className="flex-1 flex flex-col gap-4 p-4 pb-24 bg-gray-50 dark:bg-zinc-950">
       <div className="flex items-center justify-between">
@@ -111,7 +118,11 @@ export default function ClientHomePage() {
         Repetir pedido
       </button>
 
-      <CategoryList categories={catsMock} />
+      <CategoryList
+        categories={catsMock}
+        selectedId={selectedCategory}
+        onSelect={id => setSelectedCategory(current => (current === id ? null : id))}
+      />
 
       <section className="mt-3">
         <h2 className="text-lg font-semibold mb-2">Mais pedidos</h2>
@@ -133,22 +144,30 @@ export default function ClientHomePage() {
       </section>
 
       <section>
-        <h2 className="text-lg font-semibold mb-2">Todos os produtos</h2>
-        <div className="grid grid-cols-2 gap-3">
-          {todosProdutos.map(p => (
-            <ProductCard
-              key={p.id}
-              name={p.name}
-              image={p.image}
-              price={p.price}
-              promoPrice={p.promoPrice}
-              tags={p.tags}
-              packQuantity={p.packQuantity}
-              packPrice={p.packPrice}
-              onAdd={qty => addProduct(p, qty)}
-            />
-          ))}
-        </div>
+        <h2 className="text-lg font-semibold mb-2">
+          {categoriaSelecionada ? categoriaSelecionada.name : 'Todos os produtos'}
+        </h2>
+        {produtosFiltrados.length === 0 ? (
+          <p className="text-center text-xs text-neutral-500 py-8 dark:text-zinc-400">
+            Nenhum produto nesta categoria
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {produtosFiltrados.map(p => (
+              <ProductCard
+                key={p.id}
+                name={p.name}
+                image={p.image}
+                price={p.price}
+                promoPrice={p.promoPrice}
+                tags={p.tags}
+                packQuantity={p.packQuantity}
+                packPrice={p.packPrice}
+                onAdd={qty => addProduct(p, qty)}
+              />
+            ))}
+          </div>
+        )}
       </section>
 
       <FloatingCart count={totalQuantity} onOpen={() => setDrawerOpen(true)} />
