@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { RequestMethod, ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { getDatabaseConfigError } from './config/database.config';
 
@@ -65,7 +65,13 @@ async function bootstrap() {
   http.get('/', (_req: any, res: any) => {
     res.status(200).json({ status: 'online' });
   });
-  app.setGlobalPrefix('api');
+  // O redirect URI autorizado no Google Cloud Console e o valor real de
+  // GOOGLE_CALLBACK_URL ja usados em producao nao levam o prefixo /api.
+  // Excluir essa rota do prefixo global evita ter que trocar o redirect
+  // URI cadastrado no Google.
+  app.setGlobalPrefix('api', {
+    exclude: [{ path: 'auth/google/callback', method: RequestMethod.GET }]
+  });
   const port = Number(process.env.PORT || 3000);
   await app.listen(port, '0.0.0.0');
 }
