@@ -8,7 +8,7 @@ type Props = {
   image: string;
   price?: number;
   promoPrice?: number;
-  onAdd?: (quantity: number) => void;
+  onAdd?: (quantity: number, isPack?: boolean) => void;
   tags?: string[];
   packQuantity?: number;
   packPrice?: number;
@@ -52,9 +52,7 @@ export function ProductCard({ name, image, price, promoPrice, onAdd, tags, packQ
     if (modoModal === 'unidades') {
       onAdd(quantidadeBase);
     } else if (modoModal === 'fardos' && hasPack && packQuantity) {
-      const totalUnits = quantidadeBase * packQuantity;
-      if (totalUnits <= 0) return;
-      onAdd(totalUnits);
+      onAdd(quantidadeBase, true);
     }
     setModalAberto(false);
   }

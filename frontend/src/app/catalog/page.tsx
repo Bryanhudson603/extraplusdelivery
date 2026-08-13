@@ -94,7 +94,7 @@ export default function CatalogPage() {
                   tags={prod.tags}
                   packQuantity={prod.packQuantity}
                   packPrice={prod.packPrice}
-                  onAdd={qty => addProduct(prod, qty)}
+                  onAdd={(qty, isPack) => addProduct(prod, qty, isPack)}
                 />
               ))}
             </div>

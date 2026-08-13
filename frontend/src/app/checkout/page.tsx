@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useCart } from '@/components/CartProvider';
+import { cartLineId, getCartLineTotal, getCartLineUnitPrice, useCart } from '@/components/CartProvider';
 import { BottomNav } from '@/components/BottomNav';
 import { OrderSuccessModal } from '@/components/OrderSuccessModal';
 import { ApiError, api } from '@/lib/api';
@@ -46,11 +46,7 @@ export default function CheckoutPage() {
   const [mostrarListaCupons, setMostrarListaCupons] = useState(false);
 
   const subtotal = useMemo(
-    () =>
-      items.reduce((sum, it) => {
-        const price = it.product.promoPrice ?? it.product.price;
-        return sum + price * it.qty;
-      }, 0),
+    () => items.reduce((sum, it) => sum + getCartLineTotal(it), 0),
     [items]
   );
   const parsedAddress = parseClientAddress(clienteEndereco);
@@ -120,9 +116,9 @@ export default function CheckoutPage() {
         formaPagamento,
         itens: items.map(it => ({
           productId: it.product.id,
-          name: it.product.name,
+          name: it.isPack ? `${it.product.name} (Fardo ${it.product.packQuantity}x)` : it.product.name,
           quantity: it.qty,
-          unitPrice: it.product.promoPrice ?? it.product.price
+          unitPrice: getCartLineUnitPrice(it)
         })),
         trocoPara:
           formaPagamento === 'dinheiro'
@@ -251,13 +247,12 @@ export default function CheckoutPage() {
           </div>
           <div className="space-y-1 max-h-32 overflow-y-auto text-xs text-slate-500 dark:text-zinc-400">
             {items.map(it => (
-              <div key={it.product.id} className="flex items-center justify-between">
+              <div key={cartLineId(it.product.id, it.isPack)} className="flex items-center justify-between">
                 <span>
                   {it.qty}x {it.product.name}
+                  {it.isPack ? ` (Fardo ${it.product.packQuantity}x)` : ''}
                 </span>
-                <span>
-                  R$ {((it.product.promoPrice ?? it.product.price) * it.qty).toFixed(2)}
-                </span>
+                <span>R$ {getCartLineTotal(it).toFixed(2)}</span>
               </div>
             ))}
             {items.length === 0 && <span>Carrinho vazio</span>}

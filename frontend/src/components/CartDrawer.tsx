@@ -1,20 +1,18 @@
 import { Product } from '@/lib/data';
 import { AnimatePresence, motion } from 'framer-motion';
+import { cartLineId, getCartLineTotal, getCartLineUnitPrice, type CartItem } from '@/components/CartProvider';
 
 type Props = {
   open: boolean;
-  items: { product: Product; qty: number }[];
+  items: CartItem[];
   onClose: () => void;
   onCheckout?: () => void;
-  onRemove?: (productId: string) => void;
-  onUpdateQuantity?: (productId: string, qty: number) => void;
+  onRemove?: (lineId: string) => void;
+  onUpdateQuantity?: (lineId: string, qty: number) => void;
 };
 
 export function CartDrawer({ open, items, onClose, onCheckout, onRemove, onUpdateQuantity }: Props) {
-  const total = items.reduce((sum, it) => {
-    const price = it.product.promoPrice ?? it.product.price;
-    return sum + price * it.qty;
-  }, 0);
+  const total = items.reduce((sum, it) => sum + getCartLineTotal(it), 0);
 
   return (
     <AnimatePresence>
@@ -37,47 +35,61 @@ export function CartDrawer({ open, items, onClose, onCheckout, onRemove, onUpdat
             {items.length === 0 ? (
               <div className="text-sm text-gray-500 dark:text-zinc-500">Carrinho vazio</div>
             ) : (
-              items.map(it => (
-                <div
-                  key={it.product.id}
-                  className="flex items-center justify-between gap-2 pb-3 border-b border-[var(--brand-soft-border)] dark:border-zinc-800 last:border-b-0 last:pb-0"
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm truncate text-gray-900 dark:text-white">{it.product.name}</div>
-                    <div className="flex items-center gap-2 mt-1">
+              items.map(it => {
+                const lineId = cartLineId(it.product.id, it.isPack);
+                const unitPrice = getCartLineUnitPrice(it);
+                return (
+                  <div
+                    key={lineId}
+                    className="flex items-center justify-between gap-2 pb-3 border-b border-[var(--brand-soft-border)] dark:border-zinc-800 last:border-b-0 last:pb-0"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm truncate text-gray-900 dark:text-white">
+                        {it.product.name}
+                        {it.isPack && (
+                          <span className="ml-1 text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-500/10 dark:text-blue-300 align-middle">
+                            Fardo {it.product.packQuantity}x
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[11px] text-gray-500 dark:text-zinc-500">
+                        R$ {unitPrice.toFixed(2)} {it.isPack ? 'por fardo' : 'un.'}
+                      </div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <button
+                          type="button"
+                          onClick={() => onUpdateQuantity?.(lineId, it.qty - 1)}
+                          className="w-6 h-6 rounded-full border border-[var(--brand-soft-border)] dark:border-zinc-700 text-xs text-gray-700 dark:text-zinc-300 flex items-center justify-center"
+                          aria-label="Diminuir quantidade"
+                        >
+                          −
+                        </button>
+                        <span className="text-xs w-4 text-center text-gray-900 dark:text-white">{it.qty}</span>
+                        <button
+                          type="button"
+                          onClick={() => onUpdateQuantity?.(lineId, it.qty + 1)}
+                          className="w-6 h-6 rounded-full border border-[var(--brand-soft-border)] dark:border-zinc-700 text-xs text-gray-700 dark:text-zinc-300 flex items-center justify-center"
+                          aria-label="Aumentar quantidade"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                      <div className="text-sm font-semibold text-gray-900 dark:text-white">
+                        R$ {getCartLineTotal(it).toFixed(2)}
+                      </div>
                       <button
                         type="button"
-                        onClick={() => onUpdateQuantity?.(it.product.id, it.qty - 1)}
-                        className="w-6 h-6 rounded-full border border-[var(--brand-soft-border)] dark:border-zinc-700 text-xs text-gray-700 dark:text-zinc-300 flex items-center justify-center"
-                        aria-label="Diminuir quantidade"
+                        onClick={() => onRemove?.(lineId)}
+                        className="text-[11px] text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
                       >
-                        −
-                      </button>
-                      <span className="text-xs w-4 text-center text-gray-900 dark:text-white">{it.qty}</span>
-                      <button
-                        type="button"
-                        onClick={() => onUpdateQuantity?.(it.product.id, it.qty + 1)}
-                        className="w-6 h-6 rounded-full border border-[var(--brand-soft-border)] dark:border-zinc-700 text-xs text-gray-700 dark:text-zinc-300 flex items-center justify-center"
-                        aria-label="Aumentar quantidade"
-                      >
-                        +
+                        Remover
                       </button>
                     </div>
                   </div>
-                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                    <div className="text-sm font-semibold text-gray-900 dark:text-white">
-                      R$ {(it.qty * (it.product.promoPrice ?? it.product.price)).toFixed(2)}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => onRemove?.(it.product.id)}
-                      className="text-[11px] text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300"
-                    >
-                      Remover
-                    </button>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 

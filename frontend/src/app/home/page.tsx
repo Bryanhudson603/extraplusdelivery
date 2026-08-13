@@ -137,7 +137,7 @@ export default function ClientHomePage() {
               tags={prod.tags}
               packQuantity={prod.packQuantity}
               packPrice={prod.packPrice}
-              onAdd={qty => addProduct(prod, qty)}
+              onAdd={(qty, isPack) => addProduct(prod, qty, isPack)}
             />
           ))}
         </div>
@@ -163,7 +163,7 @@ export default function ClientHomePage() {
                 tags={p.tags}
                 packQuantity={p.packQuantity}
                 packPrice={p.packPrice}
-                onAdd={qty => addProduct(p, qty)}
+                onAdd={(qty, isPack) => addProduct(p, qty, isPack)}
               />
             ))}
           </div>
