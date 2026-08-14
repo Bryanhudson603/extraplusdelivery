@@ -615,7 +615,7 @@ export default function AdminProductsPage() {
               >
                 <div className="relative h-40 bg-gray-100 dark:bg-zinc-800 rounded-t-2xl overflow-hidden">
                   {product.imageUrl ? (
-                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-contain" />
+                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center">
                       <span className="text-zinc-600 text-3xl">🍺</span>
@@ -716,7 +716,7 @@ export default function AdminProductsPage() {
                 )}
                 <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-gray-100 dark:bg-zinc-800 flex-shrink-0 overflow-hidden flex items-center justify-center">
                   {product.imageUrl ? (
-                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-contain" />
+                    <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
                   ) : (
                     <span className="text-zinc-600 text-xl">🍺</span>
                   )}
@@ -835,7 +835,7 @@ export default function AdminProductsPage() {
                 <div className="flex items-center gap-3">
                   <div className="w-20 h-20 rounded-lg bg-gray-100 border border-gray-300 dark:bg-zinc-800 dark:border-zinc-700 flex items-center justify-center overflow-hidden">
                     {previewImage ? (
-                      <img src={previewImage} alt={form.name || 'Pré-visualização'} className="w-full h-full object-contain" />
+                      <img src={previewImage} alt={form.name || 'Pré-visualização'} className="w-full h-full object-cover" />
                     ) : (
                       <span className="text-gray-600 dark:text-zinc-500 text-xs text-center px-1">Prévia</span>
                     )}

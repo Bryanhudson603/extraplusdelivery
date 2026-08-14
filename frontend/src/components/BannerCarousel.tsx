@@ -26,7 +26,7 @@ export function BannerCarousel({ banners }: Props) {
         src={current.image}
         alt={current.title || 'Banner'}
         fill
-        className="object-contain"
+        className="object-cover"
         priority
       />
       {current.title && (
