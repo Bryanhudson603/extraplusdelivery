@@ -39,7 +39,11 @@ export const categories: Category[] = [
   { id: 'c5', name: 'Vinhos', icon: '🍷', order: 5 },
   { id: 'c6', name: 'Destilados', icon: '🥃', order: 6 },
   { id: 'c7', name: 'Combos', icon: '🎁', order: 7 },
-  { id: 'c8', name: 'Outros', icon: '🍹', order: 8 }
+  { id: 'c8', name: 'Petiscos', icon: '🍟', order: 8 },
+  { id: 'c9', name: 'Gin', icon: '🍸', order: 9 },
+  { id: 'c10', name: 'Whisky', icon: '🥃', order: 10 },
+  { id: 'c11', name: 'Diversos', icon: '📦', order: 11 },
+  { id: 'c12', name: 'Outros', icon: '🍹', order: 12 }
 ];
 
 export const products: Product[] = [];

@@ -30,7 +30,11 @@ const categoriasFallback: Categoria[] = [
   { id: '5', nome: 'Vinhos', slug: 'vinhos' },
   { id: '6', nome: 'Destilados', slug: 'destilados' },
   { id: '7', nome: 'Combos', slug: 'combos' },
-  { id: '8', nome: 'Outros', slug: 'outros' }
+  { id: '8', nome: 'Petiscos', slug: 'petiscos' },
+  { id: '9', nome: 'Gin', slug: 'gin' },
+  { id: '10', nome: 'Whisky', slug: 'whisky' },
+  { id: '11', nome: 'Diversos', slug: 'diversos' },
+  { id: '12', nome: 'Outros', slug: 'outros' }
 ];
 
 // IDs alinhados com as categorias fixas usadas no app do cliente (frontend/src/lib/data.ts)
@@ -42,7 +46,11 @@ const CATEGORY_ID_POR_NOME: Record<string, string> = {
   vinhos: 'c5',
   destilados: 'c6',
   combos: 'c7',
-  outros: 'c8'
+  petiscos: 'c8',
+  gin: 'c9',
+  whisky: 'c10',
+  diversos: 'c11',
+  outros: 'c12'
 };
 
 function normalizarNomeCategoria(valor: string): string {

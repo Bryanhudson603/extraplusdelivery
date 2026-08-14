@@ -32,6 +32,10 @@ const categories = [
   'Vinhos',
   'Destilados',
   'Combos',
+  'Petiscos',
+  'Gin',
+  'Whisky',
+  'Diversos',
   'Outros'
 ];
 
@@ -519,11 +523,20 @@ export default function AdminProductsPage() {
             />
           </div>
           <div className="relative w-full sm:w-56">
-            <button className="w-full h-11 px-3 rounded-lg bg-white border border-gray-300 text-sm text-gray-900 flex items-center justify-between dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100">
-              <span>{categoryFilter}</span>
-              <span className="text-xs">▼</span>
-            </button>
-            <div className="hidden" />
+            <select
+              value={categoryFilter}
+              onChange={(e) => setCategoryFilter(e.target.value)}
+              className="w-full h-11 px-3 rounded-lg bg-white border border-gray-300 text-sm text-gray-900 outline-none appearance-none dark:bg-zinc-900 dark:border-zinc-800 dark:text-zinc-100"
+            >
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 dark:text-zinc-500">
+              ▼
+            </span>
           </div>
         </div>
 

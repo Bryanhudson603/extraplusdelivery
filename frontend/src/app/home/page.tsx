@@ -124,24 +124,26 @@ export default function ClientHomePage() {
         onSelect={id => setSelectedCategory(current => (current === id ? null : id))}
       />
 
-      <section className="mt-3">
-        <h2 className="text-lg font-semibold mb-2">Mais pedidos</h2>
-        <div className="grid grid-cols-2 gap-3">
-          {produtosMaisPedidos.map(prod => (
-            <ProductCard
-              key={prod.id}
-              name={prod.name}
-              image={prod.image}
-              price={prod.price}
-              promoPrice={prod.promoPrice}
-              tags={prod.tags}
-              packQuantity={prod.packQuantity}
-              packPrice={prod.packPrice}
-              onAdd={(qty, isPack) => addProduct(prod, qty, isPack)}
-            />
-          ))}
-        </div>
-      </section>
+      {!selectedCategory && (
+        <section className="mt-3">
+          <h2 className="text-lg font-semibold mb-2">Mais pedidos</h2>
+          <div className="grid grid-cols-2 gap-3">
+            {produtosMaisPedidos.map(prod => (
+              <ProductCard
+                key={prod.id}
+                name={prod.name}
+                image={prod.image}
+                price={prod.price}
+                promoPrice={prod.promoPrice}
+                tags={prod.tags}
+                packQuantity={prod.packQuantity}
+                packPrice={prod.packPrice}
+                onAdd={(qty, isPack) => addProduct(prod, qty, isPack)}
+              />
+            ))}
+          </div>
+        </section>
+      )}
 
       <section>
         <h2 className="text-lg font-semibold mb-2">
