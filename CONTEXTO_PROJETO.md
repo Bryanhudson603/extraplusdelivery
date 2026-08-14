@@ -295,34 +295,57 @@ Frontend (Vercel):
 - Cliente com telefone nulo (via Google) não tem como completar o cadastro (telefone/endereço) por autoatendimento — só admin da loja ou da plataforma podem editar.
 - `ADmin/` (pasta legada) e dependência `firebase` não usada seguem no repositório, sem impacto funcional conhecido.
 - Durante testes desta sessão foram criados alguns pedidos de teste reais em produção (ex.: "Teste QA", "Teste pausa") — parte pode já ter sido removida pelo usuário via a nova tela de pedidos do `/platform`; **não confirmado** se sobrou algum.
+- Horário de funcionamento/entrega (seção 14): implementado e com typecheck limpo, mas **sem verificação visual ao vivo** (backend depende de Postgres real, não foi possível subir os dois servidores localmente nesta sessão). Vale o usuário confirmar em produção que a loja aparece "Fechada" e bloqueia pedido depois do horário configurado, e que "Horários" no admin agora salva de verdade (antes era só `localStorage`).
+- Timezone do cálculo de horário está fixo em `America/Maceio` (`backend/src/common/store-hours.ts`) — correto para a loja atual (Rio Largo/AL); se algum dia existir loja em outro fuso, isso precisará virar configurável por loja.
 
 ---
 
 ## 14. ÚLTIMA TAREFA
 
-**O que estava sendo feito:** corrigir o botão de abrir o menu do admin no mobile, que ficava no canto superior direito, escondido atrás do botão flutuante de tema (`ThemeToggle`, `fixed top-3 right-3 z-50`).
+**O que estava sendo feito (nesta rodada):** três pedidos do usuário em sequência —
+1. Horário de funcionamento configurado no admin não era respeitado (loja continuava "aberta" e aceitando pedido mesmo depois do horário de fechamento configurado), e faltava um horário de entrega separado do horário de funcionamento.
+2. Imagens de produto/banner cortavam (`object-cover`) em vez de se ajustar ao campo sem cortar em qualquer dispositivo.
+3. O prompt de instalação do PWA continuava pedindo para instalar mesmo depois de já instalado.
 
-**Concluído:**
-- `admin/layout.tsx`: header mobile reordenado — botão de menu agora é o primeiro elemento (esquerda), seguido da logo/nome da loja, sem mais usar `justify-between` nessa linha.
-- Typecheck e lint limpos (só warning pré-existente não relacionado, de `useEffect` em outra parte do mesmo arquivo).
-- Commit `41bd2f0` criado e enviado (`git push origin main`).
-- Este arquivo de contexto atualizado no mesmo commit/push.
+**Concluído (1 — horários):**
+- Migration `backend/src/migrations/20260813000100-add-loja-horarios.ts`: colunas `jsonb` nullable `horario_funcionamento` e `horario_entrega` em `lojas` (null = sem restrição configurada = sempre aberto, para não quebrar a loja em produção antes do admin configurar).
+- `backend/src/common/store-hours.ts` (novo): tipo `DiaHorario`, `estaDentroDoHorario()` — calcula dia/hora atual no fuso `America/Maceio` via `Intl.DateTimeFormat` (funciona independente do fuso do servidor) e compara contra a config do dia, com suporte a janela que cruza a meia-noite.
+- `LojaEntity`/`LojaRepository`: novos campos + `definirHorarios()`.
+- `AdminService`/`AdminController`: `GET/PUT /api/admin/loja/horarios` retornando/aceitando `{funcionamento, entrega}` (array de 7 dias cada).
+- `CatalogoService`/`CatalogoController`: novo endpoint público `GET /api/catalogo/loja-status` → `{aberta, entregaDisponivel}`.
+- `PedidosService.criar()`: bloqueia pedido com `400 {code: 'LOJA_FECHADA'}` se fora do horário de funcionamento, e `400 {code: 'FORA_HORARIO_ENTREGA'}` se `tipoEntrega === 'delivery'` e fora do horário de entrega (mesmo padrão do `PEDIDOS_PAUSADOS` já existente).
+- Frontend: `admin/settings/page.tsx` — a seção "Horários" deixou de salvar em `localStorage['extraplus-hours']` e agora carrega/salva via `GET/PUT /api/admin/loja/horarios`; ganhou uma segunda lista de 7 dias "Horário de entrega" (independente do funcionamento, conforme pedido).
+- `StoreHeader.tsx` — texto "Fechada" fica vermelho/negrito quando a loja está fechada.
+- `home/page.tsx` — busca `GET /catalogo/loja-status` e atualiza `currentStore.open` com o valor real (antes vinha só de `localStorage`, sempre `open: true`).
+- `checkout/page.tsx` — trata os novos códigos de erro `LOJA_FECHADA`/`FORA_HORARIO_ENTREGA` com mensagem amigável, igual já era feito para `PEDIDOS_PAUSADOS`.
 
-**Pendente:** nenhuma alteração de código pendente. **Não foi feita verificação visual ao vivo no navegador** (só typecheck/lint/leitura de código) — vale o usuário confirmar no celular que o botão ficou visível e clicável do jeito esperado.
+**Concluído (2 — imagens não cortam):**
+- Trocado `object-cover` → `object-contain` em: `ProductCard.tsx` (imagem principal do produto, `<img>` externo e `<Image>` local), `BannerCarousel.tsx` (banner da home), e três thumbnails em `admin/products/page.tsx` (card em grade, linha da lista, prévia de upload).
 
-**Próximo passo:** não há uma próxima tarefa definida pelo usuário ainda.
+**Concluído (3 — PWA perguntando de novo mesmo instalado):**
+- Bug encontrado em `PwaPrompt.tsx`: o `useEffect` que mostra o banner na página de login fazia `setVisible(true)` **incondicionalmente**, sem checar se o app já estava rodando instalado (standalone).
+- Corrigido: novo estado `isInstalled`, detectado via `window.matchMedia('(display-mode: standalone)')` (Android/desktop) e `navigator.standalone` (iOS), checado ao montar e atualizado ao ouvir o evento `appinstalled`. Todo caminho que mostra o banner (inclusive o da página de login) agora é bloqueado quando `isInstalled` é `true`.
 
-**Onde continuar:** depende da próxima solicitação do usuário. Não há trabalho em andamento inacabado no código neste momento. `git status` deve mostrar só a diferença pendente de `backend/tsconfig.json` (line-ending, intencionalmente não commitada), a pasta local `.claude/` (config de dev server local) e arquivos soltos `bash.exe.stackdump` (artefato de crash do Git Bash, lixo, não versionado, não relacionado a nenhuma feature).
+**Verificação:** `npx tsc --noEmit` limpo no backend e no frontend após todas as mudanças. **Sem verificação visual ao vivo no navegador** — não foi possível subir backend (precisa de Postgres real) + frontend localmente nesta sessão; recomenda-se o usuário validar em produção após o deploy.
+
+**Nota sobre o processo desta sessão:** um hook local ("Fact-Forcing Gate", de um plugin ECC) passou a interceptar `Edit`/`Write` exigindo uma declaração de fatos antes de cada primeira edição por arquivo. Em pelo menos 4 ocasiões a chamada reportou "denial" (bloqueada) mas a edição **foi aplicada mesmo assim**, causando imports duplicados em `loja.repository.ts`, `admin.controller.ts` e `admin.service.ts` — todos identificados pelo `tsc` e corrigidos antes do commit. Vale o usuário/dev saber que esse hook existe e pode ter esse comportamento inconsistente (denial reportado ≠ edição não aplicada) caso apareça de novo.
+
+**Commits:** `5617d5f` (horários) e um commit seguinte cobrindo imagens + PWA (ver seção 16), ambos enviados para `origin/main`.
+
+**Próximo passo:** não há uma próxima tarefa definida pelo usuário ainda além da validação em produção citada acima.
+
+**Onde continuar:** depende da próxima solicitação do usuário. `git status` deve mostrar só a diferença pendente de `backend/tsconfig.json` (line-ending, intencionalmente não commitada), a pasta local `.claude/` e arquivos soltos `bash.exe.stackdump`/`frontend/bash.exe.stackdump` (artefatos de crash do Git Bash, lixo, não versionados).
 
 ---
 
 ## 15. PRÓXIMOS PASSOS (sugestões, não confirmadas como prioridade pelo usuário)
 
-1. Confirmar com o usuário se "Pausar chegada de pedidos" está bloqueando o checkout como esperado em produção (teste de ponta a ponta pelo app do cliente).
-2. Validar autoimpressão com impressora/bridge real.
-3. Decidir se vale a pena criar uma tela de autoatendimento para o cliente completar telefone/endereço (relevante principalmente para contas criadas via Google).
-4. Avaliar se `ADmin/` (pasta legada) e a dependência `firebase` não usada devem ser removidas.
-5. Confirmar se sobrou algum pedido de teste em produção para limpar via `/platform`.
+1. Validar em produção: loja mostra "Fechada" e bloqueia pedido depois do horário configurado; horário de entrega bloqueia só delivery (retirada continua liberada); "Horários" no admin salva e recarrega corretamente do backend.
+2. Confirmar com o usuário se "Pausar chegada de pedidos" está bloqueando o checkout como esperado em produção (teste de ponta a ponta pelo app do cliente).
+3. Validar autoimpressão com impressora/bridge real.
+4. Decidir se vale a pena criar uma tela de autoatendimento para o cliente completar telefone/endereço (relevante principalmente para contas criadas via Google).
+5. Avaliar se `ADmin/` (pasta legada) e a dependência `firebase` não usada devem ser removidas.
+6. Confirmar se sobrou algum pedido de teste em produção para limpar via `/platform`.
 
 ---
 
@@ -345,6 +368,8 @@ Frontend (Vercel):
 15. `4678d10` — feat/fix: categorias Petiscos/Gin/Whisky/Diversos + "Mais pedidos" some com categoria selecionada na Home + filtro de categoria do admin de produtos (que nunca funcionou) agora é um `<select>` real
 16. `054f2f3` — docs: cria/atualiza `CONTEXTO_PROJETO.md` (commit 15)
 17. `41bd2f0` — fix: botão de menu do admin mobile ficava atrás do botão de tema
+18. `5617d5f` — feat: sistema respeita horário de funcionamento e adiciona horário de entrega
+19. (próximo) — fix: imagens de produto/banner não cortam mais + PWA não pergunta de novo se já instalado
 
 Todos os commits foram enviados para `origin/main` no repositório GitHub oficial do projeto.
 

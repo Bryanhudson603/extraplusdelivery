@@ -62,9 +62,9 @@ export function ProductCard({ name, image, price, promoPrice, onAdd, tags, packQ
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3 dark:bg-zinc-900 dark:border-zinc-800">
         <div className="relative w-full h-28 bg-gray-100 rounded dark:bg-zinc-800">
           {isExternal ? (
-            <img src={image} alt={name} className="w-full h-full object-cover rounded" />
+            <img src={image} alt={name} className="w-full h-full object-contain rounded" />
           ) : (
-            <Image src={image} alt={name} fill className="object-cover rounded" />
+            <Image src={image} alt={name} fill className="object-contain rounded" />
           )}
         </div>
         <div className="mt-2">

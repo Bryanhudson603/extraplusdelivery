@@ -16,30 +16,46 @@ export function PwaPrompt() {
 
   const isAdmin = pathname.startsWith('/admin');
    const isLogin = pathname.startsWith('/login');
+  const [isInstalled, setIsInstalled] = useState(true);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+
+    const checarInstalado = () => {
+      const standalone =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as unknown as { standalone?: boolean }).standalone === true;
+      setIsInstalled(standalone);
+    };
+    checarInstalado();
 
     const handler = (e: Event) => {
       e.preventDefault();
       setEvent(e as unknown as DeferredPromptEvent);
       setVisible(true);
     };
+    const installedHandler = () => {
+      setIsInstalled(true);
+      setVisible(false);
+      setEvent(null);
+    };
 
     window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', installedHandler);
     return () => {
       window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('appinstalled', installedHandler);
     };
   }, []);
 
   useEffect(() => {
-    if (isAdmin) return;
+    if (isAdmin || isInstalled) return;
     if (isLogin) {
       setVisible(true);
     }
-  }, [isAdmin, isLogin]);
+  }, [isAdmin, isLogin, isInstalled]);
 
-  if (!visible || isAdmin) {
+  if (!visible || isAdmin || isInstalled) {
     return null;
   }
 
