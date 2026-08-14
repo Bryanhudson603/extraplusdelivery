@@ -297,6 +297,7 @@ Frontend (Vercel):
 - Durante testes desta sessão foram criados alguns pedidos de teste reais em produção (ex.: "Teste QA", "Teste pausa") — parte pode já ter sido removida pelo usuário via a nova tela de pedidos do `/platform`; **não confirmado** se sobrou algum.
 - Horário de funcionamento/entrega (seção 14): implementado e com typecheck limpo, mas **sem verificação visual ao vivo** (backend depende de Postgres real, não foi possível subir os dois servidores localmente nesta sessão). Vale o usuário confirmar em produção que a loja aparece "Fechada" e bloqueia pedido depois do horário configurado, e que "Horários" no admin agora salva de verdade (antes era só `localStorage`).
 - Timezone do cálculo de horário está fixo em `America/Maceio` (`backend/src/common/store-hours.ts`) — correto para a loja atual (Rio Largo/AL); se algum dia existir loja em outro fuso, isso precisará virar configurável por loja.
+- `object-contain` nas imagens de produto/banner (commit `6fffe6f`) foi **revertido** (commit `1ba050c`) a pedido do usuário — ficou ruim visualmente. `ProductCard.tsx`, `BannerCarousel.tsx` e as 3 miniaturas de `admin/products/page.tsx` voltaram a `object-cover` (comportamento original, cortando a imagem para preencher o quadro). Não tentar essa troca de novo sem confirmar com o usuário antes.
 
 ---
 
