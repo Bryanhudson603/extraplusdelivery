@@ -331,7 +331,9 @@ Perguntei ao usuário (via `AskUserQuestion`) o tipo de impressora (confirmou: i
 
 **Commits:** a confirmar após esta edição — ver `git log` (deve haver um commit cobrindo `orders/page.tsx` + `windows-print-bridge/*` novo).
 
-**Próximo passo:** o usuário precisa rodar `instalar-inicializacao-automatica.ps1` na máquina do admin e confirmar que (a) o bridge conecta sozinho sem terminal visível e (b) a impressão automática continua funcionando ao chegar pedido novo.
+**Atualização:** confirmado com o usuário que a impressora é térmica USB, mas **aparece instalada no Windows com driver próprio** (não é acesso USB cru) — então nada muda na abordagem, o bridge via `Out-Printer` já funciona normalmente com ela. Na primeira tentativa de rodar `instalar-inicializacao-automatica.ps1`, o usuário reportou erro; a causa foi o backtick de escape de aspas em `-ArgumentList "`"$vbsPath`""` (linha 25) se perdendo em algum copiar/colar, virando `""$vbsPath""` (sintaxe inválida). Corrigido no commit `0a04d4d` trocando por uma variável com a string já entre aspas (mesma técnica já usada para `$shortcut.Arguments`); os dois scripts `.ps1` foram validados com `[System.Management.Automation.Language.Parser]::ParseFile` (parse-only, sem executar) e não têm mais erro de sintaxe.
+
+**Próximo passo:** o usuário precisa baixar a versão corrigida e rodar `instalar-inicializacao-automatica.ps1` de novo na máquina do admin, e confirmar que (a) o bridge conecta sozinho sem terminal visível e (b) a impressão automática continua funcionando ao chegar pedido novo.
 
 **Onde continuar:** depende da confirmação do usuário sobre o item acima, ou da próxima solicitação. `git status` deve mostrar só a diferença pendente de `backend/tsconfig.json` (line-ending, intencionalmente não commitada), a pasta local `.claude/` e arquivos soltos `bash.exe.stackdump`/`frontend/bash.exe.stackdump` (artefatos de crash do Git Bash, lixo, não versionados).
 
@@ -371,7 +373,8 @@ Perguntei ao usuário (via `AskUserQuestion`) o tipo de impressora (confirmou: i
 19. `6fffe6f` — fix: imagens de produto/banner não cortam mais e PWA não pede instalação se já instalado
 20. `1ba050c` — revert: volta imagens de produto/banner para object-cover
 21. `fe57b72` — docs: registra reversão do object-contain nas imagens no CONTEXTO_PROJETO.md
-22. (próximo) — feat: bridge de impressão inicia sozinho e escondido + painel sincroniza automaticamente
+22. `4baa4eb` — feat: bridge de impressão inicia sozinho e escondido + painel sincroniza automaticamente
+23. `0a04d4d` — fix: corrige erro de sintaxe no instalador do print-bridge (aspas escapadas com backtick se perdiam ao copiar/colar; trocado por variável com string já entre aspas)
 18. `5617d5f` — feat: sistema respeita horário de funcionamento e adiciona horário de entrega
 19. (próximo) — fix: imagens de produto/banner não cortam mais + PWA não pergunta de novo se já instalado
 
