@@ -131,6 +131,7 @@ ADmin/                                # pasta legada na raiz, NÃO referenciada 
 | Categorias Petiscos/Gin/Whisky/Diversos | `catalogo.service.ts`, `lib/data.ts`, `admin/products/page.tsx` | Adicionadas em `categoriasFallback`, `CATEGORY_ID_POR_NOME`, `categories` (cliente) e `categories` (admin) — os 4 lugares que precisam bater | ✅ |
 | "Mais pedidos" some ao filtrar categoria na Home | `home/page.tsx` | Seção só aparece sem categoria selecionada; antes ficava sempre visível | ✅ |
 | Filtro de categoria do admin de produtos não funcionava | `admin/products/page.tsx` | Era um botão decorativo sem `onClick` + `<div className="hidden">` morta; virou `<select>` real ligado a `categoryFilter` | ✅ |
+| Botão de menu do admin (mobile) atrás do botão de tema | `admin/layout.tsx` | `ThemeToggle` é `fixed top-3 right-3 z-50`; o botão de abrir menu também ficava no canto superior direito (header com `justify-between`), sobrepondo. Reordenado para ficar à esquerda, antes da logo | ✅ |
 
 ---
 
@@ -299,17 +300,15 @@ Frontend (Vercel):
 
 ## 14. ÚLTIMA TAREFA
 
-**O que estava sendo feito:** três pedidos em sequência — (1) adicionar categorias Petiscos/Gin/Whisky/Diversos, (2) ocultar "Mais pedidos" na Home quando uma categoria está selecionada, (3) corrigir o filtro de categoria (que não funcionava) na tela de produtos do admin.
+**O que estava sendo feito:** corrigir o botão de abrir o menu do admin no mobile, que ficava no canto superior direito, escondido atrás do botão flutuante de tema (`ThemeToggle`, `fixed top-3 right-3 z-50`).
 
 **Concluído:**
-- Categorias novas adicionadas em `catalogo.service.ts` (`categoriasFallback` + `CATEGORY_ID_POR_NOME`, ids `c8`–`c11`, `Outros` virou `c12`), `lib/data.ts` (`categories` do app do cliente) e `admin/products/page.tsx` (`categories` do filtro/cadastro).
-- `home/page.tsx`: seção "Mais pedidos" agora envolvida em `{!selectedCategory && (...)}`.
-- `admin/products/page.tsx`: filtro de categoria (que era um botão sem `onClick` + `<div className="hidden">` morta, nunca funcionou) virou um `<select>` real ligado ao estado `categoryFilter` já usado no cálculo da lista filtrada.
-- Backend e frontend typecheckados limpos (`tsc --noEmit`); lint sem erros (só warnings pré-existentes de `<img>`).
-- Commit `4678d10` criado e enviado (`git push origin main`).
+- `admin/layout.tsx`: header mobile reordenado — botão de menu agora é o primeiro elemento (esquerda), seguido da logo/nome da loja, sem mais usar `justify-between` nessa linha.
+- Typecheck e lint limpos (só warning pré-existente não relacionado, de `useEffect` em outra parte do mesmo arquivo).
+- Commit `41bd2f0` criado e enviado (`git push origin main`).
 - Este arquivo de contexto atualizado no mesmo commit/push.
 
-**Pendente:** nenhuma alteração de código pendente desta tarefa. **Não foi feita verificação visual ao vivo no navegador** desta rodada específica (só typecheck/lint/leitura de código) — diferente de rodadas anteriores desta sessão que tiveram teste no navegador. Vale confirmar visualmente se o usuário notar algo estranho.
+**Pendente:** nenhuma alteração de código pendente. **Não foi feita verificação visual ao vivo no navegador** (só typecheck/lint/leitura de código) — vale o usuário confirmar no celular que o botão ficou visível e clicável do jeito esperado.
 
 **Próximo passo:** não há uma próxima tarefa definida pelo usuário ainda.
 
@@ -344,6 +343,8 @@ Frontend (Vercel):
 13. `64f4776` — fix: carrinho adaptado ao tema escuro
 14. `2d3224f` — fix: preço de fardo cobrando valor unitário incorreto
 15. `4678d10` — feat/fix: categorias Petiscos/Gin/Whisky/Diversos + "Mais pedidos" some com categoria selecionada na Home + filtro de categoria do admin de produtos (que nunca funcionou) agora é um `<select>` real
+16. `054f2f3` — docs: cria/atualiza `CONTEXTO_PROJETO.md` (commit 15)
+17. `41bd2f0` — fix: botão de menu do admin mobile ficava atrás do botão de tema
 
 Todos os commits foram enviados para `origin/main` no repositório GitHub oficial do projeto.
 
