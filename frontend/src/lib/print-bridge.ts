@@ -14,7 +14,7 @@ export type BridgeSettings = {
 const BRIDGE_BASE_URL = 'http://127.0.0.1:39876';
 
 async function bridgeRequest<T>(path: string, options?: RequestInit): Promise<T> {
-  const requestInit: RequestInit & { targetAddressSpace?: 'local' } = {
+  const requestInit: RequestInit & { targetAddressSpace?: 'loopback' } = {
     ...options,
     headers: {
       'Content-Type': 'application/json',
@@ -23,7 +23,7 @@ async function bridgeRequest<T>(path: string, options?: RequestInit): Promise<T>
     cache: 'no-store',
     mode: 'cors',
     credentials: 'omit',
-    targetAddressSpace: 'local'
+    targetAddressSpace: 'loopback'
   };
 
   const response = await fetch(`${BRIDGE_BASE_URL}${path}`, requestInit);
