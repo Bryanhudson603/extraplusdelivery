@@ -92,7 +92,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         <div className="flex-1 flex flex-col">
           <header className="sticky top-0 z-30 bg-gray-50 border-b border-gray-200 dark:bg-zinc-950 dark:border-zinc-800 md:border-b-0">
-            <div className="max-w-7xl mx-auto h-14 px-4 flex items-center justify-between">
+            <div className="max-w-7xl mx-auto h-14 px-4 flex items-center gap-3">
+              <button
+                onClick={() => setOpen(true)}
+                className="w-9 h-9 flex-shrink-0 rounded-lg border border-gray-300 text-gray-900 flex flex-col items-center justify-center gap-[3px] active:scale-[0.98] dark:border-zinc-800 dark:text-white md:hidden"
+                aria-label="Abrir menu"
+              >
+                <span className="w-4 h-[2px] bg-gray-900 dark:bg-white" />
+                <span className="w-4 h-[2px] bg-gray-900 dark:bg-white" />
+                <span className="w-4 h-[2px] bg-gray-900 dark:bg-white" />
+              </button>
               <div className="flex items-center gap-3 md:hidden">
                 <div className="w-10 h-10 rounded-xl overflow-hidden border border-blue-100 bg-blue-50">
                   <BrandLogo size={40} />
@@ -102,15 +111,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                   <div className="text-[11px] text-gray-600 dark:text-zinc-400">Painel Admin</div>
                 </div>
               </div>
-              <button
-                onClick={() => setOpen(true)}
-                className="w-9 h-9 rounded-lg border border-gray-300 text-gray-900 flex flex-col items-center justify-center gap-[3px] active:scale-[0.98] dark:border-zinc-800 dark:text-white md:hidden"
-                aria-label="Abrir menu"
-              >
-                <span className="w-4 h-[2px] bg-gray-900 dark:bg-white" />
-                <span className="w-4 h-[2px] bg-gray-900 dark:bg-white" />
-                <span className="w-4 h-[2px] bg-gray-900 dark:bg-white" />
-              </button>
             </div>
           </header>
 
