@@ -29,32 +29,63 @@ Quando o bridge nao esta online:
 - PowerShell habilitado
 - impressora ja instalada no Windows
 
-## Subir o bridge automaticamente, sem terminal (recomendado)
+## Instalar a inicializacao automatica (recomendado)
 
-Rode isso **uma unica vez** no PowerShell, dentro desta pasta:
+Requisito: Node.js instalado (https://nodejs.org/, versao LTS). O instalador
+verifica isso sozinho e avisa claramente se nao encontrar.
+
+Abra o PowerShell **dentro desta pasta** (`windows-print-bridge`) e rode:
 
 ```powershell
-npm install
 .\instalar-inicializacao-automatica.ps1
 ```
 
-Isso cria um atalho na pasta de Inicializacao do Windows (`shell:startup`) que
-inicia o bridge sozinho, **sem nenhuma janela de terminal visivel**, sempre que
-o usuario logar no Windows. O script tambem inicia o bridge imediatamente,
-sem precisar reiniciar a maquina.
+Isso cria uma tarefa chamada **"Extraplus Windows Print Bridge"** no
+Agendador de Tarefas do Windows, configurada para:
+
+- disparar no logon do usuario atual;
+- rodar `start-hidden.vbs`, que inicia `npm start` (ou seja, `server.js`)
+  **sem nenhuma janela de terminal visivel**;
+- usar o diretorio de trabalho correto (a propria pasta do projeto);
+- funcionar independente de onde o projeto foi colocado (Downloads,
+  Desktop, etc.) e independente de qual pasta o PowerShell estava aberto —
+  todos os caminhos usados sao absolutos.
+
+O instalador tambem inicia o bridge imediatamente (nao precisa reiniciar a
+maquina nem deslogar) e pode ser executado quantas vezes for preciso: ele
+sempre remove a tarefa anterior antes de recriar, **nunca duplica**.
 
 A partir daí, o admin nunca mais precisa abrir prompt/PowerShell para
 imprimir: e so entrar no painel pelo navegador, que ele sincroniza sozinho
 com o bridge (o painel tenta se conectar automaticamente e continua tentando
 em segundo plano se o bridge ainda nao estiver de pe).
 
-Para desfazer a inicializacao automatica:
+## Verificar se o Print Bridge esta rodando
+
+Qualquer uma destas formas:
+
+- Abra `http://127.0.0.1:39876/health` num navegador nesta maquina — deve
+  responder um JSON com `"ok": true`.
+- No painel de Pedidos do admin (navegador), veja o status **"Bridge local
+  conectado"**.
+- No Windows, abra o **Agendador de Tarefas** (`taskschd.msc`) e procure por
+  **"Extraplus Windows Print Bridge"** na Biblioteca de Tarefas — o campo
+  "Status" mostra se ja disparou e o resultado da ultima execucao.
+- No **Gerenciador de Tarefas** do Windows, aba "Detalhes", deve existir um
+  processo `node.exe` rodando (esse e o `server.js`).
+
+## Remover a inicializacao automatica
 
 ```powershell
 .\remover-inicializacao-automatica.ps1
 ```
 
-## Subir o bridge manualmente (modo antigo, so para depuracao)
+Isso remove a tarefa do Agendador de Tarefas (e qualquer atalho de uma
+instalacao antiga que ainda exista na pasta Startup). O processo do bridge
+que ja estiver rodando **nao** e encerrado por esse script — se quiser parar
+agora, feche o processo `node.exe` pelo Gerenciador de Tarefas.
+
+## Iniciar manualmente (modo antigo, so para depuracao)
 
 No Windows, abra PowerShell nesta pasta e rode:
 
@@ -67,6 +98,23 @@ O servico sobe em:
 ```text
 http://127.0.0.1:39876
 ```
+
+## Diagnosticar problemas
+
+- **`.\instalar-inicializacao-automatica.ps1` diz que nao encontrou o
+  Node.js:** instale o Node.js LTS em https://nodejs.org/, feche e abra um
+  novo PowerShell (para o PATH atualizar) e rode o instalador de novo.
+- **A tarefa existe no Agendador de Tarefas mas `http://127.0.0.1:39876/health`
+  nao responde:** confira no Gerenciador de Tarefas se existe um processo
+  `node.exe`. Se nao existir, rode `Start-ScheduledTask -TaskName "Extraplus
+  Windows Print Bridge"` no PowerShell para forcar o disparo, ou rode
+  `npm start` manualmente nesta pasta para ver a mensagem de erro exata.
+- **O painel mostra "Bridge local nao conectado" mesmo com o `node.exe`
+  rodando:** confira se a origem do navegador (o dominio do painel) esta na
+  lista `ALLOWED_ORIGINS` dentro de `server.js`.
+- **Erro de impressora nao encontrada ao imprimir:** confirme que a
+  impressora aparece em "Impressoras e dispositivos" do Windows com esse
+  mesmo nome, e que ela esta selecionada no painel de Pedidos do admin.
 
 ## Endpoints
 
