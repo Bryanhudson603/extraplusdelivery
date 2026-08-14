@@ -29,7 +29,32 @@ Quando o bridge nao esta online:
 - PowerShell habilitado
 - impressora ja instalada no Windows
 
-## Subir o bridge
+## Subir o bridge automaticamente, sem terminal (recomendado)
+
+Rode isso **uma unica vez** no PowerShell, dentro desta pasta:
+
+```powershell
+npm install
+.\instalar-inicializacao-automatica.ps1
+```
+
+Isso cria um atalho na pasta de Inicializacao do Windows (`shell:startup`) que
+inicia o bridge sozinho, **sem nenhuma janela de terminal visivel**, sempre que
+o usuario logar no Windows. O script tambem inicia o bridge imediatamente,
+sem precisar reiniciar a maquina.
+
+A partir daí, o admin nunca mais precisa abrir prompt/PowerShell para
+imprimir: e so entrar no painel pelo navegador, que ele sincroniza sozinho
+com o bridge (o painel tenta se conectar automaticamente e continua tentando
+em segundo plano se o bridge ainda nao estiver de pe).
+
+Para desfazer a inicializacao automatica:
+
+```powershell
+.\remover-inicializacao-automatica.ps1
+```
+
+## Subir o bridge manualmente (modo antigo, so para depuracao)
 
 No Windows, abra PowerShell nesta pasta e rode:
 

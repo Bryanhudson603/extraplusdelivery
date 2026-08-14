@@ -298,52 +298,50 @@ Frontend (Vercel):
 - Horário de funcionamento/entrega (seção 14): implementado e com typecheck limpo, mas **sem verificação visual ao vivo** (backend depende de Postgres real, não foi possível subir os dois servidores localmente nesta sessão). Vale o usuário confirmar em produção que a loja aparece "Fechada" e bloqueia pedido depois do horário configurado, e que "Horários" no admin agora salva de verdade (antes era só `localStorage`).
 - Timezone do cálculo de horário está fixo em `America/Maceio` (`backend/src/common/store-hours.ts`) — correto para a loja atual (Rio Largo/AL); se algum dia existir loja em outro fuso, isso precisará virar configurável por loja.
 - `object-contain` nas imagens de produto/banner (commit `6fffe6f`) foi **revertido** (commit `1ba050c`) a pedido do usuário — ficou ruim visualmente. `ProductCard.tsx`, `BannerCarousel.tsx` e as 3 miniaturas de `admin/products/page.tsx` voltaram a `object-cover` (comportamento original, cortando a imagem para preencher o quadro). Não tentar essa troca de novo sem confirmar com o usuário antes.
+- Impressão automática (`windows-print-bridge/`): nenhum navegador consegue imprimir silenciosamente numa impressora específica sem algum ajudante local rodando na máquina — isso é bloqueio de segurança do próprio navegador, não uma limitação deste projeto. A solução adotada (ver seção 14) é o bridge local iniciar sozinho e escondido; não existe forma de eliminar esse pequeno processo local a menos que a impressora seja térmica USB compatível com WebUSB (o usuário confirmou que é impressora comum instalada no Windows, então essa alternativa não se aplica aqui).
 
 ---
 
 ## 14. ÚLTIMA TAREFA
 
-**O que estava sendo feito (nesta rodada):** três pedidos do usuário em sequência —
-1. Horário de funcionamento configurado no admin não era respeitado (loja continuava "aberta" e aceitando pedido mesmo depois do horário de fechamento configurado), e faltava um horário de entrega separado do horário de funcionamento.
-2. Imagens de produto/banner cortavam (`object-cover`) em vez de se ajustar ao campo sem cortar em qualquer dispositivo.
-3. O prompt de instalação do PWA continuava pedindo para instalar mesmo depois de já instalado.
+**Contexto imediatamente anterior (mesma sessão):** horário de funcionamento/entrega respeitados de verdade (commit `5617d5f`), depois imagens de produto/banner trocadas de `object-cover` para `object-contain` + fix do prompt de instalação do PWA repetindo mesmo já instalado (commit `6fffe6f`), e em seguida a troca de imagem foi **revertida** a pedido do usuário por ter ficado ruim visualmente (commit `1ba050c`, ver seção 13). Detalhes completos de cada uma dessas mudanças ficaram registrados nos commits e no changelog da seção 16 — não repetidos aqui para não inflar o documento.
 
-**Concluído (1 — horários):**
-- Migration `backend/src/migrations/20260813000100-add-loja-horarios.ts`: colunas `jsonb` nullable `horario_funcionamento` e `horario_entrega` em `lojas` (null = sem restrição configurada = sempre aberto, para não quebrar a loja em produção antes do admin configurar).
-- `backend/src/common/store-hours.ts` (novo): tipo `DiaHorario`, `estaDentroDoHorario()` — calcula dia/hora atual no fuso `America/Maceio` via `Intl.DateTimeFormat` (funciona independente do fuso do servidor) e compara contra a config do dia, com suporte a janela que cruza a meia-noite.
-- `LojaEntity`/`LojaRepository`: novos campos + `definirHorarios()`.
-- `AdminService`/`AdminController`: `GET/PUT /api/admin/loja/horarios` retornando/aceitando `{funcionamento, entrega}` (array de 7 dias cada).
-- `CatalogoService`/`CatalogoController`: novo endpoint público `GET /api/catalogo/loja-status` → `{aberta, entregaDisponivel}`.
-- `PedidosService.criar()`: bloqueia pedido com `400 {code: 'LOJA_FECHADA'}` se fora do horário de funcionamento, e `400 {code: 'FORA_HORARIO_ENTREGA'}` se `tipoEntrega === 'delivery'` e fora do horário de entrega (mesmo padrão do `PEDIDOS_PAUSADOS` já existente).
-- Frontend: `admin/settings/page.tsx` — a seção "Horários" deixou de salvar em `localStorage['extraplus-hours']` e agora carrega/salva via `GET/PUT /api/admin/loja/horarios`; ganhou uma segunda lista de 7 dias "Horário de entrega" (independente do funcionamento, conforme pedido).
-- `StoreHeader.tsx` — texto "Fechada" fica vermelho/negrito quando a loja está fechada.
-- `home/page.tsx` — busca `GET /catalogo/loja-status` e atualiza `currentStore.open` com o valor real (antes vinha só de `localStorage`, sempre `open: true`).
-- `checkout/page.tsx` — trata os novos códigos de erro `LOJA_FECHADA`/`FORA_HORARIO_ENTREGA` com mensagem amigável, igual já era feito para `PEDIDOS_PAUSADOS`.
+**O que estava sendo feito (nesta rodada):** o usuário reportou dois problemas com a impressão automática de cupom (`windows-print-bridge/`):
+1. O bridge local "não sincroniza" e o painel fica apontando para `http://127.0.0.1:39876` sem conectar.
+2. Para funcionar, é preciso abrir manualmente um prompt/terminal na máquina do admin (`npm start` dentro de `windows-print-bridge/`) — o usuário não quer isso, quer tudo pelo navegador: selecionar a impressora pelo navegador e o pedido sair automaticamente na impressora escolhida assim que chegar.
 
-**Concluído (2 — imagens não cortam):**
-- Trocado `object-cover` → `object-contain` em: `ProductCard.tsx` (imagem principal do produto, `<img>` externo e `<Image>` local), `BannerCarousel.tsx` (banner da home), e três thumbnails em `admin/products/page.tsx` (card em grade, linha da lista, prévia de upload).
+**Investigação:** ao ler `frontend/src/app/admin/orders/page.tsx` e `frontend/src/lib/print-bridge.ts`, ficou claro que a seleção de impressora pelo navegador e a impressão automática ao chegar pedido **já existiam** (`printViaBridge`, `updateBridgeSettings`, disparo automático em pedido novo). O que faltava:
+- `syncBridge()` só rodava quando o admin clicava manualmente no botão "Sincronizar bridge" — nunca automaticamente ao abrir a página nem em retry. Se o bridge caísse ou não tivesse sido iniciado ainda, o painel ficava travado em "não conectado" até alguém lembrar de clicar.
+- O bridge (`windows-print-bridge/server.js`) só inicia se alguém abrir um terminal e rodar `npm start` manualmente — não existia nenhuma forma de iniciar sozinho com o Windows.
 
-**Concluído (3 — PWA perguntando de novo mesmo instalado):**
-- Bug encontrado em `PwaPrompt.tsx`: o `useEffect` que mostra o banner na página de login fazia `setVisible(true)` **incondicionalmente**, sem checar se o app já estava rodando instalado (standalone).
-- Corrigido: novo estado `isInstalled`, detectado via `window.matchMedia('(display-mode: standalone)')` (Android/desktop) e `navigator.standalone` (iOS), checado ao montar e atualizado ao ouvir o evento `appinstalled`. Todo caminho que mostra o banner (inclusive o da página de login) agora é bloqueado quando `isInstalled` é `true`.
+Perguntei ao usuário (via `AskUserQuestion`) o tipo de impressora (confirmou: impressora comum instalada no Windows, não térmica USB) e se o incômodo principal era o terminal manual (confirmou que sim). Isso descartou a alternativa de reescrever tudo via WebUSB (só valeria a pena para impressora térmica USB) e confirmou o caminho: manter o bridge (nenhum navegador imprime numa impressora específica sem algum ajudante local — é bloqueio de segurança do navegador, não limitação deste projeto), mas fazê-lo iniciar sozinho e escondido.
 
-**Verificação:** `npx tsc --noEmit` limpo no backend e no frontend após todas as mudanças. **Sem verificação visual ao vivo no navegador** — não foi possível subir backend (precisa de Postgres real) + frontend localmente nesta sessão; recomenda-se o usuário validar em produção após o deploy.
+**Concluído:**
+- `frontend/src/app/admin/orders/page.tsx`: novo `useEffect` chama `syncBridge()` ao montar a página e continua tentando a cada `BRIDGE_RETRY_INTERVAL_MS` (20s) enquanto `bridgeOnline` for `false` — antes só sincronizava no clique manual do botão.
+- `windows-print-bridge/start-hidden.vbs` (novo): roda `npm start` sem nenhuma janela visível (`WScript.Shell.Run` com `windowStyle 0`).
+- `windows-print-bridge/instalar-inicializacao-automatica.ps1` (novo): cria um atalho na pasta de Inicialização do Windows (`shell:startup`) apontando para `start-hidden.vbs`, e já inicia o bridge imediatamente (sem precisar reiniciar a máquina). Não precisa de admin — pasta de Startup é por usuário.
+- `windows-print-bridge/remover-inicializacao-automatica.ps1` (novo): desfaz, removendo o atalho.
+- `windows-print-bridge/README.md`: documentado o novo fluxo recomendado (rodar o instalador uma vez) e mantido o `npm start` manual só como modo de depuração.
 
-**Nota sobre o processo desta sessão:** um hook local ("Fact-Forcing Gate", de um plugin ECC) passou a interceptar `Edit`/`Write` exigindo uma declaração de fatos antes de cada primeira edição por arquivo. Em pelo menos 4 ocasiões a chamada reportou "denial" (bloqueada) mas a edição **foi aplicada mesmo assim**, causando imports duplicados em `loja.repository.ts`, `admin.controller.ts` e `admin.service.ts` — todos identificados pelo `tsc` e corrigidos antes do commit. Vale o usuário/dev saber que esse hook existe e pode ter esse comportamento inconsistente (denial reportado ≠ edição não aplicada) caso apareça de novo.
+**Resultado esperado para o usuário:** rodar `instalar-inicializacao-automatica.ps1` uma única vez na máquina do admin. Dali em diante, o bridge sobe sozinho e escondido a cada login do Windows, e o painel de pedidos no navegador sincroniza e reconecta sozinho — nunca mais precisa abrir prompt.
 
-**Commits:** `5617d5f` (horários) e um commit seguinte cobrindo imagens + PWA (ver seção 16), ambos enviados para `origin/main`.
+**Verificação:** `npx tsc --noEmit` limpo no frontend após a mudança em `orders/page.tsx`. **Não foi possível testar ao vivo** o `.vbs`/`.ps1` nem a sincronização real do bridge nesta sessão (dependem da máquina Windows real do admin com impressora instalada) — o usuário precisa rodar o instalador e confirmar.
 
-**Próximo passo:** não há uma próxima tarefa definida pelo usuário ainda além da validação em produção citada acima.
+**Nota sobre o processo desta sessão:** um hook local ("Fact-Forcing Gate", de um plugin ECC) intercepta `Edit`/`Write`/primeiro `Bash` exigindo uma declaração de fatos antes de cada chamada. Em várias ocasiões (contadas no próprio hook como "denial") a chamada foi bloqueada mas a edição **foi aplicada mesmo assim**, causando imports duplicados em commits anteriores desta sessão — todos identificados pelo `tsc` e corrigidos antes de cada commit. Vale saber que esse hook existe e pode ter esse comportamento inconsistente (denial reportado ≠ edição não aplicada).
 
-**Onde continuar:** depende da próxima solicitação do usuário. `git status` deve mostrar só a diferença pendente de `backend/tsconfig.json` (line-ending, intencionalmente não commitada), a pasta local `.claude/` e arquivos soltos `bash.exe.stackdump`/`frontend/bash.exe.stackdump` (artefatos de crash do Git Bash, lixo, não versionados).
+**Commits:** a confirmar após esta edição — ver `git log` (deve haver um commit cobrindo `orders/page.tsx` + `windows-print-bridge/*` novo).
+
+**Próximo passo:** o usuário precisa rodar `instalar-inicializacao-automatica.ps1` na máquina do admin e confirmar que (a) o bridge conecta sozinho sem terminal visível e (b) a impressão automática continua funcionando ao chegar pedido novo.
+
+**Onde continuar:** depende da confirmação do usuário sobre o item acima, ou da próxima solicitação. `git status` deve mostrar só a diferença pendente de `backend/tsconfig.json` (line-ending, intencionalmente não commitada), a pasta local `.claude/` e arquivos soltos `bash.exe.stackdump`/`frontend/bash.exe.stackdump` (artefatos de crash do Git Bash, lixo, não versionados).
 
 ---
 
 ## 15. PRÓXIMOS PASSOS (sugestões, não confirmadas como prioridade pelo usuário)
 
-1. Validar em produção: loja mostra "Fechada" e bloqueia pedido depois do horário configurado; horário de entrega bloqueia só delivery (retirada continua liberada); "Horários" no admin salva e recarrega corretamente do backend.
-2. Confirmar com o usuário se "Pausar chegada de pedidos" está bloqueando o checkout como esperado em produção (teste de ponta a ponta pelo app do cliente).
-3. Validar autoimpressão com impressora/bridge real.
+1. Usuário rodar `windows-print-bridge/instalar-inicializacao-automatica.ps1` na máquina do admin e confirmar que o bridge conecta sozinho, sem terminal, e a impressão automática funciona ao chegar pedido.
+2. Validar em produção: loja mostra "Fechada" e bloqueia pedido depois do horário configurado; horário de entrega bloqueia só delivery (retirada continua liberada); "Horários" no admin salva e recarrega corretamente do backend.
+3. Confirmar com o usuário se "Pausar chegada de pedidos" está bloqueando o checkout como esperado em produção (teste de ponta a ponta pelo app do cliente).
 4. Decidir se vale a pena criar uma tela de autoatendimento para o cliente completar telefone/endereço (relevante principalmente para contas criadas via Google).
 5. Avaliar se `ADmin/` (pasta legada) e a dependência `firebase` não usada devem ser removidas.
 6. Confirmar se sobrou algum pedido de teste em produção para limpar via `/platform`.
@@ -369,6 +367,11 @@ Frontend (Vercel):
 15. `4678d10` — feat/fix: categorias Petiscos/Gin/Whisky/Diversos + "Mais pedidos" some com categoria selecionada na Home + filtro de categoria do admin de produtos (que nunca funcionou) agora é um `<select>` real
 16. `054f2f3` — docs: cria/atualiza `CONTEXTO_PROJETO.md` (commit 15)
 17. `41bd2f0` — fix: botão de menu do admin mobile ficava atrás do botão de tema
+18. `5617d5f` — feat: sistema respeita horário de funcionamento e adiciona horário de entrega
+19. `6fffe6f` — fix: imagens de produto/banner não cortam mais e PWA não pede instalação se já instalado
+20. `1ba050c` — revert: volta imagens de produto/banner para object-cover
+21. `fe57b72` — docs: registra reversão do object-contain nas imagens no CONTEXTO_PROJETO.md
+22. (próximo) — feat: bridge de impressão inicia sozinho e escondido + painel sincroniza automaticamente
 18. `5617d5f` — feat: sistema respeita horário de funcionamento e adiciona horário de entrega
 19. (próximo) — fix: imagens de produto/banner não cortam mais + PWA não pergunta de novo se já instalado
 

@@ -56,6 +56,7 @@ type Order = {
 const POLL_INTERVAL_MS = 5000;
 const PREFS_KEY = 'extraplus-admin-orders-preferences';
 const PAUSE_POLL_INTERVAL_MS = 15000;
+const BRIDGE_RETRY_INTERVAL_MS = 20000;
 
 function formatOrderDate(value: string): string {
   return new Date(value).toLocaleString('pt-BR', {
@@ -220,7 +221,7 @@ export default function AdminOrdersPage() {
   const [bridgePrinters, setBridgePrinters] = useState<BridgePrinter[]>([]);
   const [selectedPrinterName, setSelectedPrinterName] = useState('');
   const [bridgeStatusMessage, setBridgeStatusMessage] = useState(
-    'Clique em sincronizar bridge para conectar a impressora local e permitir o acesso no navegador.'
+    'Conectando automaticamente com a impressora local...'
   );
   const [syncingBridge, setSyncingBridge] = useState(false);
 
@@ -323,6 +324,17 @@ export default function AdminOrdersPage() {
       setSyncingBridge(false);
     }
   }, []);
+
+  useEffect(() => {
+    syncBridge();
+    const intervalId = window.setInterval(() => {
+      if (!bridgeOnline) {
+        void syncBridge();
+      }
+    }, BRIDGE_RETRY_INTERVAL_MS);
+    return () => window.clearInterval(intervalId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bridgeOnline]);
 
   const printOrder = useCallback(async (order: Order) => {
     if (bridgeOnline && selectedPrinterName) {
