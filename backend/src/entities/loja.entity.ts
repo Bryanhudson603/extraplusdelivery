@@ -1,4 +1,5 @@
 import { Column, CreateDateColumn, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
+import { DiaHorario } from '../common/store-hours';
 
 @Entity({ name: 'lojas' })
 export class LojaEntity {
@@ -16,6 +17,12 @@ export class LojaEntity {
 
   @Column({ type: 'boolean', default: false, name: 'pedidos_pausados' })
   pedidosPausados!: boolean;
+
+  @Column({ type: 'jsonb', nullable: true, name: 'horario_funcionamento' })
+  horarioFuncionamento!: DiaHorario[] | null;
+
+  @Column({ type: 'jsonb', nullable: true, name: 'horario_entrega' })
+  horarioEntrega!: DiaHorario[] | null;
 
   @CreateDateColumn({ type: 'timestamptz', name: 'criado_em' })
   criadoEm!: Date;

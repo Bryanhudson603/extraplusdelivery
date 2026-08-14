@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LojaEntity } from '../entities/loja.entity';
+import { DiaHorario } from '../common/store-hours';
 
 @Injectable()
 export class LojaRepository {

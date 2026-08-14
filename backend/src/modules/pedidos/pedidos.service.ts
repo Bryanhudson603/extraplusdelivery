@@ -1,6 +1,7 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { getNeighborhoodDeliveryFee } from '../../common/delivery';
+import { estaDentroDoHorario } from '../../common/store-hours';
 import { resolveLojaId } from '../../common/resolve-loja-id';
 import { CupomClienteEntity } from '../../entities/cupomCliente.entity';
 import { PedidoEntity } from '../../entities/pedido.entity';
@@ -146,6 +147,20 @@ export class PedidosService {
       throw new BadRequestException({
         code: 'PEDIDOS_PAUSADOS',
         message: 'Estamos com o recebimento de pedidos pausado no momento. Voltamos em breve!'
+      });
+    }
+
+    if (!estaDentroDoHorario(loja?.horarioFuncionamento)) {
+      throw new BadRequestException({
+        code: 'LOJA_FECHADA',
+        message: 'A loja está fechada no momento. Confira nosso horário de funcionamento.'
+      });
+    }
+
+    if (body.tipoEntrega === 'delivery' && !estaDentroDoHorario(loja?.horarioEntrega)) {
+      throw new BadRequestException({
+        code: 'FORA_HORARIO_ENTREGA',
+        message: 'Não estamos realizando entregas neste horário. Você pode retirar no local.'
       });
     }
 

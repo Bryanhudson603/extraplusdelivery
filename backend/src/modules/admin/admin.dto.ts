@@ -7,12 +7,43 @@ import {
   IsString,
   Length,
   Max,
-  Min
+  Min,
+  ValidateNested
 } from 'class-validator';
 
 export class DefinirPedidosPausadosDto {
   @IsBoolean()
   pausado!: boolean;
+}
+
+export class DiaHorarioDto {
+  @IsNumber()
+  @Min(0)
+  @Max(6)
+  dia!: number;
+
+  @IsString()
+  abre!: string;
+
+  @IsString()
+  fecha!: string;
+
+  @IsBoolean()
+  fechado!: boolean;
+}
+
+export class AtualizarHorariosDto {
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DiaHorarioDto)
+  funcionamento?: DiaHorarioDto[];
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => DiaHorarioDto)
+  entrega?: DiaHorarioDto[];
 }
 
 export class AtualizarClienteAdminDto {

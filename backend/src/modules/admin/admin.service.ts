@@ -13,6 +13,8 @@ import type { PedidoEntity } from '../../entities/pedido.entity';
 import { ProdutoEntity } from '../../entities/produto.entity';
 import { CupomEntity } from '../../entities/cupom.entity';
 import { CupomClienteEntity } from '../../entities/cupomCliente.entity';
+import { AtualizarHorariosDto } from './admin.dto';
+import { DiaHorario } from '../../common/store-hours';
 
 type ProdutoMaisVendido = { nome: string; quantidade: number };
 type PedidoEmAndamento = { id: string; cliente: string; valor: number; status: string };

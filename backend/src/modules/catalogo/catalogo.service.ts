@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { resolveLojaId } from '../../common/resolve-loja-id';
 import { LojaRepository } from '../../repositories/loja.repository';
 import { ProdutoRepository } from '../../repositories/produto.repository';
+import { estaDentroDoHorario } from '../../common/store-hours';
 
 type Categoria = {
   id: string;
@@ -106,5 +107,18 @@ export class CatalogoService {
     const destaque = lista.filter(p => (p.tags || []).includes('mais_vendido'));
     const top = (destaque.length ? destaque : lista).slice(0, 4);
     return top.map(p => this.toProdutoCliente(p));
+  }
+
+  async obterStatusLoja(
+    req: { headers?: Record<string, unknown> }
+  ): Promise<{ aberta: boolean; entregaDisponivel: boolean }> {
+    const lojaId = await resolveLojaId(req, this.lojaRepo);
+    if (!lojaId) return { aberta: true, entregaDisponivel: true };
+    const loja = await this.lojaRepo.obterPorId(lojaId);
+    const aberta = estaDentroDoHorario(loja?.horarioFuncionamento);
+    return {
+      aberta,
+      entregaDisponivel: aberta && estaDentroDoHorario(loja?.horarioEntrega)
+    };
   }
 }

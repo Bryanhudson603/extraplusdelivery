@@ -29,9 +29,7 @@ export default function AdminSettingsPage() {
   const [horaFechamento, setHoraFechamento] = useState('');
   const [salvandoLoja, setSalvandoLoja] = useState(false);
   const [feedbackLoja, setFeedbackLoja] = useState<string | null>(null);
-  const [horarios, setHorarios] = useState<
-    { dia: number; nome: string; abre: string; fecha: string; fechado: boolean }[]
-  >(() => [
+  const horariosPadrao = (): { dia: number; nome: string; abre: string; fecha: string; fechado: boolean }[] => [
     { dia: 0, nome: 'Domingo', abre: '10:00', fecha: '20:00', fechado: false },
     { dia: 1, nome: 'Segunda', abre: '08:00', fecha: '22:00', fechado: false },
     { dia: 2, nome: 'Terça', abre: '08:00', fecha: '22:00', fechado: false },
@@ -39,7 +37,9 @@ export default function AdminSettingsPage() {
     { dia: 4, nome: 'Quinta', abre: '08:00', fecha: '22:00', fechado: false },
     { dia: 5, nome: 'Sexta', abre: '08:00', fecha: '23:00', fechado: false },
     { dia: 6, nome: 'Sábado', abre: '08:00', fecha: '23:00', fechado: false }
-  ]);
+  ];
+  const [horarios, setHorarios] = useState(horariosPadrao);
+  const [horariosEntrega, setHorariosEntrega] = useState(horariosPadrao);
   const [salvandoHorarios, setSalvandoHorarios] = useState(false);
   const [feedbackHorarios, setFeedbackHorarios] = useState<string | null>(null);
   const [nome, setNome] = useState('');
@@ -80,26 +80,37 @@ export default function AdminSettingsPage() {
       setNomeLoja('Dil Bebidas');
     }
 
-    try {
-      const rawHours = window.localStorage.getItem('extraplus-hours');
-      if (rawHours) {
-        const parsed = JSON.parse(rawHours) as any[];
-        if (Array.isArray(parsed) && parsed.length === 7) {
-          setHorarios(prev =>
-            prev.map((h, index) => {
-              const entry = parsed[index] as any;
-              return {
-                ...h,
-                abre: typeof entry?.abre === 'string' ? entry.abre : h.abre,
-                fecha: typeof entry?.fecha === 'string' ? entry.fecha : h.fecha,
-                fechado: typeof entry?.fechado === 'boolean' ? entry.fechado : h.fechado
-              };
-            })
-          );
+  }, []);
+
+  useEffect(() => {
+    async function carregarHorarios(): Promise<void> {
+      try {
+        const resp = await api.get<{
+          funcionamento: { dia: number; abre: string; fecha: string; fechado: boolean }[];
+          entrega: { dia: number; abre: string; fecha: string; fechado: boolean }[];
+        }>('/admin/loja/horarios');
+
+        const mesclar = (
+          lista: { dia: number; abre: string; fecha: string; fechado: boolean }[]
+        ) =>
+          horariosPadrao().map(h => {
+            const entry = lista.find(e => e.dia === h.dia);
+            return entry
+              ? { ...h, abre: entry.abre, fecha: entry.fecha, fechado: entry.fechado }
+              : h;
+          });
+
+        if (Array.isArray(resp.funcionamento) && resp.funcionamento.length > 0) {
+          setHorarios(mesclar(resp.funcionamento));
         }
+        if (Array.isArray(resp.entrega) && resp.entrega.length > 0) {
+          setHorariosEntrega(mesclar(resp.entrega));
+        }
+      } catch (e) {
+        console.error('Erro ao carregar horários', e);
       }
-    } catch {
     }
+    carregarHorarios();
   }, []);
 
   useEffect(() => {
@@ -165,20 +176,37 @@ export default function AdminSettingsPage() {
     );
   }
 
+  function atualizarHorarioEntregaHora(index: number, campo: 'abre' | 'fecha', valor: string) {
+    setHorariosEntrega(prev =>
+      prev.map((h, i) => (i === index ? { ...h, [campo]: valor } : h))
+    );
+  }
+
+  function atualizarHorarioEntregaFechado(index: number, fechado: boolean) {
+    setHorariosEntrega(prev =>
+      prev.map((h, i) => (i === index ? { ...h, fechado } : h))
+    );
+  }
+
   async function salvarHorarios() {
     if (salvandoHorarios) return;
     setSalvandoHorarios(true);
     setFeedbackHorarios(null);
     try {
-      if (typeof window !== 'undefined') {
-        const payload = horarios.map(h => ({
+      await api.put('/admin/loja/horarios', {
+        funcionamento: horarios.map(h => ({
           dia: h.dia,
           abre: h.abre,
           fecha: h.fecha,
           fechado: h.fechado
-        }));
-        window.localStorage.setItem('extraplus-hours', JSON.stringify(payload));
-      }
+        })),
+        entrega: horariosEntrega.map(h => ({
+          dia: h.dia,
+          abre: h.abre,
+          fecha: h.fecha,
+          fechado: h.fechado
+        }))
+      });
       setFeedbackHorarios('Horários salvos com sucesso.');
     } catch (e) {
       setFeedbackHorarios('Falha ao salvar horários.');
@@ -502,6 +530,50 @@ export default function AdminSettingsPage() {
                   </div>
                 ))}
               </div>
+
+              <div className="pt-2">
+                <div className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Horário de entrega</div>
+                <p className="text-[11px] text-gray-600 dark:text-zinc-500 mb-2">
+                  Pode ser diferente do horário de funcionamento da loja.
+                </p>
+                <div className="space-y-2">
+                  {horariosEntrega.map((h, index) => (
+                    <div
+                      key={h.dia}
+                      className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 dark:border-zinc-800 px-3 py-2"
+                    >
+                      <div className="w-28 text-sm font-semibold text-gray-900 dark:text-white">{h.nome}</div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="time"
+                          value={h.abre}
+                          onChange={e => atualizarHorarioEntregaHora(index, 'abre', e.target.value)}
+                          disabled={h.fechado}
+                          className="h-9 rounded-lg bg-white border border-gray-300 px-2 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
+                        />
+                        <span className="text-[11px] text-gray-600 dark:text-zinc-500">às</span>
+                        <input
+                          type="time"
+                          value={h.fecha}
+                          onChange={e => atualizarHorarioEntregaHora(index, 'fecha', e.target.value)}
+                          disabled={h.fechado}
+                          className="h-9 rounded-lg bg-white border border-gray-300 px-2 text-sm text-gray-900 outline-none dark:bg-zinc-950 dark:border-zinc-700 dark:text-zinc-100"
+                        />
+                      </div>
+                      <label className="flex items-center gap-1 text-[11px] text-gray-600 dark:text-zinc-400">
+                        <span>Sem entrega</span>
+                        <input
+                          type="checkbox"
+                          checked={h.fechado}
+                          onChange={e => atualizarHorarioEntregaFechado(index, e.target.checked)}
+                          className="w-4 h-4 rounded border border-gray-300 bg-white dark:border-zinc-700 dark:bg-zinc-950"
+                        />
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
               <div className="flex items-center gap-3 pt-1 pb-2">
                 <button
                   type="button"

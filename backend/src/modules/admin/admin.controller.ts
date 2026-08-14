@@ -22,6 +22,7 @@ import {
   CriarCupomDto,
   CriarOuAtualizarProdutoDto,
   DefinirPedidosPausadosDto,
+  AtualizarHorariosDto,
   EnviarCupomDto
 } from './admin.dto';
 

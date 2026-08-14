@@ -84,6 +84,19 @@ export default function ClientHomePage() {
     carregar();
   }, []);
 
+  useEffect(() => {
+    async function carregarStatusLoja() {
+      try {
+        const status = await api.get<{ aberta: boolean; entregaDisponivel: boolean }>('/catalogo/loja-status');
+        setCurrentStore(prev => ({ ...prev, open: status.aberta }));
+      } catch (e) {
+        console.error('Erro ao carregar status da loja', e);
+      }
+    }
+
+    carregarStatusLoja();
+  }, []);
+
   const produtosFiltrados = useMemo(
     () => (selectedCategory ? todosProdutos.filter(p => p.categoryId === selectedCategory) : todosProdutos),
     [todosProdutos, selectedCategory]

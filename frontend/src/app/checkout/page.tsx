@@ -137,13 +137,17 @@ export default function CheckoutPage() {
       clear();
       setPedidoConcluido(resposta);
     } catch (e) {
-      if (
-        e instanceof ApiError &&
-        e.payload &&
-        typeof e.payload === 'object' &&
-        (e.payload as { code?: unknown }).code === 'PEDIDOS_PAUSADOS'
-      ) {
+      const codigoErro =
+        e instanceof ApiError && e.payload && typeof e.payload === 'object'
+          ? (e.payload as { code?: unknown }).code
+          : undefined;
+
+      if (codigoErro === 'PEDIDOS_PAUSADOS') {
         setErro('Estamos com o recebimento de pedidos pausado no momento. Voltamos em breve!');
+      } else if (codigoErro === 'LOJA_FECHADA') {
+        setErro('A loja está fechada no momento. Confira nosso horário de funcionamento.');
+      } else if (codigoErro === 'FORA_HORARIO_ENTREGA') {
+        setErro('Não estamos realizando entregas neste horário. Você pode retirar no local.');
       } else {
         setErro('Ocorreu um erro ao registrar seu pedido. Tente novamente.');
       }

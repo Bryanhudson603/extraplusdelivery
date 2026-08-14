@@ -10,7 +10,7 @@ export function StoreHeader({ store }: { store: StoreSettings }) {
         </div>
         <div>
           <div className="text-lg font-bold text-slate-900 dark:text-white">{store.name || 'Dil Bebidas'}</div>
-        <div className="text-xs text-gray-600 dark:text-zinc-400">
+        <div className={`text-xs ${store.open ? 'text-gray-600 dark:text-zinc-400' : 'text-red-500 font-semibold'}`}>
           {store.open ? 'Aberta' : 'Fechada'} • {store.address}
         </div>
       </div>

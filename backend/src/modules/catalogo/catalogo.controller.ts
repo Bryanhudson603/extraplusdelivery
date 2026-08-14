@@ -19,4 +19,9 @@ export class CatalogoController {
   listarTodosProdutos(@Req() req: any) {
     return this.catalogoService.listarProdutos(req);
   }
+
+  @Get('loja-status')
+  obterStatusLoja(@Req() req: any) {
+    return this.catalogoService.obterStatusLoja(req);
+  }
 }
