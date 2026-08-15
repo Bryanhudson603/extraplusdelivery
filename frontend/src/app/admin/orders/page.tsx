@@ -174,31 +174,126 @@ function buildPrintMarkup(order: Order): string {
   `;
 }
 
+// Impressora termica 57/58mm, fonte padrao ESC/POS (Font A): ~32 colunas
+// uteis. Nao e "57 = 57 caracteres" -- depende da fonte/DPI da impressora,
+// 32 e o valor seguro/compativel na pratica para esse tamanho de bobina.
+const RECEIPT_WIDTH_CHARS = 32;
+
+// O bridge local imprime em ESC/POS bruto (ver windows-print-bridge/server.js),
+// entao o texto precisa chegar em ASCII puro -- sem isso, acentos podem sair
+// como caracteres errados dependendo da codepage da impressora.
+function stripAccentsForPrint(value: string): string {
+  const decomposed = String(value || '').normalize('NFD');
+  let result = '';
+  for (const ch of decomposed) {
+    const code = ch.codePointAt(0) || 0;
+    const isCombiningDiacritic = code >= 0x0300 && code <= 0x036f;
+    if (!isCombiningDiacritic) {
+      result += ch;
+    }
+  }
+  return result;
+}
+
+// Quebra por palavra: nunca corta no meio de uma palavra a menos que ela
+// sozinha ja seja maior que a largura disponivel (nesse caso, so ai quebra).
+function wrapReceiptWords(text: string, width: number): string[] {
+  const words = stripAccentsForPrint(text).split(/\s+/).filter(Boolean);
+  if (words.length === 0) return [''];
+
+  const lines: string[] = [];
+  let current = '';
+
+  for (const rawWord of words) {
+    const pieces =
+      rawWord.length > width ? rawWord.match(new RegExp(`.{1,${width}}`, 'g')) || [rawWord] : [rawWord];
+
+    for (const word of pieces) {
+      const candidate = current ? `${current} ${word}` : word;
+      if (candidate.length > width) {
+        if (current) lines.push(current);
+        current = word;
+      } else {
+        current = candidate;
+      }
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+function centerReceiptLine(text: string, width: number): string {
+  const clipped = text.length > width ? text.slice(0, width) : text;
+  const totalPad = width - clipped.length;
+  const left = Math.floor(totalPad / 2);
+  const right = totalPad - left;
+  return `${' '.repeat(left)}${clipped}${' '.repeat(right)}`;
+}
+
+function rightAlignReceiptPair(label: string, value: string, width: number): string {
+  const gap = width - label.length - value.length;
+  if (gap <= 0) return `${label} ${value}`.slice(0, width);
+  return `${label}${' '.repeat(gap)}${value}`;
+}
+
+function receiptSeparator(width: number): string {
+  return '-'.repeat(width);
+}
+
 function buildBridgeReceiptText(order: Order): string {
-  const lines = [
-    'DIL BEBIDAS',
-    `Pedido ${formatOrderShortId(order.id)}`,
-    order.createdAtLabel,
-    '',
-    `Cliente: ${order.clienteNome || 'Cliente'}`,
-    `Telefone: ${order.clienteTelefone || 'Nao informado'}`,
-    `Endereco: ${order.clienteEndereco || 'Nao informado'}`,
-    `Pagamento: ${order.formaPagamento || 'Nao informado'}`,
-    `Entrega: ${order.tipoEntrega || 'Nao informado'}`,
-    order.entregadorNome ? `Entregador: ${order.entregadorNome}` : '',
-    '',
-    'ITENS'
-  ].filter(Boolean);
+  const width = RECEIPT_WIDTH_CHARS;
+  const lines: string[] = [];
+
+  lines.push(centerReceiptLine(stripAccentsForPrint('DIL BEBIDAS'), width));
+  lines.push(centerReceiptLine(stripAccentsForPrint(`Pedido ${formatOrderShortId(order.id)}`), width));
+  lines.push(centerReceiptLine(stripAccentsForPrint(order.createdAtLabel), width));
+  lines.push(receiptSeparator(width));
+  lines.push('');
+
+  const pushField = (label: string, value: string) => {
+    lines.push(`${label}:`);
+    lines.push(...wrapReceiptWords(value, width));
+    lines.push('');
+  };
+
+  pushField('Cliente', order.clienteNome || 'Cliente');
+  pushField('Telefone', order.clienteTelefone || 'Nao informado');
+  pushField('Endereco', order.clienteEndereco || 'Nao informado');
+
+  lines.push(...wrapReceiptWords(`Pagamento: ${order.formaPagamento || 'Nao informado'}`, width));
+  lines.push(...wrapReceiptWords(`Entrega: ${order.tipoEntrega || 'Nao informado'}`, width));
+  if (order.entregadorNome) {
+    lines.push(...wrapReceiptWords(`Entregador: ${order.entregadorNome}`, width));
+  }
+
+  lines.push('');
+  lines.push(receiptSeparator(width));
+  lines.push(centerReceiptLine('ITENS', width));
+  lines.push(receiptSeparator(width));
 
   for (const item of order.items) {
-    lines.push(`- ${item.quantity}x ${item.name}`);
+    const prefix = `${item.quantity}x `;
+    const nameWidth = Math.max(width - prefix.length, 8);
+    const wrappedName = wrapReceiptWords(item.name, nameWidth);
+    lines.push(`${prefix}${wrappedName[0] || ''}`);
+    const indent = ' '.repeat(prefix.length);
+    for (let i = 1; i < wrappedName.length; i++) {
+      lines.push(`${indent}${wrappedName[i]}`);
+    }
   }
 
   if (order.motivoRecusa) {
-    lines.push('', `Motivo da recusa: ${order.motivoRecusa}`);
+    lines.push('');
+    lines.push('Motivo da recusa:');
+    lines.push(...wrapReceiptWords(order.motivoRecusa, width));
   }
 
-  lines.push('', `TOTAL: R$ ${order.total.toFixed(2)}`, '', '------------------------------', '');
+  lines.push('');
+  lines.push(receiptSeparator(width));
+  lines.push(rightAlignReceiptPair('TOTAL:', `R$ ${order.total.toFixed(2)}`, width));
+  lines.push(receiptSeparator(width));
+  lines.push('');
+
   return lines.join('\r\n');
 }
 

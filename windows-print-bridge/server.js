@@ -137,14 +137,109 @@ function escapePowerShellSingleQuoted(value) {
   return String(value || '').replace(/'/g, "''");
 }
 
+// ESC/POS: comandos crus da impressora termica.
+const ESC = 0x1b;
+const GS = 0x1d;
+
+// Envia os bytes direto pro spooler como datatype RAW (sem passar pelo
+// renderizador GDI do driver, que era a causa do texto quebrando
+// caractere por caractere: o driver usava uma fonte grande demais para a
+// largura fisica de 57/58mm, sobrando so 3-4 caracteres por linha).
+const RAW_PRINTER_HELPER_CSHARP = `
+using System;
+using System.Runtime.InteropServices;
+
+public class RawPrinterHelper {
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Ansi)]
+    public class DOCINFOA {
+        [MarshalAs(UnmanagedType.LPStr)] public string pDocName;
+        [MarshalAs(UnmanagedType.LPStr)] public string pOutputFile;
+        [MarshalAs(UnmanagedType.LPStr)] public string pDataType;
+    }
+
+    [DllImport("winspool.drv", EntryPoint = "OpenPrinterA", SetLastError = true, CharSet = CharSet.Ansi, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+    public static extern bool OpenPrinter(string pPrinterName, out IntPtr phPrinter, IntPtr pDefault);
+
+    [DllImport("winspool.drv", EntryPoint = "ClosePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+    public static extern bool ClosePrinter(IntPtr hPrinter);
+
+    [DllImport("winspool.drv", EntryPoint = "StartDocPrinterA", SetLastError = true, CharSet = CharSet.Ansi, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+    public static extern bool StartDocPrinter(IntPtr hPrinter, Int32 level, [In, MarshalAs(UnmanagedType.LPStruct)] DOCINFOA di);
+
+    [DllImport("winspool.drv", EntryPoint = "EndDocPrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+    public static extern bool EndDocPrinter(IntPtr hPrinter);
+
+    [DllImport("winspool.drv", EntryPoint = "StartPagePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+    public static extern bool StartPagePrinter(IntPtr hPrinter);
+
+    [DllImport("winspool.drv", EntryPoint = "EndPagePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+    public static extern bool EndPagePrinter(IntPtr hPrinter);
+
+    [DllImport("winspool.drv", EntryPoint = "WritePrinter", SetLastError = true, ExactSpelling = true, CallingConvention = CallingConvention.StdCall)]
+    public static extern bool WritePrinter(IntPtr hPrinter, IntPtr pBytes, Int32 dwCount, out Int32 dwWritten);
+
+    public static bool SendBytesToPrinter(string printerName, byte[] bytes) {
+        IntPtr hPrinter;
+        DOCINFOA di = new DOCINFOA();
+        di.pDocName = "Extraplus Print Bridge";
+        di.pDataType = "RAW";
+        bool success = false;
+
+        if (OpenPrinter(printerName, out hPrinter, IntPtr.Zero)) {
+            if (StartDocPrinter(hPrinter, 1, di)) {
+                if (StartPagePrinter(hPrinter)) {
+                    IntPtr pUnmanagedBytes = Marshal.AllocCoTaskMem(bytes.Length);
+                    Marshal.Copy(bytes, 0, pUnmanagedBytes, bytes.Length);
+                    int written;
+                    success = WritePrinter(hPrinter, pUnmanagedBytes, bytes.Length, out written);
+                    Marshal.FreeCoTaskMem(pUnmanagedBytes);
+                    EndPagePrinter(hPrinter);
+                }
+                EndDocPrinter(hPrinter);
+            }
+            ClosePrinter(hPrinter);
+        }
+        return success;
+    }
+}
+`;
+
+// Monta o cupom em ESC/POS: inicializa a impressora, envia o texto ja
+// formatado/quebrado (recebido pronto do painel) linha a linha, alimenta
+// papel e manda o comando de corte parcial no final.
+function buildEscPosReceipt(content) {
+  const initBytes = Buffer.from([ESC, 0x40]); // ESC @ - inicializa impressora
+  const lineBuffers = String(content || '')
+    .split(/\r\n|\n/)
+    .map(line => Buffer.concat([Buffer.from(line, 'latin1'), Buffer.from([0x0a])]));
+  const bodyBytes = Buffer.concat(lineBuffers);
+  const feedAndCutBytes = Buffer.concat([
+    Buffer.from([0x0a, 0x0a, 0x0a, 0x0a]),
+    Buffer.from([GS, 0x56, 0x42, 0x00]) // GS V 66 0 - corte parcial
+  ]);
+  return Buffer.concat([initBytes, bodyBytes, feedAndCutBytes]);
+}
+
 async function printText({ content, printerName }) {
   ensureFolders();
-  const filePath = path.join(JOBS_DIR, `pedido-${Date.now()}.txt`);
-  fs.writeFileSync(filePath, String(content || ''), 'utf8');
+  const receiptBytes = buildEscPosReceipt(content);
+  const filePath = path.join(JOBS_DIR, `pedido-${Date.now()}.bin`);
+  fs.writeFileSync(filePath, receiptBytes);
 
   const safeFilePath = escapePowerShellSingleQuoted(filePath);
   const safePrinterName = escapePowerShellSingleQuoted(printerName);
-  await execPowerShell(`Get-Content -Path '${safeFilePath}' | Out-Printer -Name '${safePrinterName}'`);
+
+  const script = `
+Add-Type -TypeDefinition @"
+${RAW_PRINTER_HELPER_CSHARP}
+"@
+
+$bytes = [System.IO.File]::ReadAllBytes('${safeFilePath}')
+$ok = [RawPrinterHelper]::SendBytesToPrinter('${safePrinterName}', $bytes)
+if (-not $ok) { throw 'Falha ao enviar dados RAW para a impressora.' }
+`;
+
+  await execPowerShell(script);
   return filePath;
 }
 
@@ -225,7 +320,7 @@ const server = http.createServer(async (req, res) => {
       sendJson(req, res, 200, {
         ok: true,
         printerName: selectedPrinterName,
-        mode: 'text-out-printer',
+        mode: 'escpos-raw',
         filePath
       });
       return;

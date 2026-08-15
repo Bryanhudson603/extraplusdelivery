@@ -126,9 +126,24 @@ http://127.0.0.1:39876
 
 ## Observacoes
 
-- A impressao silenciosa por impressora especifica usa `Out-Printer`, por isso o cupom e enviado em texto.
-- Para layouts graficos, imagens e impressao HTML completa, o proximo passo recomendado e evoluir este bridge para:
+- A impressao usa comandos **ESC/POS crus**, enviados direto pro spooler
+  como datatype `RAW` (bypassa o renderizador de texto do driver do
+  Windows). Isso e necessario para impressora termica: o driver generico de
+  texto usa uma fonte proporcional grande demais pra largura fisica da
+  bobina, o que fazia o cupom sair quebrando quase a cada caractere.
+- O texto do cupom (`buildBridgeReceiptText`, em
+  `frontend/src/app/admin/orders/page.tsx`) e formatado para **32 colunas**,
+  valor seguro/compativel para bobina de 57/58mm na fonte padrao ESC/POS
+  (Font A). Nao e "57mm = 57 caracteres" — a quantidade de colunas depende
+  da fonte e do DPI da impressora, nao so da largura fisica do papel. Se a
+  impressora usada tiver uma fonte diferente e sobrar/faltar espaco,
+  ajuste a constante `RECEIPT_WIDTH_CHARS` nesse arquivo.
+- Acentos sao removidos do texto antes de imprimir (`stripAccentsForPrint`)
+  porque a impressao RAW nao passa pela conversao de codepage do Windows —
+  sem isso, "ç"/"ã"/etc. poderiam sair como caracteres errados dependendo
+  da codepage ativa na impressora.
+- Para layouts graficos, imagens e impressao HTML completa, o proximo passo
+  recomendado e evoluir este bridge para:
   - `Electron + impressora nativa`, ou
-  - `servico Windows + biblioteca ESC/POS`, ou
   - `bridge com impressao PDF direta por executavel nativo`.
 - O sistema web ja fica preparado para usar esse bridge agora, mas ainda mantem fallback de navegador para nao travar a operacao.
