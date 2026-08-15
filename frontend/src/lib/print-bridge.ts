@@ -9,6 +9,7 @@ export type BridgeSettings = {
   selectedPrinterName: string;
   fallbackToBrowser: boolean;
   printingMode: 'text-out-printer' | 'browser-default';
+  charactersPerLine: number;
 };
 
 const BRIDGE_BASE_URL = 'http://127.0.0.1:39876';

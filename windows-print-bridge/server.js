@@ -73,6 +73,17 @@ function sendJson(req, res, statusCode, payload) {
   res.end(JSON.stringify(payload));
 }
 
+const DEFAULT_CHARACTERS_PER_LINE = 32;
+const MIN_CHARACTERS_PER_LINE = 16;
+const MAX_CHARACTERS_PER_LINE = 80;
+
+function normalizeCharactersPerLine(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return DEFAULT_CHARACTERS_PER_LINE;
+  const rounded = Math.round(parsed);
+  return Math.min(MAX_CHARACTERS_PER_LINE, Math.max(MIN_CHARACTERS_PER_LINE, rounded));
+}
+
 function loadSettings() {
   ensureFolders();
   try {
@@ -81,13 +92,15 @@ function loadSettings() {
     return {
       selectedPrinterName: typeof parsed.selectedPrinterName === 'string' ? parsed.selectedPrinterName : '',
       fallbackToBrowser: parsed.fallbackToBrowser !== false,
-      printingMode: parsed.printingMode === 'browser-default' ? 'browser-default' : 'text-out-printer'
+      printingMode: parsed.printingMode === 'browser-default' ? 'browser-default' : 'text-out-printer',
+      charactersPerLine: normalizeCharactersPerLine(parsed.charactersPerLine)
     };
   } catch {
     return {
       selectedPrinterName: '',
       fallbackToBrowser: true,
-      printingMode: 'text-out-printer'
+      printingMode: 'text-out-printer',
+      charactersPerLine: DEFAULT_CHARACTERS_PER_LINE
     };
   }
 }
@@ -281,11 +294,18 @@ const server = http.createServer(async (req, res) => {
 
     if (req.method === 'PUT' && req.url === '/settings') {
       const body = await readJsonBody(req);
+      const currentSettings = loadSettings();
       const settings = saveSettings({
         selectedPrinterName:
-          typeof body.selectedPrinterName === 'string' ? body.selectedPrinterName.trim() : '',
+          typeof body.selectedPrinterName === 'string'
+            ? body.selectedPrinterName.trim()
+            : currentSettings.selectedPrinterName,
         fallbackToBrowser: body.fallbackToBrowser !== false,
-        printingMode: body.printingMode === 'browser-default' ? 'browser-default' : 'text-out-printer'
+        printingMode: body.printingMode === 'browser-default' ? 'browser-default' : 'text-out-printer',
+        charactersPerLine:
+          body.charactersPerLine !== undefined
+            ? normalizeCharactersPerLine(body.charactersPerLine)
+            : currentSettings.charactersPerLine
       });
       sendJson(req, res, 200, settings);
       return;

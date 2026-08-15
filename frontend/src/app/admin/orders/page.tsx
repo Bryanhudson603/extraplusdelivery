@@ -240,8 +240,7 @@ function receiptSeparator(width: number): string {
   return '-'.repeat(width);
 }
 
-function buildBridgeReceiptText(order: Order): string {
-  const width = RECEIPT_WIDTH_CHARS;
+function buildBridgeReceiptText(order: Order, width: number = RECEIPT_WIDTH_CHARS): string {
   const lines: string[] = [];
 
   lines.push(centerReceiptLine(stripAccentsForPrint('DIL BEBIDAS'), width));
@@ -315,6 +314,8 @@ export default function AdminOrdersPage() {
   const [bridgeOnline, setBridgeOnline] = useState(false);
   const [bridgePrinters, setBridgePrinters] = useState<BridgePrinter[]>([]);
   const [selectedPrinterName, setSelectedPrinterName] = useState('');
+  const [receiptWidth, setReceiptWidth] = useState(RECEIPT_WIDTH_CHARS);
+  const [savingReceiptWidth, setSavingReceiptWidth] = useState(false);
   const [bridgeStatusMessage, setBridgeStatusMessage] = useState(
     'Conectando automaticamente com a impressora local...'
   );
@@ -402,6 +403,9 @@ export default function AdminOrdersPage() {
       setBridgeOnline(Boolean(health.ok));
       setBridgePrinters(printers);
       setSelectedPrinterName(settings.selectedPrinterName || printers.find(item => item.isDefault)?.name || '');
+      if (settings.charactersPerLine) {
+        setReceiptWidth(settings.charactersPerLine);
+      }
       setBridgeStatusMessage(
         health.ok
           ? printers.length > 0
@@ -434,7 +438,7 @@ export default function AdminOrdersPage() {
   const printOrder = useCallback(async (order: Order) => {
     if (bridgeOnline && selectedPrinterName) {
       try {
-        await printViaBridge(buildBridgeReceiptText(order), selectedPrinterName);
+        await printViaBridge(buildBridgeReceiptText(order, receiptWidth), selectedPrinterName);
         return;
       } catch {
         setBridgeStatusMessage('Nao foi possivel imprimir pelo bridge. O sistema voltou para o modo navegador.');
@@ -480,7 +484,7 @@ export default function AdminOrdersPage() {
         cleanup();
       }
     };
-  }, [bridgeOnline, selectedPrinterName]);
+  }, [bridgeOnline, selectedPrinterName, receiptWidth]);
 
   const queuePrintOrders = useCallback(
     (incomingOrders: Order[]) => {
@@ -656,6 +660,21 @@ export default function AdminOrdersPage() {
     }
   }
 
+  async function handleReceiptWidthChange(nextWidth: number) {
+    const clamped = Math.min(80, Math.max(16, Math.round(nextWidth) || RECEIPT_WIDTH_CHARS));
+    setReceiptWidth(clamped);
+    setSavingReceiptWidth(true);
+    try {
+      await updateBridgeSettings({ charactersPerLine: clamped });
+      setBridgeStatusMessage(`Largura do cupom ajustada para ${clamped} caracteres por linha.`);
+    } catch (error) {
+      console.error('Erro ao salvar largura do cupom no bridge', error);
+      setBridgeStatusMessage('Nao foi possivel salvar a largura do cupom no bridge local.');
+    } finally {
+      setSavingReceiptWidth(false);
+    }
+  }
+
   const pendingOrders = useMemo(
     () => orders.filter(order => !isFinishedOrderStatus(order.status)),
     [orders]
@@ -779,6 +798,26 @@ export default function AdminOrdersPage() {
                   </option>
                 ))}
               </select>
+
+              <label className="mt-3 block text-xs font-semibold text-slate-600 dark:text-zinc-400">
+                Caracteres por linha do cupom
+              </label>
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  type="number"
+                  min={16}
+                  max={80}
+                  step={1}
+                  value={receiptWidth}
+                  onChange={event => setReceiptWidth(Number(event.target.value) || RECEIPT_WIDTH_CHARS)}
+                  onBlur={event => void handleReceiptWidthChange(Number(event.target.value))}
+                  disabled={savingReceiptWidth}
+                  className="h-10 w-24 rounded-xl border border-blue-200 bg-white px-3 text-sm text-slate-900 outline-none disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                />
+                <span className="text-xs text-slate-500 dark:text-zinc-400">
+                  Ajuste se o cupom sair apertado ou com sobra de espaco na sua impressora (padrao: {RECEIPT_WIDTH_CHARS}).
+                </span>
+              </div>
             </div>
           </div>
         </section>
