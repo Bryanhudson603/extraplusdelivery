@@ -101,6 +101,19 @@ http://127.0.0.1:39876
 
 ## Diagnosticar problemas
 
+- **Cupom saindo errado (quebrado por caractere, acento virando simbolo
+  estranho tipo "nÂ°") mesmo depois de um fix de impressao:** o
+  `server.js` roda de um arquivo **local** nesta pasta, ele nao atualiza
+  sozinho como o site (que usa deploy automatico). Se voce baixou uma
+  versao nova do projeto, precisa **substituir os arquivos desta pasta
+  pelos novos e reiniciar o bridge** (feche o processo `node.exe` no
+  Gerenciador de Tarefas e rode `Start-ScheduledTask -TaskName "Extraplus
+  Windows Print Bridge"`, ou reinicie o Windows). Para confirmar qual
+  versao esta rodando de fato, abra `http://127.0.0.1:39876/health` num
+  navegador nesta maquina: o campo `"version"` deve ser `1.1.0` ou mais
+  recente e deve existir um campo `"printMode": "escpos-raw"`. Se o
+  `/health` nao tiver esses campos (ou o navegador mostrar um `version`
+  mais antigo), o bridge antigo ainda esta rodando.
 - **`.\instalar-inicializacao-automatica.ps1` diz que nao encontrou o
   Node.js:** instale o Node.js LTS em https://nodejs.org/, feche e abra um
   novo PowerShell (para o PATH atualizar) e rode o instalador de novo.

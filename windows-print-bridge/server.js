@@ -274,7 +274,9 @@ const server = http.createServer(async (req, res) => {
       sendJson(req, res, 200, {
         ok: true,
         service: 'dil-bebidas-windows-print-bridge',
-        version: '1.0.0',
+        version: '1.1.0',
+        printMode: 'escpos-raw',
+        charactersPerLine: settings.charactersPerLine,
         selectedPrinterName: settings.selectedPrinterName || null,
         printersAvailable: printers.length
       });
