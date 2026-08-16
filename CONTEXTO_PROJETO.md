@@ -299,12 +299,26 @@ Frontend (Vercel):
 - Timezone do cálculo de horário está fixo em `America/Maceio` (`backend/src/common/store-hours.ts`) — correto para a loja atual (Rio Largo/AL); se algum dia existir loja em outro fuso, isso precisará virar configurável por loja.
 - `object-contain` nas imagens de produto/banner (commit `6fffe6f`) foi **revertido** (commit `1ba050c`) a pedido do usuário — ficou ruim visualmente. `ProductCard.tsx`, `BannerCarousel.tsx` e as 3 miniaturas de `admin/products/page.tsx` voltaram a `object-cover` (comportamento original, cortando a imagem para preencher o quadro). Não tentar essa troca de novo sem confirmar com o usuário antes.
 - Impressão automática (`windows-print-bridge/`): nenhum navegador consegue imprimir silenciosamente numa impressora específica sem algum ajudante local rodando na máquina — isso é bloqueio de segurança do próprio navegador, não uma limitação deste projeto. A solução adotada (ver seção 14) é o bridge local iniciar sozinho e escondido; não existe forma de eliminar esse pequeno processo local a menos que a impressora seja térmica USB compatível com WebUSB (o usuário confirmou que é impressora comum instalada no Windows, então essa alternativa não se aplica aqui).
+- Demora de alguns segundos pra carregar a home/PWA: parcialmente resolvido (ver seção 14) via paralelização de fetch + cache curto de catálogo público. **Não descartado**: se o backend no Render estiver em plano free/com auto-sleep, a primeira requisição depois de um período de inatividade pode ter um cold-start de vários segundos a dezenas de segundos — isso não é algo que dá pra resolver só com código no frontend, precisaria de um ping periódico (cron) pro backend ou upgrade de plano no Render. Não foi confirmado com o usuário se esse é o caso.
 
 ---
 
 ## 14. ÚLTIMA TAREFA
 
-**Contexto imediatamente anterior (mesma sessão):** horário de funcionamento/entrega respeitados de verdade (commit `5617d5f`), depois imagens de produto/banner trocadas de `object-cover` para `object-contain` + fix do prompt de instalação do PWA repetindo mesmo já instalado (commit `6fffe6f`), e em seguida a troca de imagem foi **revertida** a pedido do usuário por ter ficado ruim visualmente (commit `1ba050c`, ver seção 13). Detalhes completos de cada uma dessas mudanças ficaram registrados nos commits e no changelog da seção 16 — não repetidos aqui para não inflar o documento.
+**Tarefa mais recente (topo desta seção; o resto abaixo é histórico da mesma sessão, mais antigo primeiro):** usuário reportou demora de alguns segundos pra carregar a tela inicial (home) tanto no PWA quanto no site. Causa concreta encontrada em `frontend/src/app/home/page.tsx`: a função `carregar()` buscava `/catalogo/produtos-mais-pedidos` e depois `/catalogo/produtos` **em sequência** (`await` um, só depois `await` o outro) — duas viagens de rede em série em vez de paralelas. Além disso, tanto o cliente (`frontend/src/lib/api.ts`) quanto o proxy (`frontend/src/app/api/[...path]/route.ts`) forçavam `cache: 'no-store'` em **toda** chamada, então nada nunca era reaproveitado, nem dados de catálogo público que quase não mudam.
+
+Corrigido (commit `d1f7d05`):
+- `home/page.tsx`: as duas buscas de produtos agora usam `Promise.allSettled` (paralelas, cada uma com seu próprio tratamento de erro).
+- `api.ts`: `api.get()` ganhou um segundo parâmetro opcional `{cache?: RequestCache}`, default continua `'no-store'` (nenhum dos outros ~18 arquivos que usam `api.get` foi afetado).
+- `route.ts` (proxy): GETs de `catalogo/categorias`, `catalogo/produtos` e `catalogo/produtos-mais-pedidos` (só esses três, allowlist explícita) ganham `Cache-Control: public, max-age=0, s-maxage=20, stale-while-revalidate=60` em vez de `no-store` — cache curto na borda da Vercel. `catalogo/loja-status` e todo o resto (pedidos, admin, auth) continuam sempre `no-store` de propósito.
+
+**Não resolvido / não confirmado:** se o backend no Render estiver em plano com auto-sleep (free tier), a primeira requisição depois de um tempo parado pode ter cold-start de vários segundos — isso essas mudanças de código **não resolvem**, precisaria de um ping periódico externo pro backend ou upgrade de plano no Render. Não foi confirmado com o usuário se é esse o caso; se a demora persistir mesmo com cache/paralelização, esse é o próximo suspeito.
+
+**Verificação:** `npx tsc --noEmit` limpo no frontend. Não foi possível medir o ganho real de tempo de carregamento nesta sessão (sem ambiente rodando local nem acesso ao Render/Vercel do usuário) — vale o usuário confirmar se a home carregou mais rápido depois do deploy.
+
+---
+
+**Histórico anterior desta seção (mais antigo, sessão de impressão térmica/print-bridge — resumo, detalhes completos nos commits):** horário de funcionamento/entrega respeitados de verdade (commit `5617d5f`), depois imagens de produto/banner trocadas de `object-cover` para `object-contain` + fix do prompt de instalação do PWA repetindo mesmo já instalado (commit `6fffe6f`), e em seguida a troca de imagem foi **revertida** a pedido do usuário por ter ficado ruim visualmente (commit `1ba050c`, ver seção 13). Detalhes completos de cada uma dessas mudanças ficaram registrados nos commits e no changelog da seção 16 — não repetidos aqui para não inflar o documento.
 
 **O que estava sendo feito (nesta rodada):** o usuário reportou dois problemas com a impressão automática de cupom (`windows-print-bridge/`):
 1. O bridge local "não sincroniza" e o painel fica apontando para `http://127.0.0.1:39876` sem conectar.
@@ -372,7 +386,8 @@ Adicionado um jeito de verificar isso sem precisar imprimir nada: `GET /health` 
 
 ## 15. PRÓXIMOS PASSOS (sugestões, não confirmadas como prioridade pelo usuário)
 
-1. Usuário rodar `windows-print-bridge/instalar-inicializacao-automatica.ps1` na máquina do admin e confirmar que o bridge conecta sozinho, sem terminal, e a impressão automática funciona ao chegar pedido.
+1. Confirmar com o usuário se a home carregou mais rápido depois do deploy do commit `d1f7d05`; se a demora persistir, investigar se o backend no Render tem auto-sleep (cold start) — precisaria de ping periódico externo ou upgrade de plano.
+1b. Usuário rodar `windows-print-bridge/instalar-inicializacao-automatica.ps1` na máquina do admin e confirmar que o bridge conecta sozinho, sem terminal, e a impressão automática funciona ao chegar pedido.
 2. Validar em produção: loja mostra "Fechada" e bloqueia pedido depois do horário configurado; horário de entrega bloqueia só delivery (retirada continua liberada); "Horários" no admin salva e recarrega corretamente do backend.
 3. Confirmar com o usuário se "Pausar chegada de pedidos" está bloqueando o checkout como esperado em produção (teste de ponta a ponta pelo app do cliente).
 4. Decidir se vale a pena criar uma tela de autoatendimento para o cliente completar telefone/endereço (relevante principalmente para contas criadas via Google).
@@ -406,6 +421,13 @@ Adicionado um jeito de verificar isso sem precisar imprimir nada: `GET /health` 
 21. `fe57b72` — docs: registra reversão do object-contain nas imagens no CONTEXTO_PROJETO.md
 22. `4baa4eb` — feat: bridge de impressão inicia sozinho e escondido + painel sincroniza automaticamente
 23. `0a04d4d` — fix: corrige erro de sintaxe no instalador do print-bridge (aspas escapadas com backtick se perdiam ao copiar/colar; trocado por variável com string já entre aspas)
+24. `e0bd74a` — docs: registra instalação real no cliente e fix do bloqueio de CORS (loopback) no print-bridge
+25. `edcba95` — fix: cupom térmico 57mm não quebra mais caractere por caractere
+26. `a8112ca` — feat: largura do cupom térmico vira configuração editável no painel
+27. `74de8df` — docs: registra largura editável do cupom e alerta sobre bridge não ter deploy automático
+28. `26dd27a` — feat: expõe versão/modo de impressão no /health do print-bridge
+29. `6a24204` — docs: confirma bridge antigo ainda rodando no cliente e registra fix do marcador de versão
+30. `d1f7d05` — perf: acelera carregamento da home paralelizando fetch e cacheando catálogo público
 18. `5617d5f` — feat: sistema respeita horário de funcionamento e adiciona horário de entrega
 19. (próximo) — fix: imagens de produto/banner não cortam mais + PWA não pergunta de novo se já instalado
 
