@@ -71,13 +71,21 @@ export default function ClientHomePage() {
 
   useEffect(() => {
     async function carregar() {
-      try {
-        const produtosResp = await api.get<Product[]>('/catalogo/produtos-mais-pedidos');
-        setProdutosMaisPedidos(produtosResp);
-        const todos = await api.get<Product[]>('/catalogo/produtos');
-        setTodosProdutos(todos);
-      } catch (e) {
-        console.error('Erro ao carregar produtos mais pedidos', e);
+      const [maisPedidosResult, todosResult] = await Promise.allSettled([
+        api.get<Product[]>('/catalogo/produtos-mais-pedidos', { cache: 'default' }),
+        api.get<Product[]>('/catalogo/produtos', { cache: 'default' })
+      ]);
+
+      if (maisPedidosResult.status === 'fulfilled') {
+        setProdutosMaisPedidos(maisPedidosResult.value);
+      } else {
+        console.error('Erro ao carregar produtos mais pedidos', maisPedidosResult.reason);
+      }
+
+      if (todosResult.status === 'fulfilled') {
+        setTodosProdutos(todosResult.value);
+      } else {
+        console.error('Erro ao carregar produtos', todosResult.reason);
       }
     }
 

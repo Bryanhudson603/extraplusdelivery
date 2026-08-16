@@ -1,5 +1,11 @@
 import { NextResponse } from 'next/server';
 
+// Catalogo publico, sem dados pessoais nem estado dependente de sessao ou
+// horario: pode ficar em cache curto na borda pra evitar refazer a viagem
+// ate o backend (Render) em toda navegacao. loja-status fica de fora de
+// proposito, pois reflete o horario de funcionamento em tempo real.
+const CACHEABLE_GET_PATHS = new Set(['catalogo/categorias', 'catalogo/produtos', 'catalogo/produtos-mais-pedidos']);
+
 function normalizeBackendBase(raw: string): string {
   let base = raw.trim().replace(/\/$/, '');
   if (base.endsWith('/api')) {
@@ -60,12 +66,17 @@ async function proxy(request: Request, params: { path: string[] }) {
     );
   }
 
+  const cacheControl =
+    request.method === 'GET' && upstream.status === 200 && CACHEABLE_GET_PATHS.has(path)
+      ? 'public, max-age=0, s-maxage=20, stale-while-revalidate=60'
+      : 'no-store';
+
   const upstreamContentType = upstream.headers.get('content-type') || '';
   if (upstreamContentType.includes('application/json')) {
     const responseHeaders = new Headers(upstream.headers);
     responseHeaders.delete('content-encoding');
     responseHeaders.delete('content-length');
-    responseHeaders.set('cache-control', 'no-store');
+    responseHeaders.set('cache-control', cacheControl);
     const raw = await upstream.text();
     if (!raw.trim()) {
       return new NextResponse('', { status: upstream.status, headers: responseHeaders });

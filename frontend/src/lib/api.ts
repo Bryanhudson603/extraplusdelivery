@@ -30,7 +30,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
   const res = await fetch(`${BASE_URL}${path}`, {
     ...options,
-    cache: 'no-store',
+    cache: options?.cache ?? 'no-store',
     credentials: 'include',
     headers
   });
@@ -74,8 +74,8 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  get<T>(path: string) {
-    return request<T>(path);
+  get<T>(path: string, options?: { cache?: RequestCache }) {
+    return request<T>(path, options);
   },
   post<T>(path: string, body?: unknown) {
     return request<T>(path, {
