@@ -99,18 +99,18 @@ export class GoogleAuthService {
     };
   }
 
-  private async localizarOuCriarCliente(profile: GoogleProfile): Promise<ClienteEntity> {
+  private async localizarOuCriarCliente(profile: GoogleProfile): Promise<{ cliente: ClienteEntity; novoCadastro: boolean }> {
     const socialExistente = await this.socialAccountRepo.findByProvider(GOOGLE_PROVIDER, profile.sub);
     if (socialExistente) {
       const cliente = await this.clienteRepo.findById(socialExistente.clienteId);
-      if (cliente && cliente.ativo !== false) return cliente;
+      if (cliente && cliente.ativo !== false) return { cliente, novoCadastro: false };
       throw new UnauthorizedException('Conta vinculada não está mais disponível');
     }
 
     const clientePorEmail = await this.clienteRepo.findAtivoByEmailAnyLoja(profile.email);
     if (clientePorEmail) {
       await this.vincularConta(clientePorEmail.id, profile);
-      return clientePorEmail;
+      return { cliente: clientePorEmail, novoCadastro: false };
     }
 
     const lojaPadrao = await this.lojaRepo.obterPrimeiraAtiva();
@@ -131,7 +131,7 @@ export class GoogleAuthService {
 
     const salvo = await this.clienteRepo.save(novo);
     await this.vincularConta(salvo.id, profile);
-    return salvo;
+    return { cliente: salvo, novoCadastro: true };
   }
 
   private async vincularConta(clienteId: string, profile: GoogleProfile): Promise<void> {
@@ -155,18 +155,18 @@ export class GoogleAuthService {
 
   async handleCallback(code: string): Promise<{ ticket: string }> {
     const profile = await this.verifyAndExtractProfile(code);
-    const cliente = await this.localizarOuCriarCliente(profile);
-    const ticket = criarTicket(cliente.id);
+    const { cliente, novoCadastro } = await this.localizarOuCriarCliente(profile);
+    const ticket = criarTicket(cliente.id, novoCadastro);
     return { ticket };
   }
 
   async exchangeTicket(ticketId: string): Promise<{ response: ClienteLoginResponse; clienteId: string; lojaId: string; telefone?: string }> {
-    const clienteId = consumirTicket(ticketId);
-    if (!clienteId) {
+    const ticketEntry = consumirTicket(ticketId);
+    if (!ticketEntry) {
       throw new UnauthorizedException('Ticket inválido ou expirado');
     }
 
-    const cliente = await this.clienteRepo.findById(clienteId);
+    const cliente = await this.clienteRepo.findById(ticketEntry.clienteId);
     if (!cliente || cliente.ativo === false) {
       throw new UnauthorizedException('Cliente não encontrado');
     }
@@ -183,7 +183,8 @@ export class GoogleAuthService {
       telefone: cliente.telefone || '',
       nome: cliente.nome,
       endereco: cliente.endereco,
-      loja: lojaDto
+      loja: lojaDto,
+      novoCadastro: ticketEntry.novoCadastro
     };
 
     return {

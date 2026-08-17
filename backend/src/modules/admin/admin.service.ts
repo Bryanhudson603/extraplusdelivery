@@ -2,6 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable } from '@nestjs/com
 import { randomUUID } from 'crypto';
 import { resolveLojaId } from '../../common/resolve-loja-id';
 import { ClienteCarteiraEntity } from '../../entities/clienteCarteira.entity';
+import { ClienteRepository } from '../../repositories/cliente.repository';
 import { LojaRepository } from '../../repositories/loja.repository';
 import { PedidoRepository } from '../../repositories/pedido.repository';
 import { ProdutoRepository } from '../../repositories/produto.repository';
@@ -71,6 +72,7 @@ export class AdminService {
 
   constructor(
     private readonly lojaRepo: LojaRepository,
+    private readonly clienteRepo: ClienteRepository,
     private readonly pedidoRepo: PedidoRepository,
     private readonly produtoRepo: ProdutoRepository,
     private readonly cupomRepo: CupomRepository,
@@ -417,9 +419,10 @@ export class AdminService {
   async listarClientes(req: { headers?: Record<string, unknown> }): Promise<ClienteLoja[]> {
     const lojaId = await resolveLojaId(req, this.lojaRepo);
     if (!lojaId) return [];
-    const [pedidos, carteiras] = await Promise.all([
+    const [pedidos, carteiras, clientesCadastrados] = await Promise.all([
       this.pedidoRepo.listByLoja(lojaId),
-      this.carteiraRepo.listByLoja(lojaId)
+      this.carteiraRepo.listByLoja(lojaId),
+      this.clienteRepo.listByLoja(lojaId)
     ]);
     const carteiraMap: Record<string, number> = {};
     for (const c of carteiras) {
@@ -452,6 +455,25 @@ export class AdminService {
           existente.ultimoPedidoEm = data;
         }
       }
+    }
+
+    // Clientes cadastrados (ex.: login com Google) que ainda nao fizeram
+    // nenhum pedido nao aparecem no mapa acima, ja que ele so e alimentado
+    // por pedidos. Sem isso, o cadastro "sumia" da base de clientes ate a
+    // pessoa comprar pela primeira vez.
+    for (const cliente of clientesCadastrados) {
+      if (mapa[cliente.id]) continue;
+      const override = this.getOverride(cliente.id);
+      mapa[cliente.id] = {
+        id: cliente.id,
+        nome: override?.nome || cliente.nome || 'Cliente',
+        telefone: override?.telefone || cliente.telefone || undefined,
+        endereco: override?.endereco || cliente.endereco || undefined,
+        ultimoPedidoEm: cliente.criadoEm.toISOString(),
+        totalPedidos: 0,
+        valorTotal: 0,
+        saldoCarteira: carteiraMap[cliente.id] ?? 0
+      };
     }
 
     return Object.values(mapa).sort(
@@ -735,6 +757,33 @@ export class AdminService {
       if (cliente) return cliente;
     }
     throw new ForbiddenException();
+  }
+
+  async atualizarPerfilClienteAutenticado(
+    req: { headers?: Record<string, unknown>; auth?: { tipo?: string; sub?: string } },
+    body: { nome?: string; telefone?: string; endereco?: string }
+  ): Promise<{ nome: string; telefone: string; endereco: string }> {
+    const auth = req.auth;
+    if (!auth || auth.tipo !== 'cliente' || !auth.sub) {
+      throw new ForbiddenException();
+    }
+
+    const lojaId = await resolveLojaId(req, this.lojaRepo);
+    const cliente = await this.clienteRepo.findById(auth.sub);
+    if (!cliente || cliente.lojaId !== lojaId) {
+      throw new ForbiddenException();
+    }
+
+    if (typeof body.nome === 'string' && body.nome.trim()) cliente.nome = body.nome.trim();
+    if (typeof body.telefone === 'string' && body.telefone.trim()) cliente.telefone = body.telefone.trim();
+    if (typeof body.endereco === 'string' && body.endereco.trim()) cliente.endereco = body.endereco.trim();
+
+    const salvo = await this.clienteRepo.save(cliente);
+    return {
+      nome: salvo.nome,
+      telefone: salvo.telefone || '',
+      endereco: salvo.endereco || ''
+    };
   }
 
   async listarCuponsClienteAutenticado(req: {

@@ -2,6 +2,7 @@ import { randomBytes } from 'crypto';
 
 type TicketEntry = {
   clienteId: string;
+  novoCadastro: boolean;
   expiresAt: number;
 };
 
@@ -15,18 +16,18 @@ function limparExpirados(): void {
   }
 }
 
-export function criarTicket(clienteId: string): string {
+export function criarTicket(clienteId: string, novoCadastro: boolean): string {
   limparExpirados();
   const id = randomBytes(24).toString('hex');
-  tickets.set(id, { clienteId, expiresAt: Date.now() + TICKET_TTL_MS });
+  tickets.set(id, { clienteId, novoCadastro, expiresAt: Date.now() + TICKET_TTL_MS });
   return id;
 }
 
-export function consumirTicket(id: string): string | null {
+export function consumirTicket(id: string): { clienteId: string; novoCadastro: boolean } | null {
   limparExpirados();
   const entry = tickets.get(id);
   if (!entry) return null;
   tickets.delete(id);
   if (entry.expiresAt < Date.now()) return null;
-  return entry.clienteId;
+  return { clienteId: entry.clienteId, novoCadastro: entry.novoCadastro };
 }

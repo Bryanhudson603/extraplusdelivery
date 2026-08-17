@@ -84,6 +84,7 @@ export type ClienteLoginResponse = {
   nome: string;
   endereco: string;
   loja: LojaDto;
+  novoCadastro?: boolean;
 };
 
 export type PlatformLoginResponse = {
