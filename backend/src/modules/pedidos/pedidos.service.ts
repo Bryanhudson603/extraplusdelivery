@@ -1,11 +1,13 @@
 import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
+import { getAuthPayloadFromRequest } from '../../auth/auth-token';
 import { getNeighborhoodDeliveryFee } from '../../common/delivery';
 import { estaDentroDoHorario } from '../../common/store-hours';
 import { resolveLojaId } from '../../common/resolve-loja-id';
 import { CupomClienteEntity } from '../../entities/cupomCliente.entity';
 import { PedidoEntity } from '../../entities/pedido.entity';
 import { PedidoItemEntity } from '../../entities/pedidoItem.entity';
+import { ClienteRepository } from '../../repositories/cliente.repository';
 import { CupomClienteRepository } from '../../repositories/cupom-cliente.repository';
 import { CupomRepository } from '../../repositories/cupom.repository';
 import { EntregadorRepository } from '../../repositories/entregador.repository';
@@ -19,6 +21,7 @@ import type { CriarPedidoDto, FormaPagamento, PedidoResponse, TipoEntrega, Valid
 export class PedidosService {
   constructor(
     private readonly lojaRepo: LojaRepository,
+    private readonly clienteRepo: ClienteRepository,
     private readonly pedidoRepo: PedidoRepository,
     private readonly pedidoItemRepo: PedidoItemRepository,
     private readonly produtoRepo: ProdutoRepository,
@@ -66,35 +69,15 @@ export class PedidosService {
     }
     const lojaId = await resolveLojaId(req, this.lojaRepo);
     if (!lojaId) return [];
-    const pedidos = await this.pedidoRepo.listByCliente(lojaId, auth.sub, auth.telefone);
+
+    // O telefone do token pode estar desatualizado (token emitido antes do
+    // cliente cadastrar/trocar o telefone, e nunca reemitido depois). Busca
+    // o telefone atual direto no cadastro pra nao perder o vinculo.
+    const cliente = await this.clienteRepo.findById(auth.sub);
+    const telefoneAtual = cliente?.telefone || auth.telefone;
+
+    const pedidos = await this.pedidoRepo.listByCliente(lojaId, auth.sub, telefoneAtual || undefined);
     return pedidos.map(p => this.toResponse(p));
-  }
-
-  // TEMPORARIO: diagnostico pra investigar por que /pedidos/meus volta vazio
-  // mesmo com dados de cliente corretos. Remover depois de identificar a causa.
-  async debugMeus(req: {
-    headers?: Record<string, unknown>;
-    auth?: { tipo?: string; sub?: string; telefone?: string; lojaId?: string };
-  }) {
-    const auth = req.auth;
-    const lojaId = await resolveLojaId(req, this.lojaRepo);
-    const todosDaLoja = lojaId ? await this.pedidoRepo.listByLoja(lojaId) : [];
-
-    return {
-      authSub: auth?.sub || null,
-      authTelefone: auth?.telefone || null,
-      authLojaIdClaim: auth?.lojaId || null,
-      resolvedLojaId: lojaId,
-      totalPedidosNaLojaResolvida: todosDaLoja.length,
-      amostraPedidos: todosDaLoja.slice(0, 8).map(p => ({
-        id: p.id,
-        lojaId: p.lojaId,
-        clienteId: p.clienteId,
-        clienteTelefone: p.clienteTelefone,
-        clienteNome: p.clienteNome,
-        criadoEm: p.criadoEm
-      }))
-    };
   }
 
   private async avaliarCupom(
@@ -259,7 +242,13 @@ export class PedidosService {
     pedido.troco = troco != null ? troco.toFixed(2) : null;
     pedido.pixPayload = body.formaPagamento === 'pix' ? `PIX:EXTRAPLUS:${pedido.id}:${total.toFixed(2)}` : null;
     pedido.motivoRecusa = null;
-    pedido.clienteId = body.clienteId || null;
+    // O clienteId vem do cookie de sessao autenticada quando existir --
+    // nao confia so no que o front manda no corpo da requisicao, que pode
+    // ficar desatualizado por bug de estado no navegador (ja aconteceu:
+    // pedido criado com o usuario logado, mas sem clienteId no corpo).
+    const authPayload = getAuthPayloadFromRequest(req);
+    const clienteIdAutenticado = authPayload?.tipo === 'cliente' ? authPayload.sub : undefined;
+    pedido.clienteId = clienteIdAutenticado || body.clienteId || null;
     pedido.clienteNome = body.clienteNome || null;
     pedido.clienteTelefone = body.clienteTelefone || null;
     pedido.clienteEndereco = body.clienteEndereco || null;
