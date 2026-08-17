@@ -56,6 +56,20 @@ export class PedidosService {
     return pedidos.map(p => this.toResponse(p));
   }
 
+  async listarMeus(req: {
+    headers?: Record<string, unknown>;
+    auth?: { tipo?: string; sub?: string; telefone?: string };
+  }): Promise<PedidoResponse[]> {
+    const auth = req.auth;
+    if (!auth || auth.tipo !== 'cliente' || !auth.sub) {
+      throw new ForbiddenException();
+    }
+    const lojaId = await resolveLojaId(req, this.lojaRepo);
+    if (!lojaId) return [];
+    const pedidos = await this.pedidoRepo.listByCliente(lojaId, auth.sub, auth.telefone);
+    return pedidos.map(p => this.toResponse(p));
+  }
+
   private async avaliarCupom(
     lojaId: string,
     body: { cupomCodigo?: string; clienteId?: string; clienteTelefone?: string }

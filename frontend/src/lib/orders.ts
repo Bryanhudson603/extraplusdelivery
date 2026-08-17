@@ -1,8 +1,3 @@
-export type ClientScopedOrder = {
-  clienteId?: string;
-  clienteTelefone?: string;
-};
-
 const FINISHED_ORDER_STATUSES = new Set(['finalizado', 'cancelado']);
 const INCOMING_ORDER_STATUSES = new Set(['recebido', 'aguardando_pagamento']);
 
@@ -30,20 +25,4 @@ export function isFinishedOrderStatus(status: string): boolean {
 
 export function isIncomingOrderStatus(status: string): boolean {
   return INCOMING_ORDER_STATUSES.has(status);
-}
-
-export function matchesClientOrder(
-  order: ClientScopedOrder,
-  clienteId: string | null,
-  clienteTelefone: string | null
-): boolean {
-  if (clienteId && order.clienteId === clienteId) {
-    return true;
-  }
-
-  if (clienteTelefone && order.clienteTelefone === clienteTelefone) {
-    return true;
-  }
-
-  return false;
 }

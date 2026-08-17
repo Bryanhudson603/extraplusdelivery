@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { OrderStatusBadge } from '@/components/OrderStatusBadge';
 import { api } from '@/lib/api';
-import { formatOrderShortId, matchesClientOrder } from '@/lib/orders';
+import { formatOrderShortId } from '@/lib/orders';
 
 type BackendOrderItem = {
   name: string;
@@ -26,39 +26,15 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
   const id = params.id;
   const [order, setOrder] = useState<BackendOrder | null>(null);
   const [loading, setLoading] = useState(true);
-  const [clienteId, setClienteId] = useState<string | null>(null);
-  const [clienteTelefone, setClienteTelefone] = useState<string | null>(null);
-  const [sessionReady, setSessionReady] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    try {
-      const raw = window.localStorage.getItem('extraplus-session');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed?.tipo === 'cliente') {
-          setClienteId(parsed.clienteId || null);
-          setClienteTelefone(parsed.telefone || null);
-        }
-      }
-    } catch {
-    }
-
-    setSessionReady(true);
-  }, []);
-
-  useEffect(() => {
-    if (!sessionReady) return;
-
     let ativo = true;
 
     async function carregar() {
       try {
-        const lista = await api.get<BackendOrder[]>('/pedidos');
-        const encontrado = lista.find(
-          p => p.id === id && matchesClientOrder(p, clienteId, clienteTelefone)
-        );
+        // Endpoint autenticado: retorna so os pedidos do cliente logado.
+        const lista = await api.get<BackendOrder[]>('/pedidos/meus');
+        const encontrado = lista.find(p => p.id === id);
         if (ativo && encontrado) {
           setOrder(encontrado);
         } else if (ativo) {
@@ -78,7 +54,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
       ativo = false;
       window.clearInterval(intervalId);
     };
-  }, [clienteId, clienteTelefone, id, sessionReady]);
+  }, [id]);
 
   if (loading) {
     return (

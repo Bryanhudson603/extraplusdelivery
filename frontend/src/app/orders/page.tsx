@@ -5,11 +5,7 @@ import Link from 'next/link';
 import { OrderStatusBadge } from '@/components/OrderStatusBadge';
 import { BottomNav } from '@/components/BottomNav';
 import { api } from '@/lib/api';
-import {
-  formatOrderShortId,
-  isFinishedOrderStatus,
-  matchesClientOrder
-} from '@/lib/orders';
+import { formatOrderShortId, isFinishedOrderStatus } from '@/lib/orders';
 
 type Item = { productName: string; productImage?: string; quantity: number };
 
@@ -24,8 +20,6 @@ type BackendOrder = {
   total: number;
   createdAt: string;
   items?: BackendOrderItem[];
-  clienteId?: string;
-  clienteTelefone?: string;
 };
 
 type Order = {
@@ -40,36 +34,17 @@ type Order = {
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
-  const [clienteId, setClienteId] = useState<string | null>(null);
-  const [clienteTelefone, setClienteTelefone] = useState<string | null>(null);
-  const [sessionReady, setSessionReady] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    try {
-      const raw = window.localStorage.getItem('extraplus-session');
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (parsed?.tipo === 'cliente') {
-          setClienteId(parsed.clienteId || null);
-          setClienteTelefone(parsed.telefone || null);
-        }
-      }
-    } catch {
-    }
-    setSessionReady(true);
-  }, []);
-
-  useEffect(() => {
-    if (!sessionReady) return;
-
     let ativo = true;
 
     async function carregar() {
       try {
-        const resposta = await api.get<BackendOrder[]>('/pedidos');
-        const doCliente = resposta.filter(p => matchesClientOrder(p, clienteId, clienteTelefone));
-        const normalizados: Order[] = doCliente.map(p => ({
+        // Endpoint autenticado: o backend ja filtra pelos pedidos do
+        // cliente logado (via cookie/JWT), sem depender de comparar
+        // clienteId/telefone lidos do localStorage no navegador.
+        const resposta = await api.get<BackendOrder[]>('/pedidos/meus');
+        const normalizados: Order[] = resposta.map(p => ({
           id: p.id,
           status: p.status,
           total: p.total,
@@ -105,7 +80,7 @@ export default function OrdersPage() {
       ativo = false;
       window.clearInterval(intervalId);
     };
-  }, [clienteId, clienteTelefone, sessionReady]);
+  }, []);
 
   const activeOrders = orders.filter(o => !isFinishedOrderStatus(o.status));
   const pastOrders = orders.filter(o => isFinishedOrderStatus(o.status));

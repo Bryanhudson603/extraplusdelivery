@@ -38,6 +38,21 @@ export class PedidoRepository {
     return pedido || null;
   }
 
+  async listByCliente(lojaId: string, clienteId: string, telefone?: string): Promise<PedidoEntity[]> {
+    const where: Array<{ lojaId: string; clienteId?: string; clienteTelefone?: string }> = [
+      { lojaId, clienteId }
+    ];
+    if (telefone) {
+      where.push({ lojaId, clienteTelefone: telefone });
+    }
+
+    return this.repo.find({
+      where,
+      relations: { itens: true },
+      order: { criadoEm: 'DESC' }
+    });
+  }
+
   async existsClienteKeyInLoja(lojaId: string, clienteKey: string): Promise<boolean> {
     const key = String(clienteKey || '').trim();
     if (!key) return false;

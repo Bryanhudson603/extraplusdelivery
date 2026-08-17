@@ -6,7 +6,6 @@ import { BottomNav } from '@/components/BottomNav';
 import { AddressModal } from '@/components/AddressModal';
 import { useCart } from '@/components/CartProvider';
 import { api } from '@/lib/api';
-import { matchesClientOrder } from '@/lib/orders';
 import {
   type AddressRecord,
   formatAddressSummary,
@@ -130,12 +129,10 @@ export default function ProfilePage() {
         if (!rawSession) return;
         const parsed = JSON.parse(rawSession);
         if (parsed?.tipo !== 'cliente') return;
-        const resposta = await api.get<PedidoResumo[]>('/pedidos');
-        const filtrados = resposta.filter((pedido: PedidoResumo) =>
-          matchesClientOrder(pedido, parsed.clienteId || null, parsed.telefone || null)
-        );
-        setOrdersCount(filtrados.length);
-        const total = filtrados.reduce((sum: number, p: PedidoResumo) => sum + p.total, 0);
+        // Endpoint autenticado: retorna so os pedidos do cliente logado.
+        const resposta = await api.get<PedidoResumo[]>('/pedidos/meus');
+        setOrdersCount(resposta.length);
+        const total = resposta.reduce((sum: number, p: PedidoResumo) => sum + p.total, 0);
         setOrdersTotal(total);
       } catch {
       }

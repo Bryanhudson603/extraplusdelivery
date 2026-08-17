@@ -18,6 +18,12 @@ export class PedidosController {
     return this.pedidosService.listar(req);
   }
 
+  @Get('meus')
+  @UseGuards(RequireAuth('cliente'))
+  listarMeus(@Req() req: any) {
+    return this.pedidosService.listarMeus(req);
+  }
+
   @Post()
   @Throttle({ default: { limit: 5, ttl: 60 } })
   criar(@Req() req: any, @Body() body: CriarPedidoDto) {
