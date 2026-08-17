@@ -317,7 +317,11 @@ Ruled out: deploy do Render não é o problema — usuário confirmou que é aut
 1. **Telefone obrigatório no primeiro cadastro via Google**: `frontend/src/app/login/google/callback/page.tsx` agora pede telefone (sem opção de pular, ao contrário do endereço) antes de seguir pro endereço, quando `novoCadastro` é `true`. Salvo via `PUT /clientes/me` — persiste na conta e nunca mais é pedido depois de salvo uma vez. Serve como segunda chave de vínculo mais confiável que só `clienteId`.
 2. **Excluir cliente na tela de plataforma**: novo `DELETE /platform/usuarios/cliente/:id` (protegido por `RequireAuth('plataforma')`, remove a linha real da tabela `clientes` via `ClienteRepository.remove()`) + botão "Excluir" com confirmação em `frontend/src/app/platform/page.tsx`, ao lado de "Zerar pedidos"/"Ativar/Desativar". Serve pra limpar contas de teste/órfãs como a investigada nesta tarefa.
 
-**Pendência real, não resolvida:** o pedido específico investigado (sem `clienteId`/telefone) continua órfão — não foi corrigido manualmente no banco nesta sessão. O usuário agora tem a ferramenta (exclusão de cliente) pra limpar contas de teste, mas o pedido órfão em si não tem dono recuperável sem edição direta no banco.
+**Causa raiz encontrada e corrigida (commit `120f4cd`):** usuário testou de novo com uma conta 100% completa (telefone + endereço salvos) e `/pedidos/meus` continuou `[]`, confirmando bug ativo em todos os pedidos/usuários, não só um caso órfão isolado. Adicionado endpoint temporário `GET /pedidos/debug-meus` (removido depois de usar) que expôs os dados reais: `authTelefone: null` no JWT (apesar do cadastro ter telefone salvo) e `clienteId: null` no pedido (apesar do cliente estar logado). Dois bugs reais confirmados:
+1. **`pedido.clienteId` nulo mesmo logado**: `criar()` confiava 100% no `clienteId` que o front mandava no corpo da requisição — sujeito a bug de estado/timing no navegador (não isolado exatamente qual). Corrigido: `criar()` agora resolve `clienteId` a partir do **cookie de sessão** (`getAuthPayloadFromRequest`) quando existir, só caindo pro `body.clienteId` como fallback (ex.: checkout de convidado, sem login). Não pode mais divergir do que o servidor sabe que é o usuário autenticado.
+2. **`auth.telefone` do JWT fica desatualizado pra sempre**: o token é assinado uma vez no login/exchange com o telefone que o cliente tinha *naquele momento* — como contas novas via Google nascem sem telefone, e o telefone só é preenchido *depois* (no fluxo de cadastro obrigatório), o token nunca reflete a atualização (não é reemitido). Corrigido: `listarMeus()` busca o telefone **atual** direto na tabela `clientes` em vez de usar o claim do token — isso também recuperou, sem precisar editar nada no banco, o pedido órfão investigado antes (que tinha `clienteTelefone` certo salvo, só `clienteId` nulo).
+
+Módulo `pedidos` ganhou `ClienteRepository` (não estava injetado antes).
 
 Corrigido (commit `14a1980`):
 - Novo `GET /pedidos/meus`, protegido por `RequireAuth('cliente')`, que filtra os pedidos **no banco** pelo `clienteId`/`telefone` do próprio JWT (`PedidosService.listarMeus()` + `PedidoRepository.listByCliente()`).
@@ -481,6 +485,9 @@ Adicionado um jeito de verificar isso sem precisar imprimir nada: `GET /health` 
 34. `14a1980` — fix: cliente rastreia pedidos por um endpoint próprio e autenticado (e corrige vazamento de dados em GET /pedidos)
 35. `a00d988` — docs: registra fix de rastreamento de pedidos do cliente e vazamento em GET /pedidos
 36. `ee10895` — feat: telefone obrigatório no primeiro cadastro via Google + excluir cliente na plataforma
+37. `91b4bfb` — docs: registra investigação do pedido órfão, telefone obrigatório no Google e exclusão de cliente
+38. `ca7d611` — debug: adiciona GET /pedidos/debug-meus temporário (removido no commit seguinte)
+39. `120f4cd` — fix: clienteId do pedido passa a vir do cookie de sessão, não só do corpo da requisição (causa raiz real do sumiço em "Meus Pedidos")
 
 Todos os commits foram enviados para `origin/main` no repositório GitHub oficial do projeto.
 
