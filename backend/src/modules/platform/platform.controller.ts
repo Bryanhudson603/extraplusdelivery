@@ -61,6 +61,11 @@ export class PlatformController {
     return this.platformService.apagarHistoricoPedidosCliente(id);
   }
 
+  @Delete('usuarios/cliente/:id')
+  excluirCliente(@Param('id') id: string) {
+    return this.platformService.excluirCliente(id);
+  }
+
   @Get('pedidos')
   listarPedidos() {
     return this.platformService.listarPedidos();

@@ -75,6 +75,9 @@ export default function PlatformHomePage() {
   const [clienteParaZerar, setClienteParaZerar] = useState<string | null>(null);
   const [zerandoPedidosId, setZerandoPedidosId] = useState<string | null>(null);
   const [feedbackZerarPorCliente, setFeedbackZerarPorCliente] = useState<Record<string, string>>({});
+  const [clienteParaExcluir, setClienteParaExcluir] = useState<string | null>(null);
+  const [excluindoClienteId, setExcluindoClienteId] = useState<string | null>(null);
+  const [feedbackExcluirPorCliente, setFeedbackExcluirPorCliente] = useState<Record<string, string>>({});
 
   const [pedidos, setPedidos] = useState<PedidoResumo[]>([]);
   const [loadingPedidos, setLoadingPedidos] = useState(true);
@@ -288,6 +291,19 @@ export default function PlatformHomePage() {
   async function toggleCliente(id: string, ativo: boolean) {
     await api.put(`/platform/usuarios/cliente/${id}`, { ativo: !ativo });
     await carregar();
+  }
+
+  async function excluirCliente(id: string) {
+    setExcluindoClienteId(id);
+    try {
+      await api.delete(`/platform/usuarios/cliente/${id}`);
+      setUsuarios(prev => ({ ...prev, clientes: prev.clientes.filter(c => c.id !== id) }));
+    } catch (e) {
+      setFeedbackExcluirPorCliente(prev => ({ ...prev, [id]: 'Falha ao excluir cliente.' }));
+    } finally {
+      setExcluindoClienteId(null);
+      setClienteParaExcluir(null);
+    }
   }
 
   if (loading) {
@@ -649,8 +665,46 @@ export default function PlatformHomePage() {
                       >
                         {c.ativo ? 'Desativar' : 'Ativar'}
                       </button>
+                      <button
+                        type="button"
+                        onClick={() => setClienteParaExcluir(c.id)}
+                        className="h-9 px-3 rounded-lg text-xs font-semibold border border-red-600/60 text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-500/10"
+                      >
+                        Excluir
+                      </button>
                     </div>
                   </div>
+
+                  {clienteParaExcluir === c.id && (
+                    <div className="flex items-center justify-between gap-2 rounded-lg bg-red-50 dark:bg-red-950/30 px-3 py-2">
+                      <span className="text-xs text-red-800 dark:text-red-200">
+                        Excluir permanentemente a conta de {c.nome}? Essa ação não pode ser desfeita.
+                      </span>
+                      <div className="flex gap-2 flex-shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setClienteParaExcluir(null)}
+                          className="text-xs text-gray-600 dark:text-zinc-400"
+                        >
+                          Cancelar
+                        </button>
+                        <button
+                          type="button"
+                          disabled={excluindoClienteId === c.id}
+                          onClick={() => excluirCliente(c.id)}
+                          className="text-xs font-semibold text-red-600 dark:text-red-400 disabled:opacity-60"
+                        >
+                          {excluindoClienteId === c.id ? 'Excluindo...' : 'Confirmar'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {feedbackExcluirPorCliente[c.id] && (
+                    <div className="text-[11px] text-red-600 dark:text-red-400">
+                      {feedbackExcluirPorCliente[c.id]}
+                    </div>
+                  )}
 
                   {clienteParaZerar === c.id && (
                     <div className="flex items-center justify-between gap-2 rounded-lg bg-amber-50 dark:bg-amber-950/30 px-3 py-2">

@@ -20,9 +20,24 @@ type ClienteLoginResponse = {
 
 const SESSION_KEY = 'extraplus-session';
 
+function atualizarSessaoLocal(patch: Record<string, unknown>): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const raw = window.localStorage.getItem(SESSION_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw);
+    window.localStorage.setItem(SESSION_KEY, JSON.stringify({ ...parsed, ...patch }));
+  } catch {
+  }
+}
+
 export default function GoogleLoginCallbackPage() {
   const router = useRouter();
   const [erro, setErro] = useState<string | null>(null);
+  const [pedirTelefone, setPedirTelefone] = useState(false);
+  const [telefoneInput, setTelefoneInput] = useState('');
+  const [erroTelefone, setErroTelefone] = useState<string | null>(null);
+  const [salvandoTelefone, setSalvandoTelefone] = useState(false);
   const [pedirEndereco, setPedirEndereco] = useState(false);
   const [salvandoEndereco, setSalvandoEndereco] = useState(false);
 
@@ -42,12 +57,19 @@ export default function GoogleLoginCallbackPage() {
         const resposta = await api.post<ClienteLoginResponse>('/auth/google/exchange', { ticket });
         window.localStorage.setItem(SESSION_KEY, JSON.stringify(resposta));
 
-        // Primeiro cadastro via Google: ainda nao tem endereco guardado no
-        // backend, entao pedimos uma vez aqui. Depois de salvo, fica
-        // armazenado no cliente e nunca mais pede de novo.
-        if (resposta.novoCadastro && !resposta.endereco?.trim()) {
-          setPedirEndereco(true);
-          return;
+        // Primeiro cadastro via Google: telefone e obrigatorio (usado como
+        // segunda chave pra vincular os pedidos do cliente com confianca) e
+        // endereco e pedido em seguida. Uma vez salvos no backend, ficam
+        // guardados na conta e nunca mais pedimos de novo.
+        if (resposta.novoCadastro) {
+          if (!resposta.telefone?.trim()) {
+            setPedirTelefone(true);
+            return;
+          }
+          if (!resposta.endereco?.trim()) {
+            setPedirEndereco(true);
+            return;
+          }
         }
 
         router.replace('/stores');
@@ -62,6 +84,36 @@ export default function GoogleLoginCallbackPage() {
 
     concluirLogin();
   }, [router]);
+
+  async function salvarTelefoneInicial() {
+    if (salvandoTelefone) return;
+    const telefone = telefoneInput.replace(/\D/g, '');
+    if (telefone.length < 10) {
+      setErroTelefone('Informe um telefone válido, com DDD.');
+      return;
+    }
+
+    setSalvandoTelefone(true);
+    setErroTelefone(null);
+    try {
+      await api.put('/clientes/me', { telefone });
+      atualizarSessaoLocal({ telefone });
+      setPedirTelefone(false);
+
+      const raw = window.localStorage.getItem(SESSION_KEY);
+      const enderecoAtual = raw ? (JSON.parse(raw)?.endereco as string | undefined) : undefined;
+      if (!enderecoAtual?.trim()) {
+        setPedirEndereco(true);
+      } else {
+        router.replace('/stores');
+      }
+    } catch (e) {
+      console.error('Erro ao salvar telefone inicial do cadastro Google', e);
+      setErroTelefone('Não foi possível salvar o telefone. Tente novamente.');
+    } finally {
+      setSalvandoTelefone(false);
+    }
+  }
 
   async function salvarEnderecoInicial(endereco: AddressRecord) {
     setSalvandoEndereco(true);
@@ -96,6 +148,30 @@ export default function GoogleLoginCallbackPage() {
               Voltar para o login
             </button>
           </>
+        ) : pedirTelefone ? (
+          <div className="space-y-3 text-left">
+            <p className="text-sm text-gray-600 dark:text-zinc-400 text-center">
+              Falta pouco! Informe seu telefone com DDD para concluir o cadastro.
+            </p>
+            <input
+              type="tel"
+              inputMode="numeric"
+              autoFocus
+              value={telefoneInput}
+              onChange={e => setTelefoneInput(e.target.value)}
+              placeholder="(82) 99999-9999"
+              className="w-full h-11 rounded-full border border-[var(--brand-soft-border)] bg-white dark:bg-zinc-950 px-4 text-sm text-center outline-none dark:text-zinc-100"
+            />
+            {erroTelefone && <p className="text-xs text-red-500 text-center">{erroTelefone}</p>}
+            <button
+              type="button"
+              disabled={salvandoTelefone}
+              onClick={() => void salvarTelefoneInicial()}
+              className="w-full h-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold disabled:opacity-60"
+            >
+              {salvandoTelefone ? 'Salvando...' : 'Continuar'}
+            </button>
+          </div>
         ) : pedirEndereco ? (
           <p className="text-sm text-gray-600 dark:text-zinc-400">
             Falta pouco! Informe seu endereço de entrega para concluir o cadastro.

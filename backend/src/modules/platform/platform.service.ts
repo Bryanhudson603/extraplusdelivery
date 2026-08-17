@@ -329,6 +329,15 @@ export class PlatformService {
     return { removidos };
   }
 
+  async excluirCliente(id: string): Promise<{ removido: boolean }> {
+    const cliente = await this.clienteRepo.findById(id);
+    if (!cliente) {
+      throw new BadRequestException('Cliente não encontrado.');
+    }
+    const removido = await this.clienteRepo.remove(id);
+    return { removido };
+  }
+
   async apagarHistoricoPedidosCliente(id: string): Promise<{ removidos: number }> {
     const cliente = await this.clienteRepo.findById(id);
     if (!cliente) {

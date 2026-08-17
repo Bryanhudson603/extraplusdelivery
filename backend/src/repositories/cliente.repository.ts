@@ -52,4 +52,9 @@ export class ClienteRepository {
   save(cliente: ClienteEntity): Promise<ClienteEntity> {
     return this.repo.save(cliente);
   }
+
+  async remove(id: string): Promise<boolean> {
+    const result = await this.repo.delete(id);
+    return (result.affected || 0) > 0;
+  }
 }
