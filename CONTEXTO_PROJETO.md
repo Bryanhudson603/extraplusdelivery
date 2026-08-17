@@ -305,7 +305,20 @@ Frontend (Vercel):
 
 ## 14. ÚLTIMA TAREFA
 
-**Tarefa mais recente (topo desta seção):** usuário reportou que cadastro via Google não ficava salvo em "clientes", e pediu pra saber quando é login vs. cadastro novo, pedindo endereço só no primeiro cadastro e nunca mais depois.
+**Tarefa mais recente (topo desta seção):** usuário reportou que, quando o admin aceita um pedido, o pedido "some" da tela "Meus Pedidos" do cliente (mostra "nenhum pedido"), e que o cliente não conseguia acompanhar os status (em separação, saiu para entrega, finalizado). Confirmado com o usuário: o pedido continuava correto no admin (com status certo) — só sumia pro cliente logado. Não foi possível reproduzir/confirmar a causa exata via leitura de código (percorri checkout → criação do pedido → `atualizarStatus` → listagem do cliente → nenhum ponto altera `clienteId`/`clienteTelefone` do pedido ao aceitar).
+
+**Descoberta real, independente da causa exata do sumiço:** `GET /pedidos` **não tinha nenhum guard de autenticação** e devolvia **todos os pedidos da loja** (nome, telefone, endereço de qualquer cliente) pra qualquer requisição, autenticada ou não. O app do cliente buscava essa lista completa e filtrava no navegador comparando `clienteId`/`telefone` lidos do `localStorage` (`matchesClientOrder` em `frontend/src/lib/orders.ts`) — ou seja, além de vazar dados de todos os clientes pra qualquer um, o "rastreamento do meu pedido" dependia inteiramente do que estava salvo na sessão local do navegador, sem nenhuma garantia server-side.
+
+Corrigido (commit `14a1980`):
+- Novo `GET /pedidos/meus`, protegido por `RequireAuth('cliente')`, que filtra os pedidos **no banco** pelo `clienteId`/`telefone` do próprio JWT (`PedidosService.listarMeus()` + `PedidoRepository.listByCliente()`).
+- `frontend/src/app/orders/page.tsx`, `orders/[id]/page.tsx` e `profile/page.tsx` passam a chamar `/pedidos/meus` em vez de `/pedidos` + filtro client-side. `matchesClientOrder`/`ClientScopedOrder` removidos de `lib/orders.ts` (ficaram sem uso).
+- `GET /pedidos` (sem guard) continua existindo do jeito que estava — é usado pelo painel admin (`admin/orders/page.tsx`) pra ver todos os pedidos da loja. **Não foi adicionado guard nele nesta rodada** (fora do escopo pedido, e mudar isso poderia quebrar o fluxo do admin sem uma revisão mais cuidadosa de autenticação do painel) — mas vale registrar como pendência de segurança: ele ainda responde sem autenticação a quem descobrir a URL.
+
+**Verificação:** `npx tsc --noEmit` limpo no backend e no frontend. **Não testado ao vivo** — vale o usuário confirmar que, depois do deploy, um pedido aceito continua aparecendo em "Meus Pedidos" com o status atualizado (em separação → saiu para entrega → finalizado).
+
+**Próximo passo / pendência de segurança:** avaliar se `GET /pedidos` (usado pelo admin) deveria exigir `RequireAuth('admin')` — hoje qualquer request sem autenticação nenhuma recebe a lista completa de pedidos da loja com dados pessoais dos clientes.
+
+---
 
 **Descoberta importante (arquitetura pré-existente, não introduzida pelo Google login):** `AdminService.listarClientes()` (usado por `GET /admin/clientes` no painel E por `GET /clientes/me` do próprio cliente logado) era montado **inteiramente a partir de `pedidos`** — nunca lia a tabela `clientes` de verdade. Isso significa que QUALQUER cliente cadastrado (Google ou não) que ainda não tivesse feito nenhum pedido ficava completamente invisível — tanto pro admin quanto pra ele mesmo (`GET /clientes/me` retornava 403). O `ClienteEntity` já era criado corretamente no login Google (`GoogleAuthService.localizarOuCriarCliente`); o problema era só de leitura/visibilidade, não de gravação.
 
@@ -454,6 +467,8 @@ Adicionado um jeito de verificar isso sem precisar imprimir nada: `GET /health` 
 30. `d1f7d05` — perf: acelera carregamento da home paralelizando fetch e cacheando catálogo público
 31. `e287acf` — perf: pula tela de escolha de loja quando só há uma loja ativa
 32. `a4cde05` — feat: cadastro via Google fica visível na base de clientes e pede endereço no primeiro acesso
+33. `3df5e5b` — docs: registra fix de cadastro Google na base de clientes
+34. `14a1980` — fix: cliente rastreia pedidos por um endpoint próprio e autenticado (e corrige vazamento de dados em GET /pedidos)
 
 Todos os commits foram enviados para `origin/main` no repositório GitHub oficial do projeto.
 
