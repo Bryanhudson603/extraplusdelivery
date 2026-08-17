@@ -39,15 +39,27 @@ export default function StoreSelectPage() {
     }
   }, [router]);
 
+  function selecionarLoja(loja: Loja) {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem(STORE_KEY, JSON.stringify(loja));
+    }
+    router.replace('/home');
+  }
+
   useEffect(() => {
     async function carregar() {
       try {
-        const resposta = await api.get<Loja[]>('/auth/lojas');
-        if (resposta && resposta.length > 0) {
-          setLojas(resposta);
-        } else {
-          setLojas([]);
+        const resposta = await api.get<Loja[]>('/auth/lojas', { cache: 'default' });
+        const lista = resposta && resposta.length > 0 ? resposta : [];
+
+        // So existe uma loja ativa hoje: pula a tela de escolha e vai direto
+        // pra home, em vez de forcar mais uma tela + toque + espera.
+        if (lista.length === 1) {
+          selecionarLoja(lista[0]);
+          return;
         }
+
+        setLojas(lista);
       } catch (e) {
         console.error('Erro ao carregar lojas', e);
         setLojas([]);
@@ -56,14 +68,8 @@ export default function StoreSelectPage() {
       }
     }
     carregar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  function selecionarLoja(loja: Loja) {
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem(STORE_KEY, JSON.stringify(loja));
-    }
-    router.replace('/home');
-  }
 
   if (loading) {
     return (

@@ -4,7 +4,12 @@ import { NextResponse } from 'next/server';
 // horario: pode ficar em cache curto na borda pra evitar refazer a viagem
 // ate o backend (Render) em toda navegacao. loja-status fica de fora de
 // proposito, pois reflete o horario de funcionamento em tempo real.
-const CACHEABLE_GET_PATHS = new Set(['catalogo/categorias', 'catalogo/produtos', 'catalogo/produtos-mais-pedidos']);
+const CACHEABLE_GET_PATHS = new Set([
+  'catalogo/categorias',
+  'catalogo/produtos',
+  'catalogo/produtos-mais-pedidos',
+  'auth/lojas'
+]);
 
 function normalizeBackendBase(raw: string): string {
   let base = raw.trim().replace(/\/$/, '');
