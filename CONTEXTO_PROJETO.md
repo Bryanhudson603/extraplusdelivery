@@ -307,7 +307,17 @@ Frontend (Vercel):
 
 **Tarefa mais recente (topo desta seção):** usuário reportou que, quando o admin aceita um pedido, o pedido "some" da tela "Meus Pedidos" do cliente (mostra "nenhum pedido"), e que o cliente não conseguia acompanhar os status (em separação, saiu para entrega, finalizado). Confirmado com o usuário: o pedido continuava correto no admin (com status certo) — só sumia pro cliente logado. Não foi possível reproduzir/confirmar a causa exata via leitura de código (percorri checkout → criação do pedido → `atualizarStatus` → listagem do cliente → nenhum ponto altera `clienteId`/`clienteTelefone` do pedido ao aceitar).
 
-**Descoberta real, independente da causa exata do sumiço:** `GET /pedidos` **não tinha nenhum guard de autenticação** e devolvia **todos os pedidos da loja** (nome, telefone, endereço de qualquer cliente) pra qualquer requisição, autenticada ou não. O app do cliente buscava essa lista completa e filtrava no navegador comparando `clienteId`/`telefone` lidos do `localStorage` (`matchesClientOrder` em `frontend/src/lib/orders.ts`) — ou seja, além de vazar dados de todos os clientes pra qualquer um, o "rastreamento do meu pedido" dependia inteiramente do que estava salvo na sessão local do navegador, sem nenhuma garantia server-side.
+**Descoberta real, independente da causa exata do sumiço:** `GET /pedidos` **não tinha nenhum guard de autenticação** e devolvia **todos os pedidos da loja** (nome, telefone, endereço de qualquer cliente) pra qualquer requisição, autenticada ou não. O app do cliente buscava essa lista completa e filtrava no navegador comparando `clienteId`/`telefone` lidos do `localStorage` (`matchesClientOrder` em `frontend/src/lib/orders.ts`) — ou seja, além de vazar dados de todos os clientes pra qualquer um, o "rastreamento do meu pedido" dependia inteiramente do que estava salvo na sessão local do navegador, sem nenhuma garantia server-side. Corrigido com `GET /pedidos/meus` (commit `14a1980`, ver histórico abaixo).
+
+**Atualização (problema confirmado persistente mesmo com `/pedidos/meus`):** usuário testou de novo (inclusive com pedido novo, criado já logado) e `https://www.dilbebidas.com.br/api/pedidos/meus` retornou `[]`. Como o endpoint responde (não é 401/403/500), a causa é confirmada como um mismatch real de identidade: o `clienteId` gravado no pedido não bate com o `clienteId` da sessão atual. Evidência coletada: `GET /clientes/me` da sessão atual mostra `totalPedidos: 0`; o pedido em questão, visto no admin, mostra `Telefone: Não informado` (campo vazio no pedido) — ou seja, o pedido foi salvo sem `clienteId` populado (ou com um diferente) E sem telefone, então nenhuma das duas chaves de vínculo bate. Causa raiz exata na hora do checkout não foi 100% isolada (não reproduzível localmente nesta sessão), mas ficou claro que sem telefone como chave auxiliar confiável, um cliente que também perca o vínculo por `clienteId` fica irrecuperável.
+
+Ruled out: deploy do Render não é o problema — usuário confirmou que é auto-deploy (sobe sozinho no push).
+
+**Ação tomada a pedido do usuário (commit `ee10895`):** em vez de continuar caçando a causa exata sem conseguir reproduzir, foram implementadas duas melhorias estruturais pedidas diretamente:
+1. **Telefone obrigatório no primeiro cadastro via Google**: `frontend/src/app/login/google/callback/page.tsx` agora pede telefone (sem opção de pular, ao contrário do endereço) antes de seguir pro endereço, quando `novoCadastro` é `true`. Salvo via `PUT /clientes/me` — persiste na conta e nunca mais é pedido depois de salvo uma vez. Serve como segunda chave de vínculo mais confiável que só `clienteId`.
+2. **Excluir cliente na tela de plataforma**: novo `DELETE /platform/usuarios/cliente/:id` (protegido por `RequireAuth('plataforma')`, remove a linha real da tabela `clientes` via `ClienteRepository.remove()`) + botão "Excluir" com confirmação em `frontend/src/app/platform/page.tsx`, ao lado de "Zerar pedidos"/"Ativar/Desativar". Serve pra limpar contas de teste/órfãs como a investigada nesta tarefa.
+
+**Pendência real, não resolvida:** o pedido específico investigado (sem `clienteId`/telefone) continua órfão — não foi corrigido manualmente no banco nesta sessão. O usuário agora tem a ferramenta (exclusão de cliente) pra limpar contas de teste, mas o pedido órfão em si não tem dono recuperável sem edição direta no banco.
 
 Corrigido (commit `14a1980`):
 - Novo `GET /pedidos/meus`, protegido por `RequireAuth('cliente')`, que filtra os pedidos **no banco** pelo `clienteId`/`telefone` do próprio JWT (`PedidosService.listarMeus()` + `PedidoRepository.listByCliente()`).
@@ -469,6 +479,8 @@ Adicionado um jeito de verificar isso sem precisar imprimir nada: `GET /health` 
 32. `a4cde05` — feat: cadastro via Google fica visível na base de clientes e pede endereço no primeiro acesso
 33. `3df5e5b` — docs: registra fix de cadastro Google na base de clientes
 34. `14a1980` — fix: cliente rastreia pedidos por um endpoint próprio e autenticado (e corrige vazamento de dados em GET /pedidos)
+35. `a00d988` — docs: registra fix de rastreamento de pedidos do cliente e vazamento em GET /pedidos
+36. `ee10895` — feat: telefone obrigatório no primeiro cadastro via Google + excluir cliente na plataforma
 
 Todos os commits foram enviados para `origin/main` no repositório GitHub oficial do projeto.
 
