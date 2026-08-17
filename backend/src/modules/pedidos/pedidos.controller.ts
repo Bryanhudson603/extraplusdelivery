@@ -24,6 +24,12 @@ export class PedidosController {
     return this.pedidosService.listarMeus(req);
   }
 
+  @Get('debug-meus')
+  @UseGuards(RequireAuth('cliente'))
+  debugMeus(@Req() req: any) {
+    return this.pedidosService.debugMeus(req);
+  }
+
   @Post()
   @Throttle({ default: { limit: 5, ttl: 60 } })
   criar(@Req() req: any, @Body() body: CriarPedidoDto) {

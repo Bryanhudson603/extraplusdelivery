@@ -70,6 +70,33 @@ export class PedidosService {
     return pedidos.map(p => this.toResponse(p));
   }
 
+  // TEMPORARIO: diagnostico pra investigar por que /pedidos/meus volta vazio
+  // mesmo com dados de cliente corretos. Remover depois de identificar a causa.
+  async debugMeus(req: {
+    headers?: Record<string, unknown>;
+    auth?: { tipo?: string; sub?: string; telefone?: string; lojaId?: string };
+  }) {
+    const auth = req.auth;
+    const lojaId = await resolveLojaId(req, this.lojaRepo);
+    const todosDaLoja = lojaId ? await this.pedidoRepo.listByLoja(lojaId) : [];
+
+    return {
+      authSub: auth?.sub || null,
+      authTelefone: auth?.telefone || null,
+      authLojaIdClaim: auth?.lojaId || null,
+      resolvedLojaId: lojaId,
+      totalPedidosNaLojaResolvida: todosDaLoja.length,
+      amostraPedidos: todosDaLoja.slice(0, 8).map(p => ({
+        id: p.id,
+        lojaId: p.lojaId,
+        clienteId: p.clienteId,
+        clienteTelefone: p.clienteTelefone,
+        clienteNome: p.clienteNome,
+        criadoEm: p.criadoEm
+      }))
+    };
+  }
+
   private async avaliarCupom(
     lojaId: string,
     body: { cupomCodigo?: string; clienteId?: string; clienteTelefone?: string }
