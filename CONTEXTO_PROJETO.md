@@ -305,7 +305,25 @@ Frontend (Vercel):
 
 ## 14. ÚLTIMA TAREFA
 
-**Tarefa mais recente (topo desta seção; o resto abaixo é histórico da mesma sessão, mais antigo primeiro):** usuário reportou demora de alguns segundos pra carregar a tela inicial (home) tanto no PWA quanto no site. Causa concreta encontrada em `frontend/src/app/home/page.tsx`: a função `carregar()` buscava `/catalogo/produtos-mais-pedidos` e depois `/catalogo/produtos` **em sequência** (`await` um, só depois `await` o outro) — duas viagens de rede em série em vez de paralelas. Além disso, tanto o cliente (`frontend/src/lib/api.ts`) quanto o proxy (`frontend/src/app/api/[...path]/route.ts`) forçavam `cache: 'no-store'` em **toda** chamada, então nada nunca era reaproveitado, nem dados de catálogo público que quase não mudam.
+**Tarefa mais recente (topo desta seção):** usuário reportou que cadastro via Google não ficava salvo em "clientes", e pediu pra saber quando é login vs. cadastro novo, pedindo endereço só no primeiro cadastro e nunca mais depois.
+
+**Descoberta importante (arquitetura pré-existente, não introduzida pelo Google login):** `AdminService.listarClientes()` (usado por `GET /admin/clientes` no painel E por `GET /clientes/me` do próprio cliente logado) era montado **inteiramente a partir de `pedidos`** — nunca lia a tabela `clientes` de verdade. Isso significa que QUALQUER cliente cadastrado (Google ou não) que ainda não tivesse feito nenhum pedido ficava completamente invisível — tanto pro admin quanto pra ele mesmo (`GET /clientes/me` retornava 403). O `ClienteEntity` já era criado corretamente no login Google (`GoogleAuthService.localizarOuCriarCliente`); o problema era só de leitura/visibilidade, não de gravação.
+
+Também confirmado: o endereço coletado em `/profile` via `AddressModal` só ia pro `localStorage` (`frontend/src/lib/addresses.ts`) — nunca era enviado ao backend. Não existia nenhum endpoint pra um cliente logado atualizar seu próprio `nome`/`telefone`/`endereco` na tabela real.
+
+Corrigido (commit `a4cde05`):
+- `AdminService.listarClientes()`: agora também busca `clienteRepo.listByLoja(lojaId)` e injeta no mapa qualquer cliente cadastrado que ainda não tenha pedido (com `totalPedidos: 0`). Corrige `GET /admin/clientes` (painel) e, em cascata, `GET /clientes/me` (usa a mesma função).
+- Novo `PUT /clientes/me` (`client-self.controller.ts` + `admin.service.ts#atualizarPerfilClienteAutenticado`), guardado por `RequireAuth('cliente')`, persiste `nome`/`telefone`/`endereco` de verdade na linha do `ClienteEntity` do usuário autenticado (reaproveita o DTO `AtualizarClienteAdminDto` já existente).
+- `google-login-ticket.store.ts`/`google-auth.service.ts`: o ticket de troca agora carrega um flag `novoCadastro: boolean` (true só quando `localizarOuCriarCliente` cria uma linha nova), propagado até a resposta de `POST /auth/google/exchange` (`ClienteLoginResponse.novoCadastro`, campo opcional — não quebra o login tradicional).
+- `frontend/src/app/login/google/callback/page.tsx`: se `novoCadastro && !endereco`, mostra o `AddressModal` (mesmo componente já usado em `/profile`) antes de seguir pra `/stores`; ao salvar, chama `PUT /clientes/me` (persistindo de verdade, além de continuar espelhando em localStorage/sessão como antes). Se o usuário fechar sem preencher, segue sem endereço e será perguntado de novo no próximo login (não bloqueia o acesso). Login numa conta que já tem endereço não pede nada — vai direto pra `/stores`.
+
+**Verificação:** `npx tsc --noEmit` limpo no backend e no frontend. **Não testado ao vivo** (sem ambiente rodando localmente nesta sessão) — vale o usuário testar o fluxo completo: cadastro novo via Google → deve pedir endereço uma vez → aparecer em "Clientes" no admin mesmo sem pedido → login de novo não deve pedir endereço de novo.
+
+**Próximo passo:** confirmar com o usuário que o fluxo funciona ponta a ponta em produção. Also vale avaliar se o mesmo problema de visibilidade afeta clientes cadastrados pelo fluxo tradicional (registro por telefone/senha) que ainda não pediram — a correção em `listarClientes()` já cobre esse caso também, já que não é específica do Google.
+
+---
+
+**Histórico anterior desta seção:** usuário reportou demora de alguns segundos pra carregar a tela inicial (home) tanto no PWA quanto no site. Causa concreta encontrada em `frontend/src/app/home/page.tsx`: a função `carregar()` buscava `/catalogo/produtos-mais-pedidos` e depois `/catalogo/produtos` **em sequência** (`await` um, só depois `await` o outro) — duas viagens de rede em série em vez de paralelas. Além disso, tanto o cliente (`frontend/src/lib/api.ts`) quanto o proxy (`frontend/src/app/api/[...path]/route.ts`) forçavam `cache: 'no-store'` em **toda** chamada, então nada nunca era reaproveitado, nem dados de catálogo público que quase não mudam.
 
 Corrigido (commit `d1f7d05`):
 - `home/page.tsx`: as duas buscas de produtos agora usam `Promise.allSettled` (paralelas, cada uma com seu próprio tratamento de erro).
@@ -434,8 +452,8 @@ Adicionado um jeito de verificar isso sem precisar imprimir nada: `GET /health` 
 28. `26dd27a` — feat: expõe versão/modo de impressão no /health do print-bridge
 29. `6a24204` — docs: confirma bridge antigo ainda rodando no cliente e registra fix do marcador de versão
 30. `d1f7d05` — perf: acelera carregamento da home paralelizando fetch e cacheando catálogo público
-18. `5617d5f` — feat: sistema respeita horário de funcionamento e adiciona horário de entrega
-19. (próximo) — fix: imagens de produto/banner não cortam mais + PWA não pergunta de novo se já instalado
+31. `e287acf` — perf: pula tela de escolha de loja quando só há uma loja ativa
+32. `a4cde05` — feat: cadastro via Google fica visível na base de clientes e pede endereço no primeiro acesso
 
 Todos os commits foram enviados para `origin/main` no repositório GitHub oficial do projeto.
 
