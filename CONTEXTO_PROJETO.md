@@ -305,7 +305,20 @@ Frontend (Vercel):
 
 ## 14. ÚLTIMA TAREFA
 
-**Tarefa mais recente (topo desta seção):** usuário reportou que, quando o admin aceita um pedido, o pedido "some" da tela "Meus Pedidos" do cliente (mostra "nenhum pedido"), e que o cliente não conseguia acompanhar os status (em separação, saiu para entrega, finalizado). Confirmado com o usuário: o pedido continuava correto no admin (com status certo) — só sumia pro cliente logado. Não foi possível reproduzir/confirmar a causa exata via leitura de código (percorri checkout → criação do pedido → `atualizarStatus` → listagem do cliente → nenhum ponto altera `clienteId`/`clienteTelefone` do pedido ao aceitar).
+**Tarefa mais recente (topo desta seção):** usuário pediu, na tela de Pedidos do admin: (1) poder configurar margem de impressão e (2) pré-visualizar como o cupom vai sair antes de ativar a saída automática. No meio da tarefa, pediu também (3) uma opção de ativar/desativar o bridge.
+
+Implementado (commit `77d8b54`), tudo na seção "Impressora do bridge" já existente na tela de Pedidos:
+1. **Margem esquerda** (0–10 espaços): campo numérico ao lado da largura já existente. `buildBridgeReceiptText()` ganhou um 3º parâmetro `margin` — reduz a largura útil (`width - margin`) e prefixa cada linha com os espaços da margem, mantendo tudo dentro da bobina.
+2. **Pré-visualizar impressão**: botão que abre um modal mostrando o texto exato que sairia impresso (fonte monoespaçada, num cartão branco simulando papel), usando o pedido mais recente carregado ou, se ainda não houver nenhum, um pedido de exemplo (`SAMPLE_PREVIEW_ORDER`) — tudo client-side, não imprime de verdade.
+3. **Bridge ativado/desativado**: toggle que, quando desativado, faz `printOrder()` pular o bridge inteiramente (cai direto pro modo navegador) — e o próprio `windows-print-bridge/server.js` também recusa `/print-text` se `bridgeEnabled` estiver falso nas settings, então a trava funciona mesmo se o front tiver algum bug.
+
+Todas as três (largura, margem, ativar/desativar) são persistidas no bridge local via `GET/PUT /settings` (`charactersPerLine`, `marginLeft`, `bridgeEnabled`), mesmo mecanismo já usado pra largura antes. `BridgeSettings` (`frontend/src/lib/print-bridge.ts`) ganhou os dois campos novos.
+
+**Verificação:** `npx tsc --noEmit` limpo no frontend, `node --check` limpo no `server.js`. Não testado ao vivo (sem impressora/bridge disponível nesta sessão) — recomenda-se o usuário: abrir a pré-visualização, ajustar largura/margem até o texto parecer correto, só então ativar o bridge.
+
+---
+
+**Histórico anterior (mesma seção, tarefa de rastreamento de pedidos):** usuário reportou que, quando o admin aceita um pedido, o pedido "some" da tela "Meus Pedidos" do cliente (mostra "nenhum pedido"), e que o cliente não conseguia acompanhar os status (em separação, saiu para entrega, finalizado). Confirmado com o usuário: o pedido continuava correto no admin (com status certo) — só sumia pro cliente logado. Não foi possível reproduzir/confirmar a causa exata via leitura de código (percorri checkout → criação do pedido → `atualizarStatus` → listagem do cliente → nenhum ponto altera `clienteId`/`clienteTelefone` do pedido ao aceitar).
 
 **Descoberta real, independente da causa exata do sumiço:** `GET /pedidos` **não tinha nenhum guard de autenticação** e devolvia **todos os pedidos da loja** (nome, telefone, endereço de qualquer cliente) pra qualquer requisição, autenticada ou não. O app do cliente buscava essa lista completa e filtrava no navegador comparando `clienteId`/`telefone` lidos do `localStorage` (`matchesClientOrder` em `frontend/src/lib/orders.ts`) — ou seja, além de vazar dados de todos os clientes pra qualquer um, o "rastreamento do meu pedido" dependia inteiramente do que estava salvo na sessão local do navegador, sem nenhuma garantia server-side. Corrigido com `GET /pedidos/meus` (commit `14a1980`, ver histórico abaixo).
 
@@ -488,6 +501,8 @@ Adicionado um jeito de verificar isso sem precisar imprimir nada: `GET /health` 
 37. `91b4bfb` — docs: registra investigação do pedido órfão, telefone obrigatório no Google e exclusão de cliente
 38. `ca7d611` — debug: adiciona GET /pedidos/debug-meus temporário (removido no commit seguinte)
 39. `120f4cd` — fix: clienteId do pedido passa a vir do cookie de sessão, não só do corpo da requisição (causa raiz real do sumiço em "Meus Pedidos")
+40. `f672611` — docs: registra causa raiz real e fix definitivo do sumiço de pedidos do cliente
+41. `77d8b54` — feat: margem do cupom, pré-visualização de impressão e ativar/desativar bridge
 
 Todos os commits foram enviados para `origin/main` no repositório GitHub oficial do projeto.
 
