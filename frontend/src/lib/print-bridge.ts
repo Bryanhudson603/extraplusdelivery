@@ -10,6 +10,8 @@ export type BridgeSettings = {
   fallbackToBrowser: boolean;
   printingMode: 'text-out-printer' | 'browser-default';
   charactersPerLine: number;
+  marginLeft: number;
+  bridgeEnabled: boolean;
 };
 
 const BRIDGE_BASE_URL = 'http://127.0.0.1:39876';

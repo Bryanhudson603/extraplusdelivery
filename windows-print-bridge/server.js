@@ -76,12 +76,22 @@ function sendJson(req, res, statusCode, payload) {
 const DEFAULT_CHARACTERS_PER_LINE = 32;
 const MIN_CHARACTERS_PER_LINE = 16;
 const MAX_CHARACTERS_PER_LINE = 80;
+const DEFAULT_MARGIN_LEFT = 0;
+const MIN_MARGIN_LEFT = 0;
+const MAX_MARGIN_LEFT = 10;
 
 function normalizeCharactersPerLine(value) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) return DEFAULT_CHARACTERS_PER_LINE;
   const rounded = Math.round(parsed);
   return Math.min(MAX_CHARACTERS_PER_LINE, Math.max(MIN_CHARACTERS_PER_LINE, rounded));
+}
+
+function normalizeMarginLeft(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return DEFAULT_MARGIN_LEFT;
+  const rounded = Math.round(parsed);
+  return Math.min(MAX_MARGIN_LEFT, Math.max(MIN_MARGIN_LEFT, rounded));
 }
 
 function loadSettings() {
@@ -93,14 +103,18 @@ function loadSettings() {
       selectedPrinterName: typeof parsed.selectedPrinterName === 'string' ? parsed.selectedPrinterName : '',
       fallbackToBrowser: parsed.fallbackToBrowser !== false,
       printingMode: parsed.printingMode === 'browser-default' ? 'browser-default' : 'text-out-printer',
-      charactersPerLine: normalizeCharactersPerLine(parsed.charactersPerLine)
+      charactersPerLine: normalizeCharactersPerLine(parsed.charactersPerLine),
+      marginLeft: normalizeMarginLeft(parsed.marginLeft),
+      bridgeEnabled: parsed.bridgeEnabled !== false
     };
   } catch {
     return {
       selectedPrinterName: '',
       fallbackToBrowser: true,
       printingMode: 'text-out-printer',
-      charactersPerLine: DEFAULT_CHARACTERS_PER_LINE
+      charactersPerLine: DEFAULT_CHARACTERS_PER_LINE,
+      marginLeft: DEFAULT_MARGIN_LEFT,
+      bridgeEnabled: true
     };
   }
 }
@@ -277,6 +291,8 @@ const server = http.createServer(async (req, res) => {
         version: '1.1.0',
         printMode: 'escpos-raw',
         charactersPerLine: settings.charactersPerLine,
+        marginLeft: settings.marginLeft,
+        bridgeEnabled: settings.bridgeEnabled,
         selectedPrinterName: settings.selectedPrinterName || null,
         printersAvailable: printers.length
       });
@@ -307,7 +323,10 @@ const server = http.createServer(async (req, res) => {
         charactersPerLine:
           body.charactersPerLine !== undefined
             ? normalizeCharactersPerLine(body.charactersPerLine)
-            : currentSettings.charactersPerLine
+            : currentSettings.charactersPerLine,
+        marginLeft:
+          body.marginLeft !== undefined ? normalizeMarginLeft(body.marginLeft) : currentSettings.marginLeft,
+        bridgeEnabled: body.bridgeEnabled !== undefined ? body.bridgeEnabled !== false : currentSettings.bridgeEnabled
       });
       sendJson(req, res, 200, settings);
       return;
@@ -316,6 +335,12 @@ const server = http.createServer(async (req, res) => {
     if (req.method === 'POST' && req.url === '/print-text') {
       const body = await readJsonBody(req);
       const settings = loadSettings();
+
+      if (!settings.bridgeEnabled) {
+        sendJson(req, res, 400, { message: 'Bridge de impressao esta desativado nas configuracoes.' });
+        return;
+      }
+
       const selectedPrinterName =
         typeof body.printerName === 'string' && body.printerName.trim()
           ? body.printerName.trim()

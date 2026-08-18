@@ -179,6 +179,33 @@ function buildPrintMarkup(order: Order): string {
 // 32 e o valor seguro/compativel na pratica para esse tamanho de bobina.
 const RECEIPT_WIDTH_CHARS = 32;
 
+// Usado na pre-visualizacao quando ainda nao existe nenhum pedido real pra
+// mostrar como exemplo.
+const SAMPLE_PREVIEW_ORDER: Order = {
+  id: 'exemplo-0000-0000-0000-000000000001',
+  status: 'recebido',
+  total: 45.5,
+  createdAt: new Date().toISOString(),
+  createdAtLabel: new Date().toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  }),
+  items: [
+    { name: 'Cerveja Skol Lata 350ml', quantity: 2 },
+    { name: 'Refrigerante Coca-Cola 2L Garrafa', quantity: 1 }
+  ],
+  clienteNome: 'Cliente de exemplo',
+  clienteTelefone: '(82) 99999-9999',
+  clienteEndereco: 'Rua das Bebidas, 123 - Centro, Rio Largo/AL',
+  formaPagamento: 'pix',
+  tipoEntrega: 'delivery',
+  entregadorNome: undefined
+};
+
 // O bridge local imprime em ESC/POS bruto (ver windows-print-bridge/server.js),
 // entao o texto precisa chegar em ASCII puro -- sem isso, acentos podem sair
 // como caracteres errados dependendo da codepage da impressora.
@@ -240,18 +267,27 @@ function receiptSeparator(width: number): string {
   return '-'.repeat(width);
 }
 
-function buildBridgeReceiptText(order: Order, width: number = RECEIPT_WIDTH_CHARS): string {
+function buildBridgeReceiptText(
+  order: Order,
+  width: number = RECEIPT_WIDTH_CHARS,
+  margin: number = 0
+): string {
+  // Margem = espacos fixos aplicados a esquerda de toda linha (util quando a
+  // impressora corta/nao alinha bem o inicio do texto). A largura util pro
+  // conteudo diminui na mesma medida, pra nao estourar a bobina.
+  const marginNormalizado = Math.max(0, Math.min(10, Math.round(margin) || 0));
+  const width_ = Math.max(width - marginNormalizado, 8);
   const lines: string[] = [];
 
-  lines.push(centerReceiptLine(stripAccentsForPrint('DIL BEBIDAS'), width));
-  lines.push(centerReceiptLine(stripAccentsForPrint(`Pedido ${formatOrderShortId(order.id)}`), width));
-  lines.push(centerReceiptLine(stripAccentsForPrint(order.createdAtLabel), width));
-  lines.push(receiptSeparator(width));
+  lines.push(centerReceiptLine(stripAccentsForPrint('DIL BEBIDAS'), width_));
+  lines.push(centerReceiptLine(stripAccentsForPrint(`Pedido ${formatOrderShortId(order.id)}`), width_));
+  lines.push(centerReceiptLine(stripAccentsForPrint(order.createdAtLabel), width_));
+  lines.push(receiptSeparator(width_));
   lines.push('');
 
   const pushField = (label: string, value: string) => {
     lines.push(`${label}:`);
-    lines.push(...wrapReceiptWords(value, width));
+    lines.push(...wrapReceiptWords(value, width_));
     lines.push('');
   };
 
@@ -259,20 +295,20 @@ function buildBridgeReceiptText(order: Order, width: number = RECEIPT_WIDTH_CHAR
   pushField('Telefone', order.clienteTelefone || 'Nao informado');
   pushField('Endereco', order.clienteEndereco || 'Nao informado');
 
-  lines.push(...wrapReceiptWords(`Pagamento: ${order.formaPagamento || 'Nao informado'}`, width));
-  lines.push(...wrapReceiptWords(`Entrega: ${order.tipoEntrega || 'Nao informado'}`, width));
+  lines.push(...wrapReceiptWords(`Pagamento: ${order.formaPagamento || 'Nao informado'}`, width_));
+  lines.push(...wrapReceiptWords(`Entrega: ${order.tipoEntrega || 'Nao informado'}`, width_));
   if (order.entregadorNome) {
-    lines.push(...wrapReceiptWords(`Entregador: ${order.entregadorNome}`, width));
+    lines.push(...wrapReceiptWords(`Entregador: ${order.entregadorNome}`, width_));
   }
 
   lines.push('');
-  lines.push(receiptSeparator(width));
-  lines.push(centerReceiptLine('ITENS', width));
-  lines.push(receiptSeparator(width));
+  lines.push(receiptSeparator(width_));
+  lines.push(centerReceiptLine('ITENS', width_));
+  lines.push(receiptSeparator(width_));
 
   for (const item of order.items) {
     const prefix = `${item.quantity}x `;
-    const nameWidth = Math.max(width - prefix.length, 8);
+    const nameWidth = Math.max(width_ - prefix.length, 8);
     const wrappedName = wrapReceiptWords(item.name, nameWidth);
     lines.push(`${prefix}${wrappedName[0] || ''}`);
     const indent = ' '.repeat(prefix.length);
@@ -284,16 +320,17 @@ function buildBridgeReceiptText(order: Order, width: number = RECEIPT_WIDTH_CHAR
   if (order.motivoRecusa) {
     lines.push('');
     lines.push('Motivo da recusa:');
-    lines.push(...wrapReceiptWords(order.motivoRecusa, width));
+    lines.push(...wrapReceiptWords(order.motivoRecusa, width_));
   }
 
   lines.push('');
-  lines.push(receiptSeparator(width));
-  lines.push(rightAlignReceiptPair('TOTAL:', `R$ ${order.total.toFixed(2)}`, width));
-  lines.push(receiptSeparator(width));
+  lines.push(receiptSeparator(width_));
+  lines.push(rightAlignReceiptPair('TOTAL:', `R$ ${order.total.toFixed(2)}`, width_));
+  lines.push(receiptSeparator(width_));
   lines.push('');
 
-  return lines.join('\r\n');
+  const marginPrefix = ' '.repeat(marginNormalizado);
+  return lines.map(line => `${marginPrefix}${line}`).join('\r\n');
 }
 
 export default function AdminOrdersPage() {
@@ -316,6 +353,11 @@ export default function AdminOrdersPage() {
   const [selectedPrinterName, setSelectedPrinterName] = useState('');
   const [receiptWidth, setReceiptWidth] = useState(RECEIPT_WIDTH_CHARS);
   const [savingReceiptWidth, setSavingReceiptWidth] = useState(false);
+  const [receiptMargin, setReceiptMargin] = useState(0);
+  const [savingReceiptMargin, setSavingReceiptMargin] = useState(false);
+  const [bridgeEnabled, setBridgeEnabled] = useState(true);
+  const [savingBridgeEnabled, setSavingBridgeEnabled] = useState(false);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [bridgeStatusMessage, setBridgeStatusMessage] = useState(
     'Conectando automaticamente com a impressora local...'
   );
@@ -406,6 +448,12 @@ export default function AdminOrdersPage() {
       if (settings.charactersPerLine) {
         setReceiptWidth(settings.charactersPerLine);
       }
+      if (typeof settings.marginLeft === 'number') {
+        setReceiptMargin(settings.marginLeft);
+      }
+      if (typeof settings.bridgeEnabled === 'boolean') {
+        setBridgeEnabled(settings.bridgeEnabled);
+      }
       setBridgeStatusMessage(
         health.ok
           ? printers.length > 0
@@ -436,9 +484,9 @@ export default function AdminOrdersPage() {
   }, [bridgeOnline]);
 
   const printOrder = useCallback(async (order: Order) => {
-    if (bridgeOnline && selectedPrinterName) {
+    if (bridgeEnabled && bridgeOnline && selectedPrinterName) {
       try {
-        await printViaBridge(buildBridgeReceiptText(order, receiptWidth), selectedPrinterName);
+        await printViaBridge(buildBridgeReceiptText(order, receiptWidth, receiptMargin), selectedPrinterName);
         return;
       } catch {
         setBridgeStatusMessage('Nao foi possivel imprimir pelo bridge. O sistema voltou para o modo navegador.');
@@ -484,7 +532,7 @@ export default function AdminOrdersPage() {
         cleanup();
       }
     };
-  }, [bridgeOnline, selectedPrinterName, receiptWidth]);
+  }, [bridgeEnabled, bridgeOnline, selectedPrinterName, receiptWidth, receiptMargin]);
 
   const queuePrintOrders = useCallback(
     (incomingOrders: Order[]) => {
@@ -675,6 +723,41 @@ export default function AdminOrdersPage() {
     }
   }
 
+  async function handleReceiptMarginChange(nextMargin: number) {
+    const clamped = Math.min(10, Math.max(0, Math.round(nextMargin) || 0));
+    setReceiptMargin(clamped);
+    setSavingReceiptMargin(true);
+    try {
+      await updateBridgeSettings({ marginLeft: clamped });
+      setBridgeStatusMessage(`Margem esquerda do cupom ajustada para ${clamped} espaco(s).`);
+    } catch (error) {
+      console.error('Erro ao salvar margem do cupom no bridge', error);
+      setBridgeStatusMessage('Nao foi possivel salvar a margem do cupom no bridge local.');
+    } finally {
+      setSavingReceiptMargin(false);
+    }
+  }
+
+  async function handleBridgeEnabledToggle() {
+    const nextEnabled = !bridgeEnabled;
+    setBridgeEnabled(nextEnabled);
+    setSavingBridgeEnabled(true);
+    try {
+      await updateBridgeSettings({ bridgeEnabled: nextEnabled });
+      setBridgeStatusMessage(
+        nextEnabled
+          ? 'Bridge de impressao ativado. Pedidos voltam a sair automaticamente na impressora.'
+          : 'Bridge de impressao desativado. Nenhum pedido sera enviado pra impressora local ate reativar.'
+      );
+    } catch (error) {
+      console.error('Erro ao salvar ativacao do bridge', error);
+      setBridgeStatusMessage('Nao foi possivel salvar essa configuracao no bridge local.');
+      setBridgeEnabled(!nextEnabled);
+    } finally {
+      setSavingBridgeEnabled(false);
+    }
+  }
+
   const pendingOrders = useMemo(
     () => orders.filter(order => !isFinishedOrderStatus(order.status)),
     [orders]
@@ -818,9 +901,92 @@ export default function AdminOrdersPage() {
                   Ajuste se o cupom sair apertado ou com sobra de espaco na sua impressora (padrao: {RECEIPT_WIDTH_CHARS}).
                 </span>
               </div>
+
+              <label className="mt-3 block text-xs font-semibold text-slate-600 dark:text-zinc-400">
+                Margem esquerda do cupom
+              </label>
+              <div className="mt-2 flex items-center gap-2">
+                <input
+                  type="number"
+                  min={0}
+                  max={10}
+                  step={1}
+                  value={receiptMargin}
+                  onChange={event => setReceiptMargin(Number(event.target.value) || 0)}
+                  onBlur={event => void handleReceiptMarginChange(Number(event.target.value))}
+                  disabled={savingReceiptMargin}
+                  className="h-10 w-24 rounded-xl border border-blue-200 bg-white px-3 text-sm text-slate-900 outline-none disabled:opacity-60 dark:border-zinc-700 dark:bg-zinc-950 dark:text-zinc-100"
+                />
+                <span className="text-xs text-slate-500 dark:text-zinc-400">
+                  Espacos extras a esquerda de cada linha, caso a impressora corte o inicio do texto.
+                </span>
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setPreviewOpen(true)}
+                  className="h-10 rounded-xl border border-blue-200 px-4 text-sm font-semibold text-blue-700 hover:bg-blue-50 dark:border-zinc-700 dark:text-blue-400 dark:hover:bg-zinc-800"
+                >
+                  Pre-visualizar impressao
+                </button>
+                <button
+                  type="button"
+                  onClick={() => void handleBridgeEnabledToggle()}
+                  disabled={savingBridgeEnabled}
+                  className={`h-10 rounded-xl px-4 text-sm font-semibold disabled:opacity-60 ${
+                    bridgeEnabled
+                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/10 dark:text-emerald-400'
+                      : 'bg-red-100 text-red-800 dark:bg-red-500/10 dark:text-red-400'
+                  }`}
+                >
+                  {bridgeEnabled ? 'Bridge ativado' : 'Bridge desativado'}
+                </button>
+              </div>
+              <p className="mt-1 text-xs text-slate-500 dark:text-zinc-400">
+                Confira a pre-visualizacao e ajuste largura/margem antes de ativar o bridge, pra garantir que os
+                pedidos vao sair certinho na impressora sem precisar de teste fisico.
+              </p>
             </div>
           </div>
         </section>
+
+        {previewOpen && (
+          <>
+            <div className="fixed inset-0 z-40 bg-black/60" onClick={() => setPreviewOpen(false)} />
+            <div className="fixed inset-x-0 bottom-0 z-50 mx-auto max-h-[85vh] max-w-md rounded-t-2xl border-t border-blue-100 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+              <div className="flex items-center justify-between border-b border-blue-100 px-4 py-3 dark:border-zinc-800">
+                <div>
+                  <div className="text-sm font-semibold text-slate-900 dark:text-white">
+                    Pre-visualizacao da impressao
+                  </div>
+                  <p className="text-[11px] text-slate-500 dark:text-zinc-400">
+                    Exatamente como o cupom vai sair, com a largura e a margem atuais.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPreviewOpen(false)}
+                  className="text-xs text-slate-500 dark:text-zinc-400"
+                >
+                  Fechar
+                </button>
+              </div>
+              <div className="max-h-[65vh] overflow-y-auto px-4 py-4">
+                <div className="mx-auto w-fit rounded bg-white p-3 shadow-inner ring-1 ring-slate-300">
+                  <pre className="whitespace-pre font-mono text-[11px] leading-[14px] text-black">
+                    {buildBridgeReceiptText(orders[0] || SAMPLE_PREVIEW_ORDER, receiptWidth, receiptMargin)}
+                  </pre>
+                </div>
+                {!orders[0] && (
+                  <p className="mt-3 text-center text-[11px] text-slate-500 dark:text-zinc-400">
+                    Nenhum pedido real ainda -- mostrando um cupom de exemplo com o mesmo formato.
+                  </p>
+                )}
+              </div>
+            </div>
+          </>
+        )}
 
         {loading ? (
           <div className="py-16 text-center text-slate-600 dark:text-zinc-500">Carregando pedidos...</div>

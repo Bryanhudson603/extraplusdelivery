@@ -145,12 +145,17 @@ http://127.0.0.1:39876
   texto usa uma fonte proporcional grande demais pra largura fisica da
   bobina, o que fazia o cupom sair quebrando quase a cada caractere.
 - O texto do cupom (`buildBridgeReceiptText`, em
-  `frontend/src/app/admin/orders/page.tsx`) e formatado para **32 colunas**,
-  valor seguro/compativel para bobina de 57/58mm na fonte padrao ESC/POS
-  (Font A). Nao e "57mm = 57 caracteres" — a quantidade de colunas depende
-  da fonte e do DPI da impressora, nao so da largura fisica do papel. Se a
-  impressora usada tiver uma fonte diferente e sobrar/faltar espaco,
-  ajuste a constante `RECEIPT_WIDTH_CHARS` nesse arquivo.
+  `frontend/src/app/admin/orders/page.tsx`) e formatado para **32 colunas**
+  por padrao, valor seguro/compativel para bobina de 57/58mm na fonte padrao
+  ESC/POS (Font A). Nao e "57mm = 57 caracteres" — a quantidade de colunas
+  depende da fonte e do DPI da impressora, nao so da largura fisica do
+  papel. **Largura, margem esquerda e ativar/desativar o bridge agora sao
+  configuraveis direto no painel** (tela de Pedidos do admin, seção
+  "Impressora do bridge") — inclui um botão "Pre-visualizar impressao" que
+  mostra exatamente como o cupom vai sair, com a largura/margem atuais,
+  antes de reativar a impressao automatica. Essas configuracoes ficam
+  salvas no bridge (`GET/PUT /settings`: `charactersPerLine`, `marginLeft`,
+  `bridgeEnabled`), nao precisa editar codigo.
 - Acentos sao removidos do texto antes de imprimir (`stripAccentsForPrint`)
   porque a impressao RAW nao passa pela conversao de codepage do Windows —
   sem isso, "ç"/"ã"/etc. poderiam sair como caracteres errados dependendo
