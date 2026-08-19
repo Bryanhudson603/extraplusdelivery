@@ -305,7 +305,17 @@ Frontend (Vercel):
 
 ## 14. ÚLTIMA TAREFA
 
-**Tarefa mais recente (topo desta seção):** usuário pediu, na tela de Pedidos do admin: (1) poder configurar margem de impressão e (2) pré-visualizar como o cupom vai sair antes de ativar a saída automática. No meio da tarefa, pediu também (3) uma opção de ativar/desativar o bridge.
+**Tarefa mais recente (topo desta seção):** usuário pediu (1) pedido mínimo de R$25 e (2) trocar o telefone exibido de `(82) 99310-7309` para `(82) 98843-0373`.
+
+Implementado (commit `f71e12e`):
+1. **Pedido mínimo R$25**: `PedidosService.criar()` (backend) bloqueia com `400 {code: 'PEDIDO_MINIMO'}` se o subtotal (soma dos itens, sem taxa de entrega) for menor que R$25 — mesmo padrão de `PEDIDOS_PAUSADOS`/`LOJA_FECHADA`. `checkout/page.tsx` replica a mesma checagem no cliente antes de enviar (evita round-trip desnecessário) e trata o código de erro caso escape pra o backend; também mostra um aviso "Faltam R$X para o pedido mínimo" sempre que o carrinho ainda não atingir o valor, direto na tela de checkout.
+2. **Telefone exibido**: só existia UM lugar com o número antigo — `frontend/src/lib/data.ts` (`store.phone`, usado como valor padrão do `StoreHeader` antes da API responder). O número do WhatsApp/PIX (`frontend/src/lib/contact.ts`, `WHATSAPP_NUMBER`/`PIX_KEY`/`PIX_KEY_DISPLAY`) **já estava correto** (`82988430373`) — não precisou mudar.
+
+**Verificação:** `npx tsc --noEmit` limpo no backend e no frontend. Não testado ao vivo.
+
+---
+
+**Histórico anterior (mesma seção, tarefa de margem/pré-visualização de impressão):** usuário pediu, na tela de Pedidos do admin: (1) poder configurar margem de impressão e (2) pré-visualizar como o cupom vai sair antes de ativar a saída automática. No meio da tarefa, pediu também (3) uma opção de ativar/desativar o bridge.
 
 Implementado (commit `77d8b54`), tudo na seção "Impressora do bridge" já existente na tela de Pedidos:
 1. **Margem esquerda** (0–10 espaços): campo numérico ao lado da largura já existente. `buildBridgeReceiptText()` ganhou um 3º parâmetro `margin` — reduz a largura útil (`width - margin`) e prefixa cada linha com os espaços da margem, mantendo tudo dentro da bobina.
@@ -503,6 +513,8 @@ Adicionado um jeito de verificar isso sem precisar imprimir nada: `GET /health` 
 39. `120f4cd` — fix: clienteId do pedido passa a vir do cookie de sessão, não só do corpo da requisição (causa raiz real do sumiço em "Meus Pedidos")
 40. `f672611` — docs: registra causa raiz real e fix definitivo do sumiço de pedidos do cliente
 41. `77d8b54` — feat: margem do cupom, pré-visualização de impressão e ativar/desativar bridge
+42. `9807987` — docs: registra margem de impressão, pré-visualização e toggle do bridge
+43. `f71e12e` — feat: pedido mínimo de R$25 e atualiza telefone exibido da loja
 
 Todos os commits foram enviados para `origin/main` no repositório GitHub oficial do projeto.
 
