@@ -57,6 +57,6 @@ export const banners: Banner[] = [
 export const store: StoreSettings = {
   name: 'Dil Bebidas',
   open: true,
-  phone: '(82) 99310-7309',
+  phone: '(82) 98843-0373',
   address: 'Rua das Bebidas, 123'
 };

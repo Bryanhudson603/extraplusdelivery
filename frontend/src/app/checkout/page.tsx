@@ -12,6 +12,8 @@ import { getDeliveryFeeFromAddress, parseClientAddress } from '@/lib/delivery';
 type TipoEntrega = 'delivery' | 'retirada';
 type FormaPagamento = 'pix' | 'cartao_entrega' | 'dinheiro';
 
+const PEDIDO_MINIMO_VALOR = 25;
+
 type PedidoResponse = {
   id: string;
   status: string;
@@ -81,6 +83,11 @@ export default function CheckoutPage() {
   async function handleConfirmar() {
     if (items.length === 0 || submitting) return;
 
+    if (subtotal < PEDIDO_MINIMO_VALOR) {
+      setErro(`O pedido mínimo é de R$ ${PEDIDO_MINIMO_VALOR.toFixed(2)}. Adicione mais itens ao carrinho.`);
+      return;
+    }
+
     const cupomDigitado = cupomCodigo.trim().toUpperCase();
     if (cupomDigitado && cupomAplicadoCodigo !== cupomDigitado) {
       setErro('Clique em aplicar cupom antes de finalizar o pedido.');
@@ -142,7 +149,9 @@ export default function CheckoutPage() {
           ? (e.payload as { code?: unknown }).code
           : undefined;
 
-      if (codigoErro === 'PEDIDOS_PAUSADOS') {
+      if (codigoErro === 'PEDIDO_MINIMO') {
+        setErro(`O pedido mínimo é de R$ ${PEDIDO_MINIMO_VALOR.toFixed(2)}. Adicione mais itens ao carrinho.`);
+      } else if (codigoErro === 'PEDIDOS_PAUSADOS') {
         setErro('Estamos com o recebimento de pedidos pausado no momento. Voltamos em breve!');
       } else if (codigoErro === 'LOJA_FECHADA') {
         setErro('A loja está fechada no momento. Confira nosso horário de funcionamento.');
@@ -452,6 +461,12 @@ export default function CheckoutPage() {
 
         <section className="bg-white border border-blue-100 dark:bg-zinc-900 dark:border-zinc-800 rounded-2xl p-4 space-y-2">
           <h2 className="text-sm font-semibold text-slate-900 dark:text-white">Total do pedido</h2>
+          {subtotal < PEDIDO_MINIMO_VALOR && (
+            <div className="rounded-lg bg-amber-50 dark:bg-amber-950/30 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
+              Faltam R$ {(PEDIDO_MINIMO_VALOR - subtotal).toFixed(2)} para o pedido mínimo de R${' '}
+              {PEDIDO_MINIMO_VALOR.toFixed(2)}.
+            </div>
+          )}
           <div className="space-y-1 text-sm text-slate-600 dark:text-zinc-400">
             <div className="flex items-center justify-between">
               <span>Subtotal</span>

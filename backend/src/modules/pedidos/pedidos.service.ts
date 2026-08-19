@@ -17,6 +17,8 @@ import { PedidoRepository } from '../../repositories/pedido.repository';
 import { ProdutoRepository } from '../../repositories/produto.repository';
 import type { CriarPedidoDto, FormaPagamento, PedidoResponse, TipoEntrega, ValidarCupomDto } from './pedidos.dto';
 
+const PEDIDO_MINIMO_VALOR = 25;
+
 @Injectable()
 export class PedidosService {
   constructor(
@@ -189,6 +191,14 @@ export class PedidosService {
     }
 
     const subtotal = (body.itens || []).reduce((sum, it) => sum + it.unitPrice * it.quantity, 0);
+
+    if (subtotal < PEDIDO_MINIMO_VALOR) {
+      throw new BadRequestException({
+        code: 'PEDIDO_MINIMO',
+        message: `O pedido mínimo é de R$ ${PEDIDO_MINIMO_VALOR.toFixed(2)}. Adicione mais itens ao carrinho.`
+      });
+    }
+
     const taxaEntregaCalculada = getNeighborhoodDeliveryFee(body.clienteEndereco, body.tipoEntrega);
     const taxaEntregaInformada = typeof body.taxaEntrega === 'number' ? Number(body.taxaEntrega) : taxaEntregaCalculada;
     const taxaEntrega = Math.max(taxaEntregaCalculada, taxaEntregaInformada);
