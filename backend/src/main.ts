@@ -3,6 +3,8 @@ import { RequestMethod, ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { getDatabaseConfigError } from './config/database.config';
 
+// commit de teste: forca novo deploy no Render pra capturar o erro real de start
+
 function expandAllowedOrigins(rawOrigins: string[]): string[] {
   const expanded = new Set<string>();
 
